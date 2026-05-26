@@ -13,6 +13,9 @@ import care.heron.api.repository.BookingRepository;
 import care.heron.api.repository.DoctorProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -56,6 +59,23 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final DoctorProfileRepository doctorProfileRepository;
     private final Clock clock;
+
+    public Page<Booking> listForPatient(String patientUserId, Pageable pageable) {
+        return bookingRepository.findByPatientUserIdOrderByStartsAtDesc(patientUserId, pageable);
+    }
+
+    // Ownership check is layer 2 of authz: role gating happens upstream
+    // (@PreAuthorize), but only the patient who booked it and the doctor
+    // who'll see them may read a specific booking.
+    public Booking getByIdForCaller(String bookingId, String callerUserId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        if (!Objects.equals(booking.getPatientUserId(), callerUserId)
+                && !Objects.equals(booking.getDoctorUserId(), callerUserId)) {
+            throw new AccessDeniedException("You can only view your own bookings.");
+        }
+        return booking;
+    }
 
     public Booking create(CreateBookingCommand command) {
         String bodyHash = canonicalBodyHash(command);

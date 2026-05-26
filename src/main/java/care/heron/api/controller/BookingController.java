@@ -4,6 +4,7 @@ import care.heron.api.document.Booking;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.dto.booking.BookingResponse;
 import care.heron.api.dto.booking.CreateBookingRequest;
+import care.heron.api.dto.common.PageResponse;
 import care.heron.api.exception.SlotTakenException;
 import care.heron.api.repository.DoctorProfileRepository;
 import care.heron.api.service.BookingService;
@@ -13,6 +14,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -21,6 +25,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -50,6 +56,27 @@ public class BookingController {
     private final SlotService slotService;
     private final DoctorProfileRepository doctorProfileRepository;
     private final Clock clock;
+
+    // Patient's own booking history. Pagination defaults to 20-per-page,
+    // most-recent first via the helper index on (patientUserId, startsAt desc).
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('PATIENT')")
+    public PageResponse<BookingResponse> listMine(
+            @AuthenticationPrincipal String patientUserId,
+            @PageableDefault(size = 20, sort = "startsAt") Pageable pageable) {
+        Page<Booking> page = bookingService.listForPatient(patientUserId, pageable);
+        return PageResponse.from(page.map(BookingResponse::from));
+    }
+
+    // Single booking — either party can read it. Service layer enforces the
+    // ownership check; @PreAuthorize allows both roles through to that gate.
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PATIENT','DOCTOR')")
+    public BookingResponse get(
+            @AuthenticationPrincipal String callerUserId,
+            @PathVariable String id) {
+        return BookingResponse.from(bookingService.getByIdForCaller(id, callerUserId));
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('PATIENT')")
