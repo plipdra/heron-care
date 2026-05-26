@@ -8,9 +8,10 @@
 
 Requires Docker + Docker Compose v2.
 
+1. Create a `.env` file in the project root with the keys listed in [Configuration](#configuration).
+2. Run:
+
 ```bash
-cp .env.example .env
-# Edit .env — generate JWT_SECRET with:  openssl rand -base64 48
 docker compose up --build
 ```
 
@@ -31,6 +32,23 @@ docker compose up --build
 | Real-time | Server-Sent Events (Spring `SseEmitter`) |
 | AI recommendation | Spring AI (OpenAI starter → Google Gemini compat endpoint) |
 | Deploy | Docker Compose (dev) / Render Blueprint (prod) |
+
+## Configuration
+
+The application reads its configuration from environment variables. Create a `.env` file in the project root for local Docker Compose runs; in production the same keys come from the platform's secret manager (Render's environment settings), never from a committed file.
+
+| Variable | Purpose |
+|---|---|
+| `MONGO_INITDB_ROOT_USERNAME` | Mongo root username — local dev only (production uses Mongo Atlas) |
+| `MONGO_INITDB_ROOT_PASSWORD` | Mongo root password — local dev only |
+| `MONGO_URI` | Mongo connection string. Local: `mongodb://<user>:<pass>@mongo:27017/heron?authSource=admin`. Production: Atlas cluster connection string. |
+| `JWT_SECRET` | Symmetric signing key for JWT access + refresh tokens. **Generate with `openssl rand -base64 48`.** Must decode to at least 256 bits. |
+| `JWT_ACCESS_TTL_MIN` | Access token lifetime in minutes. Default: `15`. |
+| `JWT_REFRESH_TTL_DAYS` | Refresh token lifetime in days. Default: `7`. |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed frontend origins. Local: `http://localhost:5173`. |
+| `GEMINI_API_KEY` | Google Gemini API key for AI recommendation (Spring AI via OpenAI-compatible endpoint). Free tier at `aistudio.google.com`. |
+| `VITE_API_BASE_URL` | Frontend build-time backend base URL. Local: `http://localhost:8080`. |
+| `SPRING_PROFILES_ACTIVE` | Spring profile. Default: `prod`. Use `dev` for verbose logging. |
 
 ## Design principles
 
