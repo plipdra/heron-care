@@ -60,7 +60,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .anyRequest().authenticated())
+                        // Everything else under /api or /actuator stays authenticated.
+                        .requestMatchers("/api/**", "/actuator/**").authenticated()
+                        // SPA routes + static assets are public. SpaForwardController
+                        // forwards unknown paths to /index.html for BrowserRouter.
+                        .anyRequest().permitAll())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> writeProblem(req, res,
                                 HttpStatus.UNAUTHORIZED, "Authentication required",

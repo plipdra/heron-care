@@ -11,6 +11,7 @@ import care.heron.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +19,11 @@ import org.springframework.stereotype.Component;
 // immediately. Idempotent — only runs when the users collection is empty.
 // Demo password is documented in the README; these accounts exist for evaluator
 // login, not production users.
+//
+// @Order(2) so this runs after DatabaseInitializer (@Order(1)) — the unique
+// index on users.email must exist before we insert.
 @Component
+@Order(2)
 @RequiredArgsConstructor
 @Slf4j
 public class SeedRunner implements CommandLineRunner {
