@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/shared/Avatar';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { useDoctor } from './api';
 
@@ -37,17 +38,20 @@ export function DoctorProfilePage() {
         ← Back to all doctors
       </Link>
 
-      <header className="mt-6">
-        <h1 className="text-4xl font-semibold tracking-tight">{data.name}</h1>
-        {data.specializationLabel && (
-          <Badge className="mt-3">{data.specializationLabel}</Badge>
-        )}
-        {data.yearsOfExperience !== null &&
-          data.yearsOfExperience !== undefined && (
-            <p className="mt-3 text-sm text-ink-muted tabular">
-              {data.yearsOfExperience} years of experience
-            </p>
+      <header className="mt-6 flex items-start gap-5">
+        <Avatar name={data.name} size={80} />
+        <div className="flex-1">
+          <h1 className="text-4xl font-semibold tracking-tight">{data.name}</h1>
+          {data.specializationLabel && (
+            <Badge className="mt-3">{data.specializationLabel}</Badge>
           )}
+          {data.yearsOfExperience !== null &&
+            data.yearsOfExperience !== undefined && (
+              <p className="mt-3 text-sm text-ink-muted tabular">
+                {data.yearsOfExperience} years of experience
+              </p>
+            )}
+        </div>
       </header>
 
       {data.bio && (
