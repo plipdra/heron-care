@@ -9,6 +9,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.index.PartialIndexFilter;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -42,7 +43,48 @@ public class DatabaseInitializer implements CommandLineRunner {
                 new Index().on("userId", Direction.ASC).unique().named("patient_profiles_userId_unique"));
         ensureIndex("profile_pictures",
                 new Index().on("userId", Direction.ASC).unique().named("profile_pictures_userId_unique"));
+
+        // Booking conflict prevention. The partial filter scopes uniqueness to
+        // CONFIRMED rows so a CANCELLED booking doesn't block re-booking the
+        // same slot. Annotation-only @CompoundIndex would silently no-op
+        // unless auto-index-creation is on; ensuring it here is the canonical
+        // path.
+        ensureIndex("bookings",
+                new Index().on("doctorUserId", Direction.ASC).on("startsAt", Direction.ASC)
+                        .partial(PartialIndexFilter.of(Criteria.where("status").is("CONFIRMED")))
+                        .unique()
+                        .named("bookings_doctor_startsAt_confirmed_unique"));
+
+        // Idempotency. Sparse so bookings created without a key (none in the
+        // current code path, but defensive) don't collide on null.
+        ensureIndex("bookings",
+                new Index().on("patientUserId", Direction.ASC).on("idempotencyKey", Direction.ASC)
+                        .sparse()
+                        .unique()
+                        .named("bookings_patient_idempotencyKey_unique"));
+
+        // Patient's booking-history list view.
+        ensureIndex("bookings",
+                new Index().on("patientUserId", Direction.ASC).on("startsAt", Direction.DESC)
+                        .named("bookings_patient_startsAt"));
+
+        // Slot-derivation: subtract existing bookings for a doctor in a window.
+        ensureIndex("bookings",
+                new Index().on("doctorUserId", Direction.ASC).on("status", Direction.ASC).on("startsAt", Direction.ASC)
+                        .named("bookings_doctor_status_startsAt"));
+
         log.info("[db] indexes verified");
+
+        // Post-startup smoke check: confirm the partial index actually exists.
+        // Spring's @CompoundIndex annotation silently no-ops without
+        // auto-index-creation enabled — IndexOperations is the only path that
+        // guarantees the constraint. Throw loud if the index is missing.
+        boolean hasConflictIndex = mongoTemplate.indexOps("bookings").getIndexInfo().stream()
+                .anyMatch(info -> info.getName().equals("bookings_doctor_startsAt_confirmed_unique"));
+        if (!hasConflictIndex) {
+            throw new IllegalStateException(
+                    "bookings_doctor_startsAt_confirmed_unique index missing — booking conflict detection is broken.");
+        }
 
         // One-shot cleanup of legacy profilePicturePath field. Was on PatientProfile
         // and DoctorProfile before the picture move to a dedicated collection.
