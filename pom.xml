@@ -24,6 +24,11 @@
         <springdoc.version>2.6.0</springdoc.version>
         <frontend.plugin.version>1.15.1</frontend.plugin.version>
         <node.version>v22.11.0</node.version>
+        <!-- Set -Dskip.frontend.plugin=true on local mvn runs so spring-boot:run
+             does not fight the Vite dev server for the esbuild file lock. The
+             prod build (mvn package) leaves this false so the jar bundles the
+             compiled frontend. -->
+        <skip.frontend.plugin>false</skip.frontend.plugin>
     </properties>
 
     <dependencies>
@@ -138,6 +143,9 @@
                         <id>install node and npm</id>
                         <goals><goal>install-node-and-npm</goal></goals>
                         <phase>generate-resources</phase>
+                        <configuration>
+                            <skip>${skip.frontend.plugin}</skip>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>npm ci</id>
@@ -145,6 +153,7 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <arguments>ci</arguments>
+                            <skip>${skip.frontend.plugin}</skip>
                         </configuration>
                     </execution>
                     <execution>
@@ -153,6 +162,7 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <arguments>run build</arguments>
+                            <skip>${skip.frontend.plugin}</skip>
                         </configuration>
                     </execution>
                 </executions>
