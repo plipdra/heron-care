@@ -1,0 +1,14 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/heron
+
+logging:
+  level:
+    care.heron.api: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+
+heron:
+  cors:
+    allowed-origins: http://localhost:5173

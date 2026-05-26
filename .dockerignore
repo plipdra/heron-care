@@ -1,0 +1,16 @@
+target/
+.idea/
+.vscode/
+frontend/
+node_modules/
+.env
+.env.*
+*.log
+README.md
+LICENSE
+.gitignore
+.dockerignore
+.git/
+docs/
+notes/
+scratch/

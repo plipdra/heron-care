@@ -1,0 +1,71 @@
+# === Security — never commit ===
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+*.pem
+*.key
+*.p12
+*.keystore
+secrets/
+
+# === Runtime data (mounted Docker volume) ===
+uploads/
+
+# === Private strategy docs (panel-facing content lives in README) ===
+R1-WORKFLOW.md
+R1-PLAN.md
+SPECS.md
+BRAND.md
+GIT.md
+
+# === Claude session state + agent memory ===
+.claude/
+**/.claude/
+memory/
+**/memory/
+
+# === Research / scratch ===
+docs/research/
+notes/
+scratch/
+
+# === Brand source assets at root (publishable copies live in frontend/public/brand/) ===
+/*.svg
+
+# === Java / Maven ===
+target/
+*.class
+*.jar
+*.war
+*.iml
+.idea/
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+# === Node / Vite / React ===
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+.eslintcache
+.npm/
+
+# === Logs ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Coverage ===
+coverage/
+*.lcov
+
+# === OS / Editor ===
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+*.swo
