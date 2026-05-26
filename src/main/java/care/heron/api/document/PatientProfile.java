@@ -29,13 +29,16 @@ public class PatientProfile {
 
     private String name;
 
-    // Populated by the patient profile editor (Day 1.5 / Day 2). All optional;
-    // patients fill progressively. Profile picture lives in a separate
-    // collection (see ProfilePicture) so list responses never accidentally
-    // ship picture bytes.
+    // Populated by the patient profile editor. All optional; patients fill
+    // progressively. Profile picture lives in a separate collection (see
+    // ProfilePicture) so list responses never accidentally ship picture
+    // bytes. "Contact Details" per spec is a single phone number — address
+    // is out of scope for a telehealth MVP.
     private LocalDate birthday;
     private Double weightKg;
     private Double heightCm;
+    private String contactNumber;
+    private String medicalHistory;
 
     @CreatedDate
     private Instant createdAt;
