@@ -57,12 +57,14 @@ function HeaderNav() {
 
   return (
     <>
-      <Link
-        to="/doctors"
-        className="text-sm font-medium text-ink hover:text-primary"
-      >
-        Browse doctors
-      </Link>
+      {user?.role !== 'DOCTOR' && (
+        <Link
+          to="/doctors"
+          className="text-sm font-medium text-ink hover:text-primary"
+        >
+          Browse doctors
+        </Link>
+      )}
       {user ? (
         <>
           <Link
