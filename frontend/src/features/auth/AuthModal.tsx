@@ -35,6 +35,11 @@ const INTENT_COPY: Record<AuthIntent, { title: string; description: string }> = 
   },
 };
 
+const REGISTER_COPY = {
+  title: 'Create a Heron account',
+  description: 'Tell us about yourself.',
+};
+
 export function AuthModal() {
   const {
     isAuthModalOpen,
@@ -46,7 +51,12 @@ export function AuthModal() {
   } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
 
-  const copy = authModalIntent ? INTENT_COPY[authModalIntent] : INTENT_COPY.general;
+  const copy =
+    mode === 'register'
+      ? REGISTER_COPY
+      : authModalIntent
+        ? INTENT_COPY[authModalIntent]
+        : INTENT_COPY.general;
 
   return (
     <Dialog open={isAuthModalOpen} onOpenChange={(open) => !open && closeAuthModal()}>
