@@ -2,13 +2,72 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Care, watched closely." />
-    <title>Heron</title>
+    <title>Heron — Care, watched closely.</title>
+    <meta
+      name="description"
+      content="Find a doctor in minutes. Telehealth, considered."
+    />
+    <meta name="theme-color" content="#023A78" />
+    <link rel="canonical" href="https://heron.technology-keyan.com/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/brand/heron.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Heron" />
+    <meta property="og:title" content="Heron — Care, watched closely." />
+    <meta
+      property="og:description"
+      content="Find a doctor in minutes. Telehealth, considered."
+    />
+    <meta property="og:url" content="https://heron.technology-keyan.com/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Heron — Care, watched closely." />
+    <meta
+      name="twitter:description"
+      content="Find a doctor in minutes. Telehealth, considered."
+    />
+    <style>
+      /* Pre-hydration boot screen. React replaces #root contents on mount;
+         this is what cold-start visitors see before the JS bundle loads. */
+      .heron-boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        background: #ffffff;
+        color: #023a78;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+      .heron-boot img {
+        width: 48px;
+        height: 48px;
+        animation: heron-spin 1.6s linear infinite;
+      }
+      .heron-boot span {
+        font-size: 1.125rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      @keyframes heron-spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="heron-boot">
+        <img src="/brand/crescent-blue.svg" alt="" />
+        <span>Heron</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
