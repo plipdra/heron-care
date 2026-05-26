@@ -59,6 +59,14 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "Invalid profile picture", ex.getMessage());
     }
 
+    @ExceptionHandler(IdempotencyKeyReusedException.class)
+    public ProblemDetail handleIdempotencyReused(IdempotencyKeyReusedException ex) {
+        ProblemDetail p = problem(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Idempotency key reused", ex.getMessage());
+        p.setType(java.net.URI.create("https://heron.care/errors/idempotency-key-reused"));
+        return p;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", ex.getMessage());
