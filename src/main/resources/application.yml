@@ -4,6 +4,10 @@ spring:
   data:
     mongodb:
       uri: ${MONGO_URI:mongodb://localhost:27017/heron}
+      # Pinning the database name explicitly. Atlas's default connection string
+      # has no database segment ("…mongodb.net/?appName=Heron"), which would
+      # land Spring on the `test` database; this property overrides that.
+      database: heron
       auto-index-creation: false
   servlet:
     multipart:
