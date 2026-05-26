@@ -92,6 +92,23 @@
 
     <build>
         <plugins>
+            <!-- JDK 22+ defaults annotation processing to a restricted mode that does not
+                 discover processors from the regular classpath. Declaring Lombok explicitly
+                 keeps the build working on local JDK 23 setups while the Docker image runs
+                 on JDK 21. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
