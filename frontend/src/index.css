@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #023A78;
+  --primary-hover: #012A5A;
+  --primary-tint: #E6EDF5;
+  --primary-foreground: #FFFFFF;
+  --accent: #D4A574;
+  --accent-foreground: #1A1A1A;
+  --surface: #FFFFFF;
+  --bg: #F7F9FC;
+  --ink: #1A1A1A;
+  --ink-muted: #6B7280;
+  --line: #E5E7EB;
+  --success: #7B9B7E;
+  --warning: #C77D52;
+  --danger: #B84545;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3 {
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Tabular numerals for vitals, dosages, dates — BRAND.md §6. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
