@@ -8,7 +8,7 @@ export type PublicDoctor = {
   bio: string | null;
   specialization: Specialization;
   specializationLabel: string | null;
-  profilePicturePath: string | null;
+  profilePictureUrl: string;
   yearsOfExperience: number | null;
 };
 

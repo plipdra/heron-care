@@ -7,6 +7,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 // Ensures required indexes exist on startup. The local docker-compose mongo
@@ -33,7 +35,23 @@ public class DatabaseInitializer implements CommandLineRunner {
                 new Index().on("specialization", Direction.ASC).named("doctor_profiles_specialization"));
         ensureIndex("patient_profiles",
                 new Index().on("userId", Direction.ASC).unique().named("patient_profiles_userId_unique"));
+        ensureIndex("profile_pictures",
+                new Index().on("userId", Direction.ASC).unique().named("profile_pictures_userId_unique"));
         log.info("[db] indexes verified");
+
+        // One-shot cleanup of legacy profilePicturePath field. Was on PatientProfile
+        // and DoctorProfile before the picture move to a dedicated collection.
+        // Idempotent: $unset is a no-op when the field is absent.
+        long doctorsCleaned = mongoTemplate.updateMulti(
+                new Query(), new Update().unset("profilePicturePath"), "doctor_profiles")
+                .getModifiedCount();
+        long patientsCleaned = mongoTemplate.updateMulti(
+                new Query(), new Update().unset("profilePicturePath"), "patient_profiles")
+                .getModifiedCount();
+        if (doctorsCleaned > 0 || patientsCleaned > 0) {
+            log.info("[db] unset legacy profilePicturePath on {} doctor + {} patient docs",
+                    doctorsCleaned, patientsCleaned);
+        }
     }
 
     private void ensureIndex(String collection, Index index) {

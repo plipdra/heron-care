@@ -33,8 +33,6 @@ public class DoctorProfile {
 
     private Specialization specialization;
 
-    private String profilePicturePath;
-
     private String defaultMeetingLink;
 
     private Integer yearsOfExperience;

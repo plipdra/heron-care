@@ -12,7 +12,7 @@ public record DoctorProfileResponse(
         String bio,
         Specialization specialization,
         String specializationLabel,
-        String profilePicturePath,
+        String profilePictureUrl,
         String defaultMeetingLink,
         Integer yearsOfExperience
 ) {
@@ -26,7 +26,7 @@ public record DoctorProfileResponse(
                 profile.getSpecialization() != null
                         ? profile.getSpecialization().displayName()
                         : null,
-                profile.getProfilePicturePath(),
+                "/api/profile-pictures/" + profile.getUserId(),
                 profile.getDefaultMeetingLink(),
                 profile.getYearsOfExperience());
     }

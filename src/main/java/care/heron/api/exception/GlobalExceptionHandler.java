@@ -54,6 +54,11 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.CONFLICT, "Email already registered", ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidProfilePictureException.class)
+    public ProblemDetail handleInvalidProfilePicture(InvalidProfilePictureException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid profile picture", ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", ex.getMessage());

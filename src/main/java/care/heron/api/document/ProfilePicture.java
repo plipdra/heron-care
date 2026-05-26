@@ -12,30 +12,28 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
-import java.time.LocalDate;
 
-@Document("patient_profiles")
+// Stored separately from PatientProfile / DoctorProfile so list endpoints
+// (e.g., paginated doctor discovery) never accidentally ship picture bytes.
+// The byte-serving endpoint reads from here directly; profile JSON exposes
+// a derived URL only.
+@Document("profile_pictures")
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PatientProfile {
+public class ProfilePicture {
 
     @Id
     private String id;
 
+    // Unique per user — see DatabaseInitializer.
     private String userId;
 
-    private String name;
+    private byte[] data;
 
-    // Populated by the patient profile editor (Day 1.5 / Day 2). All optional;
-    // patients fill progressively. Profile picture lives in a separate
-    // collection (see ProfilePicture) so list responses never accidentally
-    // ship picture bytes.
-    private LocalDate birthday;
-    private Double weightKg;
-    private Double heightCm;
+    private String contentType;
 
     @CreatedDate
     private Instant createdAt;
