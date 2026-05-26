@@ -1,5 +1,7 @@
 package care.heron.api.service;
 
+import care.heron.api.document.Availability;
+import care.heron.api.document.DoctorProfile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -7,9 +9,12 @@ import org.springframework.core.annotation.Order;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 // Ensures required indexes exist on startup. The local docker-compose mongo
 // container also runs db/init/*.js which creates collections with $jsonSchema
@@ -51,6 +56,20 @@ public class DatabaseInitializer implements CommandLineRunner {
         if (doctorsCleaned > 0 || patientsCleaned > 0) {
             log.info("[db] unset legacy profilePicturePath on {} doctor + {} patient docs",
                     doctorsCleaned, patientsCleaned);
+        }
+
+        // Backfill default availability on doctors that pre-date the schedule
+        // schema. Idempotent — only applies to docs missing the field.
+        List<DoctorProfile> needingAvailability = mongoTemplate.find(
+                new Query(Criteria.where("availability").exists(false)),
+                DoctorProfile.class);
+        if (!needingAvailability.isEmpty()) {
+            for (DoctorProfile profile : needingAvailability) {
+                profile.setAvailability(Availability.defaultBusinessHours());
+                mongoTemplate.save(profile);
+            }
+            log.info("[db] backfilled default availability on {} doctor profiles",
+                    needingAvailability.size());
         }
     }
 

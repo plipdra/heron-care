@@ -1,5 +1,6 @@
 package care.heron.api.service;
 
+import care.heron.api.document.Availability;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.PatientProfile;
 import care.heron.api.document.User;
@@ -95,6 +96,7 @@ public class SeedRunner implements CommandLineRunner {
                 .specialization(specialization)
                 .bio(bio)
                 .yearsOfExperience(years)
+                .availability(Availability.defaultBusinessHours())
                 .build());
     }
 }

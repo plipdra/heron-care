@@ -37,6 +37,11 @@ public class DoctorProfile {
 
     private Integer yearsOfExperience;
 
+    // Embedded — schedule rules and blocked ranges live with the doctor
+    // because they don't have independent lifecycle. Slot listing reads
+    // this and derives available 30-min slots on the fly.
+    private Availability availability;
+
     @CreatedDate
     private Instant createdAt;
 
