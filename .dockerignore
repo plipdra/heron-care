@@ -1,8 +1,11 @@
 target/
 .idea/
 .vscode/
-frontend/
 node_modules/
+# Frontend source is needed for the combined jar build; dev artifacts are not.
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
 .env
 .env.*
 *.log
