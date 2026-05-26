@@ -124,7 +124,7 @@ export function DoctorsListPage() {
           <section className="mt-10">
             {isPending && (
               <div className="flex justify-center py-12">
-                <CrescentSpinner size={32} />
+                <CrescentSpinner size={64} />
               </div>
             )}
 

@@ -13,7 +13,7 @@ export function DoctorProfilePage() {
   if (isPending) {
     return (
       <main className="container mx-auto flex justify-center px-4 py-20">
-        <CrescentSpinner size={32} />
+        <CrescentSpinner size={64} />
       </main>
     );
   }
