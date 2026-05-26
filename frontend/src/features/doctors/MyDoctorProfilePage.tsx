@@ -1,5 +1,4 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -13,29 +12,19 @@ import { Button } from '@/components/ui/button';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/features/auth/AuthContext';
+import { MyPatientProfilePage } from '@/features/patient/MyPatientProfilePage';
 import { SPECIALIZATIONS } from './specializations';
 import { useMyDoctorProfile, useUpdateMyDoctorProfile } from './api';
 
+// Acts as the role router for /profile. Doctors see the editor below;
+// patients see MyPatientProfilePage. Renaming this file to MyProfilePage
+// is a planned cleanup — the doctor-only name dates from before patients
+// had their own editor surface.
 export function MyDoctorProfilePage() {
   const { user } = useAuth();
 
   if (user?.role === 'PATIENT') {
-    return (
-      <main className="container mx-auto max-w-2xl px-4 py-16">
-        <div className="rounded-lg border border-line bg-surface p-10 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            You're signed in.
-          </h1>
-          <p className="mt-2 text-ink-muted">
-            Browse doctors to find care. Your profile editor lands with the
-            booking flow this week.
-          </p>
-          <Button asChild className="mt-6">
-            <Link to="/doctors">Browse doctors</Link>
-          </Button>
-        </div>
-      </main>
-    );
+    return <MyPatientProfilePage />;
   }
 
   return <DoctorProfileEditor />;
