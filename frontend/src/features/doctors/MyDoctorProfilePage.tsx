@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -20,14 +21,19 @@ export function MyDoctorProfilePage() {
 
   if (user?.role === 'PATIENT') {
     return (
-      <main className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Patient profile coming soon
-        </h1>
-        <p className="mt-2 text-ink-muted">
-          The patient profile editor ships in the next iteration with medical
-          history fields.
-        </p>
+      <main className="container mx-auto max-w-2xl px-4 py-16">
+        <div className="rounded-lg border border-line bg-surface p-10 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            You're signed in.
+          </h1>
+          <p className="mt-2 text-ink-muted">
+            Browse doctors to find care. Your profile editor lands with the
+            booking flow this week.
+          </p>
+          <Button asChild className="mt-6">
+            <Link to="/doctors">Browse doctors</Link>
+          </Button>
+        </div>
       </main>
     );
   }
