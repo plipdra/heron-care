@@ -52,12 +52,14 @@ function PatientContextDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Avatar name={booking.patientName ?? '?'} size={48} />
+          <div className="flex items-center gap-3">
+            <Avatar name={booking.patientName ?? '?'} size={48} />
+            <div>
               <DialogTitle>{booking.patientName ?? 'Patient'}</DialogTitle>
+              <div className="mt-1">
+                <StatusPill status={status} />
+              </div>
             </div>
-            <StatusPill status={status} />
           </div>
           <DialogDescription>
             <span className="tabular text-ink">{formatFullDateTime(booking.startsAt)}</span>
@@ -120,11 +122,11 @@ function PatientContextDialog({
                 />
                 <Field
                   label="Weight"
-                  value={context.weightKg !== null ? `${context.weightKg} kg` : null}
+                  value={context.weightKg != null ? `${context.weightKg} kg` : null}
                 />
                 <Field
                   label="Height"
-                  value={context.heightCm !== null ? `${context.heightCm} cm` : null}
+                  value={context.heightCm != null ? `${context.heightCm} cm` : null}
                 />
                 <div>
                   <p className="text-xs font-medium text-ink-muted">Contact</p>

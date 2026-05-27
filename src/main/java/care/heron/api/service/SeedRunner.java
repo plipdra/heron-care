@@ -16,6 +16,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 // Seeds demo accounts on first startup so the deployed URL has browseable data
@@ -44,6 +45,19 @@ public class SeedRunner implements CommandLineRunner {
             "dr.cruz@heron.care", "https://meet.google.com/zod-fhqe-mns",
             "dr.garcia@heron.care", "https://meet.google.com/uak-rbwp-tje");
 
+    // Demo patient profile details so the doctor's patient-context view shows
+    // realistic content out of the box (fake data — illustrative only).
+    private static final String DEMO_PATIENT_EMAIL = "patient.demo@heron.care";
+    private static final LocalDate DEMO_PATIENT_BIRTHDAY = LocalDate.of(1991, 3, 12);
+    private static final double DEMO_PATIENT_WEIGHT_KG = 68.0;
+    private static final double DEMO_PATIENT_HEIGHT_CM = 172.0;
+    private static final String DEMO_PATIENT_CONTACT = "+63 917 555 1234";
+    private static final String DEMO_PATIENT_HISTORY =
+            "Hypertension diagnosed 2022, managed with losartan 50mg daily. "
+            + "Mild seasonal asthma (salbutamol inhaler as needed). "
+            + "No known drug allergies. Non-smoker. "
+            + "Family history: father had a myocardial infarction at 58.";
+
     private final UserRepository userRepository;
     private final PatientProfileRepository patientProfileRepository;
     private final DoctorProfileRepository doctorProfileRepository;
@@ -54,10 +68,11 @@ public class SeedRunner implements CommandLineRunner {
         if (userRepository.count() > 0) {
             log.info("[seed] users collection not empty, skipping account seed");
             backfillMeetingLinks();
+            backfillDemoPatient();
             return;
         }
         log.info("[seed] seeding demo accounts");
-        seedPatient("patient.demo@heron.care", "Demo Patient");
+        seedPatient(DEMO_PATIENT_EMAIL, "Demo Patient");
         seedDoctor("dr.reyes@heron.care", "Maria Reyes, MD",
                 Specialization.CARDIOLOGY,
                 "Board-certified cardiologist with 12 years' experience in preventive care and arrhythmia management.",
@@ -94,6 +109,11 @@ public class SeedRunner implements CommandLineRunner {
         patientProfileRepository.save(PatientProfile.builder()
                 .userId(user.getId())
                 .name(name)
+                .birthday(DEMO_PATIENT_BIRTHDAY)
+                .weightKg(DEMO_PATIENT_WEIGHT_KG)
+                .heightCm(DEMO_PATIENT_HEIGHT_CM)
+                .contactNumber(DEMO_PATIENT_CONTACT)
+                .medicalHistory(DEMO_PATIENT_HISTORY)
                 .build());
     }
 
@@ -139,5 +159,23 @@ public class SeedRunner implements CommandLineRunner {
         if (updated > 0) {
             log.info("[seed] backfilled meeting links for {} doctor(s)", updated);
         }
+    }
+
+    // Populates the Demo Patient profile (seeded before it carried demo details)
+    // so the doctor's patient-context view shows real content. Idempotent: only
+    // fills when the medical history is still blank.
+    private void backfillDemoPatient() {
+        userRepository.findByEmail(DEMO_PATIENT_EMAIL)
+                .flatMap(user -> patientProfileRepository.findByUserId(user.getId()))
+                .filter(p -> p.getMedicalHistory() == null || p.getMedicalHistory().isBlank())
+                .ifPresent(p -> {
+                    p.setBirthday(DEMO_PATIENT_BIRTHDAY);
+                    p.setWeightKg(DEMO_PATIENT_WEIGHT_KG);
+                    p.setHeightCm(DEMO_PATIENT_HEIGHT_CM);
+                    p.setContactNumber(DEMO_PATIENT_CONTACT);
+                    p.setMedicalHistory(DEMO_PATIENT_HISTORY);
+                    patientProfileRepository.save(p);
+                    log.info("[seed] backfilled demo patient details");
+                });
     }
 }
