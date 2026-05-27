@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
 import { ApiError } from '@/lib/api';
 import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
+import { useNow } from '@/lib/useNow';
 import { useCancelBooking, useMyBookings, type PatientBooking } from './api';
 import { StatusPill, displayStatus } from './status';
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
@@ -29,9 +31,11 @@ import { RescheduleDialog } from './RescheduleDialog';
 function CancelAppointmentDialog({
   booking,
   onClose,
+  onCancelled,
 }: {
   booking: PatientBooking;
   onClose: () => void;
+  onCancelled: () => void;
 }) {
   const cancel = useCancelBooking();
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +47,7 @@ function CancelAppointmentDialog({
         bookingId: booking.id,
         doctorProfileId: booking.doctorProfileId,
       });
-      onClose();
+      onCancelled();
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -64,7 +68,7 @@ function CancelAppointmentDialog({
             Your{' '}
             <span className="tabular text-ink">{formatFullDateTime(booking.startsAt)}</span>
             {booking.doctorName ? ` visit with ${booking.doctorName}` : ' visit'} will be
-            released. You can always book again later.
+            cancelled and the time freed up. You can book again whenever you’re ready.
           </DialogDescription>
         </DialogHeader>
 
@@ -128,8 +132,8 @@ function AppointmentCard({
         </p>
         {booking.rescheduledFrom && (
           <p className="mt-1 text-xs text-ink-muted">
-            Moved from{' '}
-            <span className="tabular">{formatFullDateTime(booking.rescheduledFrom, true)}</span>
+            Rescheduled from{' '}
+            <span className="tabular">{formatFullDateTime(booking.rescheduledFrom)}</span>
           </p>
         )}
 
@@ -184,10 +188,19 @@ function AppointmentCard({
 export function MyAppointmentsPage() {
   const { data, isPending, isError, refetch } = useMyBookings();
   const tzLabel = localTimeZoneLabel();
-  const now = Date.now();
+  const now = useNow();
   const [viewingSummary, setViewingSummary] = useState<PatientBooking | null>(null);
   const [rescheduling, setRescheduling] = useState<PatientBooking | null>(null);
   const [cancelling, setCancelling] = useState<PatientBooking | null>(null);
+  // Explicit confirmation after a cancel/reschedule. The mutation closes its
+  // dialog and the list re-renders, but a cancelled card slips into Past out of
+  // view, so a silent close reads as "did it work?" — this banner answers that.
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  useEffect(() => {
+    if (!confirmation) return;
+    const id = setTimeout(() => setConfirmation(null), 6000);
+    return () => clearTimeout(id);
+  }, [confirmation]);
 
   const header = (
     <header>
@@ -253,6 +266,16 @@ export function MyAppointmentsPage() {
     <main className="container mx-auto max-w-3xl px-4 py-10">
       {header}
 
+      {confirmation && (
+        <div
+          role="status"
+          className="mt-6 flex items-center gap-2 rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink"
+        >
+          <Check className="h-4 w-4 shrink-0 text-success" />
+          <span>{confirmation}</span>
+        </div>
+      )}
+
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Upcoming</h2>
         {upcoming.length > 0 ? (
@@ -314,10 +337,28 @@ export function MyAppointmentsPage() {
         />
       )}
       {rescheduling && (
-        <RescheduleDialog booking={rescheduling} onClose={() => setRescheduling(null)} />
+        <RescheduleDialog
+          booking={rescheduling}
+          onClose={() => setRescheduling(null)}
+          onRescheduled={(newStartsAt) => {
+            setConfirmation(`Appointment moved to ${formatFullDateTime(newStartsAt)}.`);
+            setRescheduling(null);
+          }}
+        />
       )}
       {cancelling && (
-        <CancelAppointmentDialog booking={cancelling} onClose={() => setCancelling(null)} />
+        <CancelAppointmentDialog
+          booking={cancelling}
+          onClose={() => setCancelling(null)}
+          onCancelled={() => {
+            setConfirmation(
+              cancelling.doctorName
+                ? `Your appointment with ${cancelling.doctorName} was cancelled.`
+                : 'Your appointment was cancelled.',
+            );
+            setCancelling(null);
+          }}
+        />
       )}
     </main>
   );

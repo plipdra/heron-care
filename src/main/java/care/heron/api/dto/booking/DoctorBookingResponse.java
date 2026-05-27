@@ -26,11 +26,19 @@ public record DoctorBookingResponse(
         // the UI can offer "Continue notes" rather than "Write". A flag only — the
         // note content is never shipped in the list (info-minimization).
         boolean hasDraft,
+        // The slot this consult was most recently moved away from, or null if the
+        // patient never rescheduled it. Mirrors the patient's view so the doctor
+        // also sees a consult shifted — the moved-earlier case matters for prep.
+        Instant rescheduledFrom,
         Instant createdAt
 ) {
     public static DoctorBookingResponse of(Booking booking, String patientName, boolean joinable) {
         boolean hasDraft = booking.getConsultationRecord() != null
                 && booking.getStatus() != BookingStatus.COMPLETED;
+        var history = booking.getRescheduledHistory();
+        Instant rescheduledFrom = (history != null && !history.isEmpty())
+                ? history.get(history.size() - 1).getPreviousStartsAt()
+                : null;
         return new DoctorBookingResponse(
                 booking.getId(),
                 booking.getPatientUserId(),
@@ -42,6 +50,7 @@ public record DoctorBookingResponse(
                 joinable,
                 joinable ? booking.getMeetingLink() : null,
                 hasDraft,
+                rescheduledFrom,
                 booking.getCreatedAt());
     }
 }

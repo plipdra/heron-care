@@ -29,9 +29,11 @@ import {
 export function RescheduleDialog({
   booking,
   onClose,
+  onRescheduled,
 }: {
   booking: PatientBooking;
   onClose: () => void;
+  onRescheduled: (newStartsAt: string) => void;
 }) {
   const reschedule = useRescheduleBooking();
   const { data: slots, isPending: slotsPending } = useDoctorSlots(
@@ -48,19 +50,20 @@ export function RescheduleDialog({
 
   async function submit(startsAt: string) {
     setError(null);
+    setAlternatives([]); // drop any stale alternatives from a prior conflict
     try {
       await reschedule.mutateAsync({
         bookingId: booking.id,
         startsAt,
         doctorProfileId: booking.doctorProfileId,
       });
-      onClose();
+      onRescheduled(startsAt);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         // Someone took that slot first. Surface alternatives and reassure the
         // patient their existing appointment is untouched — nothing was lost.
         setAlternatives(extractAlternatives(err));
-        setError('That time was just taken. Your current appointment is unchanged.');
+        setError('That time just became unavailable. Your current appointment is unchanged.');
         return;
       }
       setError(
@@ -91,7 +94,16 @@ export function RescheduleDialog({
           </div>
         ) : slots && slots.length > 0 ? (
           <>
-            <SlotPicker slots={slots} selectedStartsAt={picked} onSelect={(s) => setPicked(s.startsAt)} />
+            <SlotPicker
+            slots={slots}
+            selectedStartsAt={picked}
+            onSelect={(s) => {
+              setPicked(s.startsAt);
+              // Picking a fresh time clears a prior conflict's error + alternatives.
+              setError(null);
+              setAlternatives([]);
+            }}
+          />
             <p className="text-xs text-ink-muted">Times shown in your local time ({tzLabel}).</p>
           </>
         ) : (

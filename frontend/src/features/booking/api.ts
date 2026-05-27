@@ -155,6 +155,8 @@ export type DoctorBooking = {
   meetingLink: string | null;
   // The doctor has saved un-finalized notes for this consult (offer "Continue").
   hasDraft: boolean;
+  // The slot this consult was last moved away from, or null if never rescheduled.
+  rescheduledFrom: string | null;
   createdAt: string;
 };
 

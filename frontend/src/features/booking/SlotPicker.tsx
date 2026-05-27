@@ -50,7 +50,7 @@ export function SlotPicker({ slots, selectedStartsAt, onSelect }: SlotPickerProp
   };
 
   const arrow =
-    'flex w-8 shrink-0 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-default disabled:opacity-30 disabled:hover:border-line disabled:hover:text-ink-muted';
+    'flex w-10 shrink-0 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:cursor-default disabled:opacity-30 disabled:hover:border-line disabled:hover:text-ink-muted';
 
   return (
     <div className="min-w-0">
@@ -81,6 +81,7 @@ export function SlotPicker({ slots, selectedStartsAt, onSelect }: SlotPickerProp
                 key={day.key}
                 type="button"
                 onClick={() => setActiveDayKey(day.key)}
+                aria-pressed={active}
                 className={`flex shrink-0 flex-col items-center rounded-md border px-3 py-1.5 text-sm transition-colors ${
                   active
                     ? 'border-primary bg-primary text-primary-foreground'
@@ -113,6 +114,7 @@ export function SlotPicker({ slots, selectedStartsAt, onSelect }: SlotPickerProp
               key={slot.startsAt}
               type="button"
               onClick={() => onSelect(slot)}
+              aria-pressed={selected}
               className={`tabular rounded-md border px-3 py-2 text-sm transition-colors ${
                 selected
                   ? 'border-primary bg-primary-tint text-primary'

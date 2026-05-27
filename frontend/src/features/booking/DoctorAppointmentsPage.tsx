@@ -17,6 +17,7 @@ import {
   formatFullDateTime,
   localTimeZoneLabel,
 } from '@/lib/datetime';
+import { useNow } from '@/lib/useNow';
 import { StatusPill, displayStatus } from './status';
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
 import { WriteConsultationNotesDialog } from './WriteConsultationNotesDialog';
@@ -183,6 +184,12 @@ function DoctorAppointmentCard({
               <p className="mt-1 tabular text-sm text-ink-muted">
                 {formatFullDateTime(booking.startsAt, isPast)}
               </p>
+              {booking.rescheduledFrom && (
+                <p className="mt-0.5 text-xs text-ink-muted">
+                  Rescheduled from{' '}
+                  <span className="tabular">{formatFullDateTime(booking.rescheduledFrom)}</span>
+                </p>
+              )}
             </div>
           </div>
           <StatusPill status={status} />
@@ -235,7 +242,7 @@ function DoctorAppointmentCard({
 export function DoctorAppointmentsPage() {
   const { data, isPending, isError, refetch } = useDoctorBookings();
   const tzLabel = localTimeZoneLabel();
-  const now = Date.now();
+  const now = useNow();
   const [selected, setSelected] = useState<DoctorBooking | null>(null);
   const [writingNotes, setWritingNotes] = useState<DoctorBooking | null>(null);
   const [viewingNotes, setViewingNotes] = useState<DoctorBooking | null>(null);
