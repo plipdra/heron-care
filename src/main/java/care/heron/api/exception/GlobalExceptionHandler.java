@@ -97,6 +97,14 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", ex.getMessage());
     }
 
+    // Controllers that signal a status directly (e.g. an invalid SSE stream token →
+    // 401). Without this, the catch-all below would swallow it into a 500.
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ProblemDetail handleResponseStatus(org.springframework.web.server.ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        return problem(status, status.getReasonPhrase(), ex.getReason());
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneric(Exception ex) {
         log.error("Unhandled exception", ex);

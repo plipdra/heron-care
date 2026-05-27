@@ -7,6 +7,7 @@ import care.heron.api.document.Booking;
 import care.heron.api.document.ConsultationRecord;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.enums.BookingStatus;
+import care.heron.api.document.enums.NotificationType;
 import care.heron.api.exception.IdempotencyKeyReusedException;
 import care.heron.api.exception.ResourceNotFoundException;
 import care.heron.api.exception.SlotTakenException;
@@ -60,6 +61,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final DoctorProfileRepository doctorProfileRepository;
+    private final NotificationService notificationService;
     private final Clock clock;
 
     public Page<Booking> listForPatient(String patientUserId, Pageable pageable) {
@@ -199,7 +201,11 @@ public class BookingService {
         Booking booking = loadOwnUpcomingBooking(bookingId, patientUserId);
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(clock.instant());
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        // Notify the doctor (the non-actor) — best-effort, never throws.
+        notificationService.notify(saved.getDoctorUserId(),
+                NotificationType.BOOKING_CANCELLED, saved.getStartsAt());
+        return saved;
     }
 
     // Move an upcoming booking to a new slot, in place — same booking id, same
@@ -240,12 +246,16 @@ public class BookingService {
         booking.setEndsAt(newStartsAt.plus(SLOT_DURATION_MINUTES, ChronoUnit.MINUTES));
         booking.setRescheduledHistory(history);
 
+        final Booking saved;
         try {
-            return bookingRepository.save(booking);
+            saved = bookingRepository.save(booking);
         } catch (DuplicateKeyException ex) {
             // The new slot was taken by another CONFIRMED booking on this doctor.
             throw new SlotTakenException(booking.getDoctorUserId(), newStartsAt);
         }
+        notificationService.notify(saved.getDoctorUserId(),
+                NotificationType.BOOKING_RESCHEDULED, saved.getStartsAt());
+        return saved;
     }
 
     public Booking create(CreateBookingCommand command) {
@@ -275,8 +285,9 @@ public class BookingService {
                 .idempotencyKeyBodyHash(bodyHash)
                 .build();
 
+        final Booking saved;
         try {
-            return bookingRepository.save(booking);
+            saved = bookingRepository.save(booking);
         } catch (DuplicateKeyException ex) {
             // Race between the fast-path lookup and this insert. Re-query under
             // the idempotency constraint; if it now matches, this was an
@@ -290,6 +301,11 @@ public class BookingService {
             }
             throw new SlotTakenException(command.doctorUserId(), command.startsAt());
         }
+        // Genuine create only (not an idempotent replay, not a slot conflict) —
+        // notify the doctor. Best-effort, never throws.
+        notificationService.notify(saved.getDoctorUserId(),
+                NotificationType.BOOKING_CONFIRMED, saved.getStartsAt());
+        return saved;
     }
 
     private Booking replayOrReject(Booking existing, String requestBodyHash) {

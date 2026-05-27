@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { AuthModal } from '@/features/auth/AuthModal';
 import { AuthProvider, useAuth } from '@/features/auth/AuthContext';
 import { RequireAuth } from '@/features/auth/RequireAuth';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { DoctorProfilePage } from '@/features/doctors/DoctorProfilePage';
 import { DoctorsListPage } from '@/features/doctors/DoctorsListPage';
 import { MyDoctorProfilePage } from '@/features/doctors/MyDoctorProfilePage';
@@ -119,6 +120,7 @@ function HeaderNav() {
           >
             Profile
           </Link>
+          <NotificationBell />
           <Button variant="ghost" size="sm" onClick={handleLogout}>
             Sign out
           </Button>

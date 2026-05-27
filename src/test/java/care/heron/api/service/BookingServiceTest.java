@@ -62,6 +62,7 @@ class BookingServiceTest {
 
     @Mock BookingRepository bookingRepository;
     @Mock DoctorProfileRepository doctorProfileRepository;
+    @Mock NotificationService notificationService;
 
     static final String PATIENT_USER_ID = "patient-001";
     static final String DOCTOR_USER_ID = "doctor-001";
@@ -79,7 +80,7 @@ class BookingServiceTest {
     @BeforeEach
     void setUp() {
         clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        service = new BookingService(bookingRepository, doctorProfileRepository, clock);
+        service = new BookingService(bookingRepository, doctorProfileRepository, notificationService, clock);
     }
 
     @Test

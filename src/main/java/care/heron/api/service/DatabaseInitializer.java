@@ -80,6 +80,12 @@ public class DatabaseInitializer implements CommandLineRunner {
                 new Index().on("doctorUserId", Direction.ASC).on("status", Direction.ASC).on("startsAt", Direction.ASC)
                         .named("bookings_doctor_status_startsAt"));
 
+        // Notification panel: a recipient's list, newest-first; also backs the
+        // unread count (recipient equality on a small per-user set).
+        ensureIndex("notifications",
+                new Index().on("recipientUserId", Direction.ASC).on("createdAt", Direction.DESC)
+                        .named("notifications_recipient_createdAt"));
+
         log.info("[db] indexes verified");
 
         // Post-startup smoke check: confirm the partial index actually exists.

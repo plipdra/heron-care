@@ -60,6 +60,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // The SSE stream authenticates via a query-param stream token in
+                        // the controller (EventSource can't send the Bearer header the
+                        // filter reads), so it must bypass the header-auth rule below.
+                        .requestMatchers(HttpMethod.GET, "/api/notifications/stream").permitAll()
                         // Everything else under /api or /actuator stays authenticated.
                         .requestMatchers("/api/**", "/actuator/**").authenticated()
                         // SPA routes + static assets are public. SpaForwardController

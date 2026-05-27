@@ -23,7 +23,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JwtService {
 
-    public enum TokenType { ACCESS, REFRESH }
+    public enum TokenType { ACCESS, REFRESH, STREAM }
+
+    // The SSE stream token is short-lived because it rides in the EventSource URL
+    // (query param), which can surface in proxy/access logs — a brief life bounds
+    // that exposure. It is also type-isolated (the Bearer filter rejects it), so
+    // even leaked it cannot act as an access credential against other APIs.
+    private static final Duration STREAM_TTL = Duration.ofSeconds(120);
 
     private final HeronProperties properties;
     private SecretKey signingKey;
@@ -58,12 +64,30 @@ public class JwtService {
         }
     }
 
+    // Stream token carries only the subject — no email/role claims, since its sole
+    // power is to open this user's notification stream.
+    public String generateStream(String userId) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .id(UUID.randomUUID().toString())
+                .subject(userId)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(STREAM_TTL)))
+                .claim("type", TokenType.STREAM.name())
+                .signWith(signingKey)
+                .compact();
+    }
+
     public boolean isAccessToken(Claims claims) {
         return TokenType.ACCESS.name().equals(claims.get("type", String.class));
     }
 
     public boolean isRefreshToken(Claims claims) {
         return TokenType.REFRESH.name().equals(claims.get("type", String.class));
+    }
+
+    public boolean isStreamToken(Claims claims) {
+        return TokenType.STREAM.name().equals(claims.get("type", String.class));
     }
 
     private String generate(User user, TokenType type, Duration ttl) {

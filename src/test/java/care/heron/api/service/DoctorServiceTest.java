@@ -37,6 +37,7 @@ import static org.mockito.Mockito.verify;
 class DoctorServiceTest {
 
     @Mock DoctorProfileRepository doctorProfileRepository;
+    @Mock NotificationService notificationService;
 
     static final String DOCTOR_USER_ID = "doctor-001";
     static final Instant NOW = Instant.parse("2026-05-27T10:00:00Z");
@@ -46,7 +47,7 @@ class DoctorServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        service = new DoctorService(doctorProfileRepository, clock);
+        service = new DoctorService(doctorProfileRepository, notificationService, clock);
     }
 
     @Test

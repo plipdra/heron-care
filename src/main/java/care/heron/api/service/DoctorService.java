@@ -31,6 +31,7 @@ public class DoctorService {
     private static final int MAX_BLOCK_HORIZON_DAYS = 730;
 
     private final DoctorProfileRepository doctorProfileRepository;
+    private final NotificationService notificationService;
     private final Clock clock;
 
     // Public discovery — dispatches to the right repository method based on which
@@ -108,9 +109,9 @@ public class DoctorService {
                 .build());
 
         DoctorProfile saved = doctorProfileRepository.save(profile);
-        // SSE seam: availability changed → emit a schedule-update notification to
-        // patients with a booking affected by the new schedule, once notifications
-        // ship. Nothing emitted yet.
+        // Availability changed → notify patients with a future confirmed booking
+        // with this doctor. Best-effort, never throws.
+        notificationService.notifyAvailabilityChanged(userId);
         return saved;
     }
 
