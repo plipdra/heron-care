@@ -26,6 +26,9 @@ export class ApiError extends Error {
 type RequestOptions = RequestInit & {
   skipAuth?: boolean;
   skipRefreshOnUnauthorized?: boolean;
+  // Sent as the Idempotency-Key header. Survives the 401-refresh retry below
+  // unchanged, so a token refresh mid-request replays the identical logical call.
+  idempotencyKey?: string;
 };
 
 // Single in-flight refresh — prevents concurrent 401s from each spawning their own refresh.
@@ -62,12 +65,14 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { skipAuth, skipRefreshOnUnauthorized, headers, ...rest } = options;
+  const { skipAuth, skipRefreshOnUnauthorized, idempotencyKey, headers, ...rest } = options;
 
   const finalHeaders = new Headers(headers);
   if (!finalHeaders.has('Content-Type') && rest.body && !(rest.body instanceof FormData)) {
     finalHeaders.set('Content-Type', 'application/json');
   }
+
+  if (idempotencyKey) finalHeaders.set('Idempotency-Key', idempotencyKey);
 
   if (!skipAuth) {
     const access = tokenStore.getAccess();

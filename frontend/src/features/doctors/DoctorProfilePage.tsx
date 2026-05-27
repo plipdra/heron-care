@@ -1,9 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/shared/Avatar';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
+import { AvailabilityCard } from '@/features/booking/AvailabilityCard';
 import { useDoctor } from './api';
 
 export function DoctorProfilePage() {
@@ -61,14 +61,12 @@ export function DoctorProfilePage() {
         </section>
       )}
 
-      <Card className="mt-10">
-        <CardContent className="flex flex-col gap-3 p-6 text-center">
-          <h2 className="text-lg font-semibold">Availability</h2>
-          <p className="text-sm text-ink-muted">
-            Slot booking arrives in the next iteration.
-          </p>
-        </CardContent>
-      </Card>
+      <AvailabilityCard
+        doctorProfileId={data.id}
+        doctorUserId={data.userId}
+        doctorName={data.name}
+        specializationLabel={data.specializationLabel}
+      />
     </main>
   );
 }

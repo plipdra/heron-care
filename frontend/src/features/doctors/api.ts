@@ -4,6 +4,8 @@ import type { Specialization } from './specializations';
 
 export type PublicDoctor = {
   id: string;
+  // The doctor's userId — the booking target (conflict + idempotency key on it).
+  userId: string;
   name: string;
   bio: string | null;
   specialization: Specialization;
@@ -13,7 +15,6 @@ export type PublicDoctor = {
 };
 
 export type DoctorProfile = PublicDoctor & {
-  userId: string;
   defaultMeetingLink: string | null;
 };
 

@@ -39,3 +39,15 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+@layer utilities {
+  /* Horizontal scroll without the chunky native scrollbar — a clipped edge
+     chip already signals there's more to scroll. Calm over utilitarian. */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
