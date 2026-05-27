@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
-import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
+import { formatFullDateTime, localTimeZoneLabel, timeZoneLabel } from '@/lib/datetime';
 import { useDoctorBookings } from '@/features/booking/api';
 import { useUpdateMyAvailability, type Availability } from './api';
 
@@ -54,7 +54,10 @@ function emptyDays(): Record<string, DayState> {
 export function AvailabilityEditor({ availability }: { availability: Availability | null }) {
   const update = useUpdateMyAvailability();
   const { data: bookingsPage } = useDoctorBookings();
-  const tzLabel = localTimeZoneLabel();
+  // Hours belong to the doctor's practice zone, not the browser's — labelling
+  // them with the browser zone (a traveling doctor, a mismatched machine) would
+  // misstate the times patients are offered.
+  const tzLabel = availability ? timeZoneLabel(availability.timeZone) : localTimeZoneLabel();
 
   const [days, setDays] = useState<Record<string, DayState>>(emptyDays);
   const [blocks, setBlocks] = useState<BlockState[]>([]);
@@ -163,7 +166,7 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
           <CardTitle>Consultation hours</CardTitle>
           <CardDescription>
             The days and times you see patients. Slots are offered in 30-minute steps within
-            these hours. Times are in your local time ({tzLabel}).
+            these hours. Hours are in your practice timezone ({tzLabel}).
           </CardDescription>
         </CardHeader>
         <CardContent>

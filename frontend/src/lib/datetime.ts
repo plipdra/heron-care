@@ -85,6 +85,22 @@ export function localTimeZoneLabel(): string {
   return parts.find((p) => p.type === 'timeZoneName')?.value ?? 'your local time';
 }
 
+// The long zone name for a specific IANA zone, e.g. "Asia/Manila" →
+// "Philippine Standard Time". Used where times belong to a fixed zone (a
+// doctor's authored hours) rather than the viewer's browser — labelling those
+// with the browser zone would misstate them (precise = trust, BRAND.md §4).
+export function timeZoneLabel(timeZone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat(undefined, {
+      timeZone,
+      timeZoneName: 'long',
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === 'timeZoneName')?.value ?? timeZone;
+  } catch {
+    return timeZone;
+  }
+}
+
 export type SlotDay = {
   key: string;
   startsAt: string; // first slot's start — used for the day-chip label
