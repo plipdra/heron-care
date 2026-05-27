@@ -1,10 +1,12 @@
 package care.heron.api.controller;
 
+import care.heron.api.document.Availability;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.enums.Specialization;
 import care.heron.api.dto.common.PageResponse;
 import care.heron.api.dto.doctor.DoctorProfileResponse;
 import care.heron.api.dto.doctor.PublicDoctorResponse;
+import care.heron.api.dto.doctor.UpdateAvailabilityRequest;
 import care.heron.api.dto.doctor.UpdateDoctorProfileRequest;
 import care.heron.api.service.DoctorService;
 import jakarta.validation.Valid;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/doctors")
@@ -65,5 +69,34 @@ public class DoctorController {
                 request.defaultMeetingLink(),
                 request.yearsOfExperience());
         return DoctorProfileResponse.from(doctorService.updateMine(userId, command));
+    }
+
+    // Whole-replace of the doctor's own schedule + time-off. IDOR-safe by route
+    // shape — no {id}, the target is the JWT principal and the request carries no
+    // identity field. timeZone is intentionally not accepted (immutable for MVP).
+    @PutMapping("/me/availability")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public DoctorProfileResponse updateMyAvailability(
+            @AuthenticationPrincipal String userId,
+            @Valid @RequestBody UpdateAvailabilityRequest request) {
+        List<Availability.WeeklyScheduleEntry> weekly = request.weeklySchedule().stream()
+                .map(entry -> Availability.WeeklyScheduleEntry.builder()
+                        .dayOfWeek(entry.dayOfWeek())
+                        .startTime(entry.startTime())
+                        .endTime(entry.endTime())
+                        .build())
+                .toList();
+        List<Availability.BlockedRange> blocked = request.blockedRanges() == null
+                ? List.of()
+                : request.blockedRanges().stream()
+                        .map(range -> Availability.BlockedRange.builder()
+                                .startsAt(range.startsAt())
+                                .endsAt(range.endsAt())
+                                .reason(range.reason())
+                                .build())
+                        .toList();
+        DoctorService.UpdateAvailabilityCommand command =
+                new DoctorService.UpdateAvailabilityCommand(weekly, blocked);
+        return DoctorProfileResponse.from(doctorService.updateMyAvailability(userId, command));
     }
 }

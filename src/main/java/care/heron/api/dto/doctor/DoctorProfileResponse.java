@@ -14,7 +14,8 @@ public record DoctorProfileResponse(
         String specializationLabel,
         String profilePictureUrl,
         String defaultMeetingLink,
-        Integer yearsOfExperience
+        Integer yearsOfExperience,
+        AvailabilityResponse availability
 ) {
     public static DoctorProfileResponse from(DoctorProfile profile) {
         return new DoctorProfileResponse(
@@ -28,6 +29,7 @@ public record DoctorProfileResponse(
                         : null,
                 "/api/profile-pictures/" + profile.getUserId(),
                 profile.getDefaultMeetingLink(),
-                profile.getYearsOfExperience());
+                profile.getYearsOfExperience(),
+                AvailabilityResponse.from(profile.getAvailability()));
     }
 }

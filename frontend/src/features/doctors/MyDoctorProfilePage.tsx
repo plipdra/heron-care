@@ -14,6 +14,7 @@ import { ApiError } from '@/lib/api';
 import { useAuth } from '@/features/auth/AuthContext';
 import { MyPatientProfilePage } from '@/features/patient/MyPatientProfilePage';
 import { SPECIALIZATIONS } from './specializations';
+import { AvailabilityEditor } from './AvailabilityEditor';
 import { useMyDoctorProfile, useUpdateMyDoctorProfile } from './api';
 
 // Acts as the role router for /profile. Doctors see the editor below;
@@ -194,6 +195,8 @@ function DoctorProfileEditor() {
           </form>
         </CardContent>
       </Card>
+
+      <AvailabilityEditor availability={data.availability} />
     </main>
   );
 }
