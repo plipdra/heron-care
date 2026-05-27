@@ -188,6 +188,7 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
                     <div className="flex items-center gap-2">
                       <Input
                         type="time"
+                        step={1800}
                         aria-label={`${d.label} start time`}
                         value={day.start}
                         onChange={(e) => setDay(d.value, { start: e.target.value })}
@@ -196,6 +197,7 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
                       <span className="text-sm text-ink-muted">to</span>
                       <Input
                         type="time"
+                        step={1800}
                         aria-label={`${d.label} end time`}
                         value={day.end}
                         onChange={(e) => setDay(d.value, { end: e.target.value })}
