@@ -22,6 +22,9 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +52,10 @@ public class SeedRunner implements CommandLineRunner {
 
     private static final String DEMO_PASSWORD = "Demo123!";
     private static final long SLOT_MINUTES = 30;
+
+    // Demo bookings are authored in the doctors' local zone so they render in
+    // sensible daytime hours for the demo viewer, not the small hours of the night.
+    private static final ZoneId DEMO_ZONE = ZoneId.of("Asia/Manila");
 
     // Static per-doctor video room links for the demo. They are placeholder
     // Google Meet URLs (no real rooms behind them) — the consultation join
@@ -296,12 +303,13 @@ public class SeedRunner implements CommandLineRunner {
         }
     }
 
-    // A clean 30-minute boundary relative to UTC midnight today.
+    // A 30-minute slot at the given local (Manila) wall-clock time, daysFromNow
+    // from today — so the seeded consults land in daytime for the demo viewer.
     private Instant instantAt(int daysFromNow, int hour, int minute) {
-        return clock.instant().truncatedTo(ChronoUnit.DAYS)
-                .plus(daysFromNow, ChronoUnit.DAYS)
-                .plus(hour, ChronoUnit.HOURS)
-                .plus(minute, ChronoUnit.MINUTES);
+        return ZonedDateTime.of(
+                LocalDate.now(clock).plusDays(daysFromNow),
+                LocalTime.of(hour, minute),
+                DEMO_ZONE).toInstant();
     }
 
     private record PatientSpec(
