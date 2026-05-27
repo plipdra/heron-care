@@ -15,13 +15,15 @@ export function formatTime(iso: string): string {
   });
 }
 
-// "Friday, May 30 at 3:00 PM" — for the confirmation and success views.
-export function formatFullDateTime(iso: string): string {
+// "Friday, May 30 at 3:00 PM", or with the year ("…, 2026 at …") for past dates
+// where the year is otherwise ambiguous (precise = trust).
+export function formatFullDateTime(iso: string, withYear = false): string {
   const d = new Date(iso);
   const date = d.toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
+    ...(withYear ? { year: 'numeric' } : {}),
   });
   return `${date} at ${formatTime(iso)}`;
 }

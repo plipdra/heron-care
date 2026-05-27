@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/shared/Avatar';
+import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
 import { ApiError } from '@/lib/api';
 import { formatDayChip, formatFullDateTime, formatTime, localTimeZoneLabel } from '@/lib/datetime';
 import {
@@ -59,20 +60,8 @@ export function BookingDialog({
   const [alternatives, setAlternatives] = useState<Slot[]>([]);
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const tzLabel = localTimeZoneLabel();
-
-  async function copyMeetingLink(link: string) {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API unavailable (e.g. a non-secure context) — the link stays
-      // visible for manual copy, so fail quietly rather than surfacing an error.
-    }
-  }
 
   // Idempotency-Key lifecycle. The key stays stable while the request body
   // (slot + note) is unchanged, so a retry after flaky wifi replays the
@@ -249,28 +238,7 @@ export function BookingDialog({
 
             {booking.meetingLink ? (
               <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 rounded-md border border-line bg-bg px-3 py-2">
-                  <span className="min-w-0 flex-1 truncate text-sm text-ink">
-                    {booking.meetingLink}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => copyMeetingLink(booking.meetingLink!)}
-                    aria-label={copied ? 'Link copied' : 'Copy link'}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-primary-tint hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    {copied ? (
-                      <Check className="h-5 w-5 text-success" />
-                    ) : (
-                      <Copy className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-                <Button asChild>
-                  <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer">
-                    Join your appointment
-                  </a>
-                </Button>
+                <MeetingLinkActions link={booking.meetingLink} />
                 <p className="text-xs text-ink-muted">
                   This link opens your video room. Save it — you’ll use it at{' '}
                   <span className="tabular">{formatTime(booking.startsAt)}</span>.
@@ -281,6 +249,14 @@ export function BookingDialog({
                 Your doctor will share the video link before your appointment.
               </p>
             )}
+
+            <p className="text-xs text-ink-muted">
+              Find this appointment anytime under{' '}
+              <Link to="/appointments" className="text-primary hover:underline">
+                Appointments
+              </Link>
+              .
+            </p>
 
             <DialogFooter>
               <Button variant="secondary" onClick={() => onOpenChange(false)}>
