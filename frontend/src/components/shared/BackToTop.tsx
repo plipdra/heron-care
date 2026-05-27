@@ -9,11 +9,20 @@ export function BackToTop() {
 
   useEffect(() => {
     function onScroll() {
-      setShow(window.scrollY > 400);
+      const scrolledDown = window.scrollY > 400;
+      // Hide as the footer comes into view so the button never overlaps it.
+      const nearBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 160;
+      setShow(scrolledDown && !nearBottom);
     }
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
   }, []);
 
   if (!show) return null;
