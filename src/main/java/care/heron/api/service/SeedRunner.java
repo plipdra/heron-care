@@ -16,6 +16,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 // Seeds demo accounts on first startup so the deployed URL has browseable data
 // immediately. Idempotent — only runs when the users collection is empty.
 // Demo password is documented in the README; these accounts exist for evaluator
@@ -31,6 +33,17 @@ public class SeedRunner implements CommandLineRunner {
 
     private static final String DEMO_PASSWORD = "Demo123!";
 
+    // Static per-doctor video room links for the demo. They are placeholder
+    // Google Meet URLs (no real rooms behind them) — the consultation join
+    // surface is intentionally an external link, not a built-in video pipe.
+    private static final Map<String, String> DOCTOR_MEETING_LINKS = Map.of(
+            "dr.reyes@heron.care", "https://meet.google.com/qpz-hwkm-rva",
+            "dr.tan@heron.care", "https://meet.google.com/dnf-kxtb-uoe",
+            "dr.santos@heron.care", "https://meet.google.com/wjs-mvqd-pkl",
+            "dr.lim@heron.care", "https://meet.google.com/hbt-ynra-cgx",
+            "dr.cruz@heron.care", "https://meet.google.com/zod-fhqe-mns",
+            "dr.garcia@heron.care", "https://meet.google.com/uak-rbwp-tje");
+
     private final UserRepository userRepository;
     private final PatientProfileRepository patientProfileRepository;
     private final DoctorProfileRepository doctorProfileRepository;
@@ -39,7 +52,8 @@ public class SeedRunner implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (userRepository.count() > 0) {
-            log.info("[seed] users collection not empty, skipping seed");
+            log.info("[seed] users collection not empty, skipping account seed");
+            backfillMeetingLinks();
             return;
         }
         log.info("[seed] seeding demo accounts");
@@ -96,7 +110,34 @@ public class SeedRunner implements CommandLineRunner {
                 .specialization(specialization)
                 .bio(bio)
                 .yearsOfExperience(years)
+                .defaultMeetingLink(DOCTOR_MEETING_LINKS.get(email))
                 .availability(Availability.defaultBusinessHours())
                 .build());
+    }
+
+    // Backfills meeting links onto doctors seeded before the links existed.
+    // Idempotent: only touches profiles whose link is missing, so it is safe
+    // to run on every startup.
+    private void backfillMeetingLinks() {
+        int updated = 0;
+        for (DoctorProfile profile : doctorProfileRepository.findAll()) {
+            if (profile.getDefaultMeetingLink() != null
+                    && !profile.getDefaultMeetingLink().isBlank()) {
+                continue;
+            }
+            String link = userRepository.findById(profile.getUserId())
+                    .map(User::getEmail)
+                    .map(DOCTOR_MEETING_LINKS::get)
+                    .orElse(null);
+            if (link == null) {
+                continue;
+            }
+            profile.setDefaultMeetingLink(link);
+            doctorProfileRepository.save(profile);
+            updated++;
+        }
+        if (updated > 0) {
+            log.info("[seed] backfilled meeting links for {} doctor(s)", updated);
+        }
     }
 }
