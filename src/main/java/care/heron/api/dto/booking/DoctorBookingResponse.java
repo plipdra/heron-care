@@ -22,9 +22,15 @@ public record DoctorBookingResponse(
         String concernNote,
         boolean joinable,
         String meetingLink,
+        // True when the doctor has saved un-finalized notes for this consult, so
+        // the UI can offer "Continue notes" rather than "Write". A flag only — the
+        // note content is never shipped in the list (info-minimization).
+        boolean hasDraft,
         Instant createdAt
 ) {
     public static DoctorBookingResponse of(Booking booking, String patientName, boolean joinable) {
+        boolean hasDraft = booking.getConsultationRecord() != null
+                && booking.getStatus() != BookingStatus.COMPLETED;
         return new DoctorBookingResponse(
                 booking.getId(),
                 booking.getPatientUserId(),
@@ -35,6 +41,7 @@ public record DoctorBookingResponse(
                 booking.getConcernNote(),
                 joinable,
                 joinable ? booking.getMeetingLink() : null,
+                hasDraft,
                 booking.getCreatedAt());
     }
 }

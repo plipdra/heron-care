@@ -4,10 +4,10 @@ import care.heron.api.document.Booking;
 import care.heron.api.document.ConsultationRecord;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.dto.booking.BookingResponse;
+import care.heron.api.dto.booking.ConsultationNotesRequest;
 import care.heron.api.dto.booking.ConsultationRecordResponse;
 import care.heron.api.dto.booking.CreateBookingRequest;
 import care.heron.api.dto.booking.DoctorBookingResponse;
-import care.heron.api.dto.booking.FinalizeConsultationRequest;
 import care.heron.api.dto.booking.PatientBookingResponse;
 import care.heron.api.dto.booking.PatientContextResponse;
 import care.heron.api.dto.common.PageResponse;
@@ -145,16 +145,17 @@ public class BookingController {
                 .orElseGet(PatientContextResponse::empty);
     }
 
-    // Doctor finalizes the consultation: writes SOAP notes + prescription and
-    // marks the booking COMPLETED, in one locked action. Doctor-only and
-    // booking-scoped (enforced in the service); writing a clinical record is
-    // audit-logged. Empty prescription rows (no medication) are dropped.
+    // Doctor saves consultation notes. finalise=false is a private draft (status
+    // stays CONFIRMED, hidden from the patient); finalise=true writes SOAP notes
+    // + prescription, locks the record, marks the booking COMPLETED, and shares
+    // it with the patient. Doctor-only and booking-scoped (enforced in the
+    // service); the write is audit-logged. Empty prescription rows are dropped.
     @PutMapping("/{id}/notes")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ConsultationRecordResponse finalizeNotes(
+    public ConsultationRecordResponse saveNotes(
             @AuthenticationPrincipal String doctorUserId,
             @PathVariable String id,
-            @Valid @RequestBody FinalizeConsultationRequest request) {
+            @Valid @RequestBody ConsultationNotesRequest request) {
         List<ConsultationRecord.PrescriptionItem> items = request.prescription() == null
                 ? List.of()
                 : request.prescription().stream()
@@ -172,8 +173,11 @@ public class BookingController {
                 .plan(request.plan())
                 .prescription(items)
                 .build();
-        Booking booking = bookingService.finalizeConsultation(id, doctorUserId, record);
-        log.info("consultation_finalized requestId={} caller={} bookingId={} patient={}",
+        Booking booking = request.finalise()
+                ? bookingService.finalizeConsultation(id, doctorUserId, record)
+                : bookingService.saveDraftConsultation(id, doctorUserId, record);
+        log.info("consultation_{} requestId={} caller={} bookingId={} patient={}",
+                request.finalise() ? "finalized" : "draft_saved",
                 MDC.get("requestId"), doctorUserId, id, booking.getPatientUserId());
         return ConsultationRecordResponse.from(booking.getConsultationRecord());
     }

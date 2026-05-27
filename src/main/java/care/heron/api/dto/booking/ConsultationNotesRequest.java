@@ -5,10 +5,12 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-// What a doctor submits to finalize a consult. All fields optional (a visit may
-// have nothing to prescribe, or only an assessment) — but size-capped, because
-// the record embeds in the Booking document and unbounded text would bloat it.
-public record FinalizeConsultationRequest(
+// What a doctor submits to save consultation notes. `finalize` distinguishes a
+// private draft (false — keep editing later, patient can't see it) from
+// finalizing (true — lock the record, mark the visit complete, share with the
+// patient). All content fields optional but size-capped, since the record embeds
+// in the Booking document.
+public record ConsultationNotesRequest(
         @Size(max = 4000, message = "Subjective must not exceed 4000 characters.")
         String subjective,
         @Size(max = 4000, message = "Objective must not exceed 4000 characters.")
@@ -19,7 +21,8 @@ public record FinalizeConsultationRequest(
         String plan,
         @Valid
         @Size(max = 30, message = "A prescription can have at most 30 items.")
-        List<PrescriptionItemRequest> prescription
+        List<PrescriptionItemRequest> prescription,
+        boolean finalise
 ) {
     public record PrescriptionItemRequest(
             @Size(max = 200, message = "Medication name must not exceed 200 characters.")

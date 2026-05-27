@@ -111,44 +111,60 @@ public class BookingService {
         return booking;
     }
 
-    // Finalize the consultation: write the doctor's notes + prescription and mark
-    // the booking COMPLETED — one locked-from-then-on action. Guards:
+    // Shared write gate for notes (draft or finalize). Guards:
     //   - only the booking's DOCTOR may write (not the patient — a patient must
     //     not author their own diagnosis). Not-the-doctor/missing -> 404, never
     //     403, so a doctor can't probe colleagues' bookings.
-    //   - only from CONFIRMED (a cancelled or already-completed consult can't be
-    //     finalized).
+    //   - only from CONFIRMED (a cancelled or already-finalized consult is closed
+    //     to edits — finalize is the lock).
     //   - only once the consult has started (you can't document a visit that
     //     hasn't happened).
-    // The @Version field on Booking guards the concurrent finalize/cancel race.
-    public Booking finalizeConsultation(String bookingId, String doctorUserId, ConsultationRecord record) {
+    private Booking loadWritableConsult(String bookingId, String doctorUserId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .filter(b -> Objects.equals(b.getDoctorUserId(), doctorUserId))
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new IllegalArgumentException("This consultation can no longer be finalized.");
+            throw new IllegalArgumentException("This consultation can no longer be edited.");
         }
         if (booking.getStartsAt() == null || clock.instant().isBefore(booking.getStartsAt())) {
             throw new IllegalArgumentException(
-                    "You can finalize notes once the consultation has started.");
+                    "You can write notes once the consultation has started.");
         }
+        return booking;
+    }
+
+    // Save notes as a private draft — the booking stays CONFIRMED and the record
+    // is NOT finalized, so the read gate keeps it hidden from the patient. The
+    // doctor can reopen and keep editing.
+    public Booking saveDraftConsultation(String bookingId, String doctorUserId, ConsultationRecord record) {
+        Booking booking = loadWritableConsult(bookingId, doctorUserId);
+        record.setFinalizedAt(null);
+        booking.setConsultationRecord(record);
+        return bookingRepository.save(booking);
+    }
+
+    // Finalize: write the record, stamp finalizedAt, and mark the booking
+    // COMPLETED. This is the lock — the write gate above rejects further edits
+    // once status leaves CONFIRMED. @Version guards the finalize/cancel race.
+    public Booking finalizeConsultation(String bookingId, String doctorUserId, ConsultationRecord record) {
+        Booking booking = loadWritableConsult(bookingId, doctorUserId);
         record.setFinalizedAt(clock.instant());
         booking.setConsultationRecord(record);
         booking.setStatus(BookingStatus.COMPLETED);
         return bookingRepository.save(booking);
     }
 
-    // Read a finalized consultation record. Booking-scoped to the patient or the
-    // doctor on it; notes exist only on a COMPLETED consult, so anything else
-    // (wrong caller, missing, not yet finalized) collapses to 404.
+    // Read a consultation record, booking-scoped. The DOCTOR on the booking reads
+    // it at any stage (including their own un-finalized draft, to resume editing);
+    // the PATIENT reads it only once finalized (COMPLETED). Anything else -> 404.
     public ConsultationRecord getConsultationRecordForCaller(String bookingId, String callerUserId) {
-        return bookingRepository.findById(bookingId)
-                .filter(b -> Objects.equals(b.getPatientUserId(), callerUserId)
-                        || Objects.equals(b.getDoctorUserId(), callerUserId))
-                .filter(b -> b.getStatus() == BookingStatus.COMPLETED)
-                .map(Booking::getConsultationRecord)
-                .filter(Objects::nonNull)
+        Booking booking = bookingRepository.findById(bookingId)
+                .filter(b -> b.getConsultationRecord() != null)
+                .filter(b -> Objects.equals(b.getDoctorUserId(), callerUserId)
+                        || (Objects.equals(b.getPatientUserId(), callerUserId)
+                                && b.getStatus() == BookingStatus.COMPLETED))
                 .orElseThrow(() -> new ResourceNotFoundException("Consultation record", bookingId));
+        return booking.getConsultationRecord();
     }
 
     public Booking create(CreateBookingCommand command) {

@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
+import { formatDate } from '@/lib/datetime';
 import { useConsultationNotes } from './api';
 
 // One read-only section of the summary. Renders nothing when empty so the
@@ -97,6 +98,12 @@ export function ConsultationSummaryDialog({
             {isEmpty && (
               <p className="text-sm text-ink-muted">
                 This visit was finalized without notes.
+              </p>
+            )}
+
+            {data.finalizedAt && (
+              <p className="text-xs text-ink-muted">
+                {heading} · finalised on {formatDate(data.finalizedAt)}.
               </p>
             )}
           </>

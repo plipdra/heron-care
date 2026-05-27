@@ -105,6 +105,8 @@ export type DoctorBooking = {
   concernNote: string | null;
   joinable: boolean;
   meetingLink: string | null;
+  // The doctor has saved un-finalized notes for this consult (offer "Continue").
+  hasDraft: boolean;
   createdAt: string;
 };
 
@@ -155,28 +157,33 @@ export type ConsultationRecord = {
   finalizedAt: string | null;
 };
 
-export type FinalizeConsultationBody = {
+export type ConsultationNotesBody = {
   subjective?: string;
   objective?: string;
   assessment?: string;
   plan?: string;
   prescription: { medication: string; dosage?: string; instructions?: string }[];
+  // false = save a private draft; true = finalize (lock + complete + share).
+  finalise: boolean;
 };
 
-// Doctor finalizes a consult. Sets the booking to COMPLETED server-side, so we
-// invalidate BOTH appointment lists — the doctor's (they're on it) and the
-// patient's (their card must flip to Completed and drop the join link).
-export function useFinalizeConsultation() {
+// Doctor saves consultation notes (draft or finalize). A finalize sets the
+// booking to COMPLETED server-side, so we refresh both appointment lists (the
+// doctor's, and the patient's — their card flips to Completed and drops the join
+// link); a draft refresh keeps the doctor's "Continue notes" state current. We
+// also drop the cached record for this booking so a reopen re-fetches it.
+export function useSaveConsultationNotes() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ bookingId, body }: { bookingId: string; body: FinalizeConsultationBody }) =>
+    mutationFn: ({ bookingId, body }: { bookingId: string; body: ConsultationNotesBody }) =>
       apiFetch<ConsultationRecord>(`/api/bookings/${bookingId}/notes`, {
         method: 'PUT',
         body: JSON.stringify(body),
       }),
-    onSuccess: () => {
+    onSuccess: (_data, { bookingId }) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', 'doctor'] });
       queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['consultation-notes', bookingId] });
     },
   });
 }

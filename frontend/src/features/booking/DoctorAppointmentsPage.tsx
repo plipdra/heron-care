@@ -207,7 +207,9 @@ function DoctorAppointmentCard({
             </Button>
           )}
           {status === 'ended' && (
-            <Button onClick={onWriteNotes}>Write consultation notes</Button>
+            <Button onClick={onWriteNotes}>
+              {booking.hasDraft ? 'Continue notes' : 'Write consultation notes'}
+            </Button>
           )}
           {status === 'completed' && (
             <Button variant="secondary" onClick={onViewNotes}>
