@@ -121,7 +121,7 @@ export function MyAppointmentsPage() {
 
   if (isError) {
     return (
-      <main className="container mx-auto max-w-2xl px-4 py-10">
+      <main className="container mx-auto max-w-3xl px-4 py-10">
         {header}
         <div className="mt-10 rounded-lg border border-line bg-surface p-6 text-center">
           <p className="text-sm text-ink-muted">
@@ -139,7 +139,7 @@ export function MyAppointmentsPage() {
 
   if (items.length === 0) {
     return (
-      <main className="container mx-auto max-w-2xl px-4 py-10">
+      <main className="container mx-auto max-w-3xl px-4 py-10">
         {header}
         <div className="mt-10 rounded-lg border border-line bg-surface p-10 text-center">
           <p className="text-lg font-medium">No appointments yet.</p>
@@ -162,7 +162,7 @@ export function MyAppointmentsPage() {
   const truncated = data.totalElements > items.length;
 
   return (
-    <main className="container mx-auto max-w-2xl px-4 py-10">
+    <main className="container mx-auto max-w-3xl px-4 py-10">
       {header}
 
       <section className="mt-10">

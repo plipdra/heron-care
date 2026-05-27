@@ -3,6 +3,8 @@ import { BrowserRouter, Link, Route, Routes, useNavigate } from 'react-router-do
 import { queryClient } from '@/lib/queryClient';
 import { AppFooter } from '@/components/shared/AppFooter';
 import { AppHeader } from '@/components/shared/AppHeader';
+import { BackToTop } from '@/components/shared/BackToTop';
+import { ScrollToTop } from '@/components/shared/ScrollToTop';
 import { Button } from '@/components/ui/button';
 import { AuthModal } from '@/features/auth/AuthModal';
 import { AuthProvider, useAuth } from '@/features/auth/AuthContext';
@@ -18,6 +20,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
+          <ScrollToTop />
           <div className="flex min-h-screen flex-col">
             <AppHeader>
               <HeaderNav />
@@ -49,6 +52,7 @@ export default function App() {
             <AppFooter />
           </div>
           <AuthModal />
+          <BackToTop />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
