@@ -54,6 +54,10 @@ public class Booking {
     // Snapshot of doctor.defaultMeetingLink at create time.
     private String meetingLink;
 
+    // The doctor's consultation notes + prescription, embedded. Null until the
+    // doctor finalizes the consult (which also flips status to COMPLETED).
+    private ConsultationRecord consultationRecord;
+
     // Client-supplied UUID. Scoped per patient via the unique sparse index.
     private String idempotencyKey;
 

@@ -1,10 +1,13 @@
 package care.heron.api.controller;
 
 import care.heron.api.document.Booking;
+import care.heron.api.document.ConsultationRecord;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.dto.booking.BookingResponse;
+import care.heron.api.dto.booking.ConsultationRecordResponse;
 import care.heron.api.dto.booking.CreateBookingRequest;
 import care.heron.api.dto.booking.DoctorBookingResponse;
+import care.heron.api.dto.booking.FinalizeConsultationRequest;
 import care.heron.api.dto.booking.PatientBookingResponse;
 import care.heron.api.dto.booking.PatientContextResponse;
 import care.heron.api.dto.common.PageResponse;
@@ -35,6 +38,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -139,6 +143,52 @@ public class BookingController {
         return patientService.findByUserId(booking.getPatientUserId())
                 .map(PatientContextResponse::from)
                 .orElseGet(PatientContextResponse::empty);
+    }
+
+    // Doctor finalizes the consultation: writes SOAP notes + prescription and
+    // marks the booking COMPLETED, in one locked action. Doctor-only and
+    // booking-scoped (enforced in the service); writing a clinical record is
+    // audit-logged. Empty prescription rows (no medication) are dropped.
+    @PutMapping("/{id}/notes")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ConsultationRecordResponse finalizeNotes(
+            @AuthenticationPrincipal String doctorUserId,
+            @PathVariable String id,
+            @Valid @RequestBody FinalizeConsultationRequest request) {
+        List<ConsultationRecord.PrescriptionItem> items = request.prescription() == null
+                ? List.of()
+                : request.prescription().stream()
+                        .filter(i -> i.medication() != null && !i.medication().isBlank())
+                        .map(i -> ConsultationRecord.PrescriptionItem.builder()
+                                .medication(i.medication())
+                                .dosage(i.dosage())
+                                .instructions(i.instructions())
+                                .build())
+                        .toList();
+        ConsultationRecord record = ConsultationRecord.builder()
+                .subjective(request.subjective())
+                .objective(request.objective())
+                .assessment(request.assessment())
+                .plan(request.plan())
+                .prescription(items)
+                .build();
+        Booking booking = bookingService.finalizeConsultation(id, doctorUserId, record);
+        log.info("consultation_finalized requestId={} caller={} bookingId={} patient={}",
+                MDC.get("requestId"), doctorUserId, id, booking.getPatientUserId());
+        return ConsultationRecordResponse.from(booking.getConsultationRecord());
+    }
+
+    // Read the finalized consultation record — either party on the booking.
+    // Booking-scoped 404-collapse in the service; reading is audit-logged.
+    @GetMapping("/{id}/notes")
+    @PreAuthorize("hasAnyRole('PATIENT','DOCTOR')")
+    public ConsultationRecordResponse getNotes(
+            @AuthenticationPrincipal String callerUserId,
+            @PathVariable String id) {
+        ConsultationRecord record = bookingService.getConsultationRecordForCaller(id, callerUserId);
+        log.info("consultation_notes_read requestId={} caller={} bookingId={}",
+                MDC.get("requestId"), callerUserId, id);
+        return ConsultationRecordResponse.from(record);
     }
 
     @PostMapping

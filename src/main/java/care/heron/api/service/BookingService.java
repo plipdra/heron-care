@@ -4,6 +4,7 @@ import care.heron.api.document.Availability;
 import care.heron.api.document.Availability.BlockedRange;
 import care.heron.api.document.Availability.WeeklyScheduleEntry;
 import care.heron.api.document.Booking;
+import care.heron.api.document.ConsultationRecord;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.enums.BookingStatus;
 import care.heron.api.exception.IdempotencyKeyReusedException;
@@ -108,6 +109,46 @@ public class BookingService {
             throw new AccessDeniedException("You can only view your own bookings.");
         }
         return booking;
+    }
+
+    // Finalize the consultation: write the doctor's notes + prescription and mark
+    // the booking COMPLETED — one locked-from-then-on action. Guards:
+    //   - only the booking's DOCTOR may write (not the patient — a patient must
+    //     not author their own diagnosis). Not-the-doctor/missing -> 404, never
+    //     403, so a doctor can't probe colleagues' bookings.
+    //   - only from CONFIRMED (a cancelled or already-completed consult can't be
+    //     finalized).
+    //   - only once the consult has started (you can't document a visit that
+    //     hasn't happened).
+    // The @Version field on Booking guards the concurrent finalize/cancel race.
+    public Booking finalizeConsultation(String bookingId, String doctorUserId, ConsultationRecord record) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .filter(b -> Objects.equals(b.getDoctorUserId(), doctorUserId))
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalArgumentException("This consultation can no longer be finalized.");
+        }
+        if (booking.getStartsAt() == null || clock.instant().isBefore(booking.getStartsAt())) {
+            throw new IllegalArgumentException(
+                    "You can finalize notes once the consultation has started.");
+        }
+        record.setFinalizedAt(clock.instant());
+        booking.setConsultationRecord(record);
+        booking.setStatus(BookingStatus.COMPLETED);
+        return bookingRepository.save(booking);
+    }
+
+    // Read a finalized consultation record. Booking-scoped to the patient or the
+    // doctor on it; notes exist only on a COMPLETED consult, so anything else
+    // (wrong caller, missing, not yet finalized) collapses to 404.
+    public ConsultationRecord getConsultationRecordForCaller(String bookingId, String callerUserId) {
+        return bookingRepository.findById(bookingId)
+                .filter(b -> Objects.equals(b.getPatientUserId(), callerUserId)
+                        || Objects.equals(b.getDoctorUserId(), callerUserId))
+                .filter(b -> b.getStatus() == BookingStatus.COMPLETED)
+                .map(Booking::getConsultationRecord)
+                .filter(Objects::nonNull)
+                .orElseThrow(() -> new ResourceNotFoundException("Consultation record", bookingId));
     }
 
     public Booking create(CreateBookingCommand command) {
