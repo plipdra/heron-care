@@ -75,7 +75,7 @@ export function RescheduleDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Reschedule your appointment</DialogTitle>
           <DialogDescription>
