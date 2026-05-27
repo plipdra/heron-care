@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/features/auth/AuthContext';
 
 export function LandingPage() {
+  const { user } = useAuth();
+  const isDoctor = user?.role === 'DOCTOR';
   return (
     <main className="relative overflow-hidden">
       {/* Subtle crescent motif behind the hero — BRAND.md §7. Decorative; aria-hidden. */}
@@ -31,7 +34,11 @@ export function LandingPage() {
           </p>
           <div className="mt-10 flex gap-3">
             <Button asChild size="lg">
-              <Link to="/doctors">Browse doctors</Link>
+              {isDoctor ? (
+                <Link to="/appointments">Go to your consults</Link>
+              ) : (
+                <Link to="/doctors">Browse doctors</Link>
+              )}
             </Button>
           </div>
           <p className="mt-16 text-lg text-ink-muted">

@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Link, Route, Routes, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { queryClient } from '@/lib/queryClient';
 import { AppFooter } from '@/components/shared/AppFooter';
 import { AppHeader } from '@/components/shared/AppHeader';
@@ -28,8 +29,22 @@ export default function App() {
             <div className="flex-1">
               <Routes>
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/doctors" element={<DoctorsListPage />} />
-                <Route path="/doctors/:id" element={<DoctorProfilePage />} />
+                <Route
+                  path="/doctors"
+                  element={
+                    <PatientFacing>
+                      <DoctorsListPage />
+                    </PatientFacing>
+                  }
+                />
+                <Route
+                  path="/doctors/:id"
+                  element={
+                    <PatientFacing>
+                      <DoctorProfilePage />
+                    </PatientFacing>
+                  }
+                />
                 <Route
                   path="/appointments"
                   element={
@@ -57,6 +72,18 @@ export default function App() {
       </BrowserRouter>
     </QueryClientProvider>
   );
+}
+
+// The patient marketplace (browse doctors) isn't a doctor's surface — a
+// logged-in doctor is sent to their own consults instead. Guests and patients
+// pass through. This also catches the guest -> browse -> log-in-as-doctor path,
+// since the route re-evaluates on the auth state change.
+function PatientFacing({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (user?.role === 'DOCTOR') {
+    return <Navigate to="/appointments" replace />;
+  }
+  return <>{children}</>;
 }
 
 function HeaderNav() {
