@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +9,17 @@ import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
 import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
 import { useMyBookings, type PatientBooking } from './api';
 import { StatusPill, displayStatus } from './status';
+import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
 
-function AppointmentCard({ booking, now }: { booking: PatientBooking; now: number }) {
+function AppointmentCard({
+  booking,
+  now,
+  onViewSummary,
+}: {
+  booking: PatientBooking;
+  now: number;
+  onViewSummary: () => void;
+}) {
   const status = displayStatus(booking, now);
   const isPast = status !== 'upcoming';
 
@@ -63,6 +73,14 @@ function AppointmentCard({ booking, now }: { booking: PatientBooking; now: numbe
         {status === 'ended' && (
           <p className="mt-4 text-sm text-ink-muted">This appointment has ended.</p>
         )}
+
+        {status === 'completed' && (
+          <div className="mt-4">
+            <Button variant="secondary" onClick={onViewSummary}>
+              View consultation summary
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -72,6 +90,7 @@ export function MyAppointmentsPage() {
   const { data, isPending, isError, refetch } = useMyBookings();
   const tzLabel = localTimeZoneLabel();
   const now = Date.now();
+  const [viewingSummary, setViewingSummary] = useState<PatientBooking | null>(null);
 
   const header = (
     <header>
@@ -142,7 +161,12 @@ export function MyAppointmentsPage() {
         {upcoming.length > 0 ? (
           <div className="mt-4 flex flex-col gap-4">
             {upcoming.map((b) => (
-              <AppointmentCard key={b.id} booking={b} now={now} />
+              <AppointmentCard
+                key={b.id}
+                booking={b}
+                now={now}
+                onViewSummary={() => setViewingSummary(b)}
+              />
             ))}
           </div>
         ) : (
@@ -161,7 +185,12 @@ export function MyAppointmentsPage() {
         {past.length > 0 ? (
           <div className="mt-4 flex flex-col gap-4">
             {past.map((b) => (
-              <AppointmentCard key={b.id} booking={b} now={now} />
+              <AppointmentCard
+                key={b.id}
+                booking={b}
+                now={now}
+                onViewSummary={() => setViewingSummary(b)}
+              />
             ))}
           </div>
         ) : (
@@ -175,6 +204,14 @@ export function MyAppointmentsPage() {
           </p>
         )}
       </section>
+
+      {viewingSummary && (
+        <ConsultationSummaryDialog
+          bookingId={viewingSummary.id}
+          heading={`With ${viewingSummary.doctorName ?? 'your doctor'}`}
+          onClose={() => setViewingSummary(null)}
+        />
+      )}
     </main>
   );
 }

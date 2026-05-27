@@ -18,6 +18,8 @@ import {
   localTimeZoneLabel,
 } from '@/lib/datetime';
 import { StatusPill, displayStatus } from './status';
+import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
+import { WriteConsultationNotesDialog } from './WriteConsultationNotesDialog';
 import { useDoctorBookings, usePatientContext, type DoctorBooking } from './api';
 
 // A labelled value in the patient-details block. Present values render in ink
@@ -156,10 +158,14 @@ function DoctorAppointmentCard({
   booking,
   now,
   onViewContext,
+  onWriteNotes,
+  onViewNotes,
 }: {
   booking: DoctorBooking;
   now: number;
   onViewContext: () => void;
+  onWriteNotes: () => void;
+  onViewNotes: () => void;
 }) {
   const status = displayStatus(booking, now);
   const isPast = status !== 'upcoming';
@@ -200,6 +206,14 @@ function DoctorAppointmentCard({
               </a>
             </Button>
           )}
+          {status === 'ended' && (
+            <Button onClick={onWriteNotes}>Write consultation notes</Button>
+          )}
+          {status === 'completed' && (
+            <Button variant="secondary" onClick={onViewNotes}>
+              View notes
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -211,6 +225,8 @@ export function DoctorAppointmentsPage() {
   const tzLabel = localTimeZoneLabel();
   const now = Date.now();
   const [selected, setSelected] = useState<DoctorBooking | null>(null);
+  const [writingNotes, setWritingNotes] = useState<DoctorBooking | null>(null);
+  const [viewingNotes, setViewingNotes] = useState<DoctorBooking | null>(null);
 
   const header = (
     <header>
@@ -285,6 +301,8 @@ export function DoctorAppointmentsPage() {
                 booking={b}
                 now={now}
                 onViewContext={() => setSelected(b)}
+                onWriteNotes={() => setWritingNotes(b)}
+                onViewNotes={() => setViewingNotes(b)}
               />
             ))}
           </div>
@@ -303,6 +321,8 @@ export function DoctorAppointmentsPage() {
                 booking={b}
                 now={now}
                 onViewContext={() => setSelected(b)}
+                onWriteNotes={() => setWritingNotes(b)}
+                onViewNotes={() => setViewingNotes(b)}
               />
             ))}
           </div>
@@ -320,6 +340,19 @@ export function DoctorAppointmentsPage() {
 
       {selected && (
         <PatientContextDialog booking={selected} onClose={() => setSelected(null)} />
+      )}
+      {writingNotes && (
+        <WriteConsultationNotesDialog
+          booking={writingNotes}
+          onClose={() => setWritingNotes(null)}
+        />
+      )}
+      {viewingNotes && (
+        <ConsultationSummaryDialog
+          bookingId={viewingNotes.id}
+          heading={viewingNotes.patientName ?? 'Patient'}
+          onClose={() => setViewingNotes(null)}
+        />
       )}
     </main>
   );

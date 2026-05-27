@@ -138,6 +138,59 @@ export function usePatientContext(bookingId: string | null, enabled: boolean) {
   });
 }
 
+// A finalized consultation record (SOAP notes + structured prescription). Read
+// only via the booking-scoped notes endpoint, never from a list.
+export type PrescriptionItem = {
+  medication: string;
+  dosage: string | null;
+  instructions: string | null;
+};
+
+export type ConsultationRecord = {
+  subjective: string | null;
+  objective: string | null;
+  assessment: string | null;
+  plan: string | null;
+  prescription: PrescriptionItem[];
+  finalizedAt: string | null;
+};
+
+export type FinalizeConsultationBody = {
+  subjective?: string;
+  objective?: string;
+  assessment?: string;
+  plan?: string;
+  prescription: { medication: string; dosage?: string; instructions?: string }[];
+};
+
+// Doctor finalizes a consult. Sets the booking to COMPLETED server-side, so we
+// invalidate BOTH appointment lists — the doctor's (they're on it) and the
+// patient's (their card must flip to Completed and drop the join link).
+export function useFinalizeConsultation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookingId, body }: { bookingId: string; body: FinalizeConsultationBody }) =>
+      apiFetch<ConsultationRecord>(`/api/bookings/${bookingId}/notes`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'doctor'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
+    },
+  });
+}
+
+// Lazily fetched when someone opens a completed consult's summary — clinical
+// notes are never pulled for rows just skimmed past.
+export function useConsultationNotes(bookingId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['consultation-notes', bookingId],
+    queryFn: () => apiFetch<ConsultationRecord>(`/api/bookings/${bookingId}/notes`),
+    enabled: enabled && !!bookingId,
+  });
+}
+
 // The 409 ProblemDetail carries up to three nearest-open slots on an extension
 // field that isn't part of the shared ProblemDetail shape. Read it in one place
 // so the field name lives once, not scattered across casts.
