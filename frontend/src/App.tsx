@@ -12,7 +12,7 @@ import { RequireAuth } from '@/features/auth/RequireAuth';
 import { DoctorProfilePage } from '@/features/doctors/DoctorProfilePage';
 import { DoctorsListPage } from '@/features/doctors/DoctorsListPage';
 import { MyDoctorProfilePage } from '@/features/doctors/MyDoctorProfilePage';
-import { MyAppointmentsPage } from '@/features/booking/MyAppointmentsPage';
+import { AppointmentsPage } from '@/features/booking/AppointmentsPage';
 import { LandingPage } from '@/features/landing/LandingPage';
 
 export default function App() {
@@ -34,7 +34,7 @@ export default function App() {
                   path="/appointments"
                   element={
                     <RequireAuth>
-                      <MyAppointmentsPage />
+                      <AppointmentsPage />
                     </RequireAuth>
                   }
                 />
@@ -80,14 +80,12 @@ function HeaderNav() {
       )}
       {user ? (
         <>
-          {user.role === 'PATIENT' && (
-            <Link
-              to="/appointments"
-              className="text-sm font-medium text-ink hover:text-primary"
-            >
-              Appointments
-            </Link>
-          )}
+          <Link
+            to="/appointments"
+            className="text-sm font-medium text-ink hover:text-primary"
+          >
+            {user.role === 'DOCTOR' ? 'Consults' : 'Appointments'}
+          </Link>
           <Link
             to="/profile"
             className="text-sm font-medium text-ink hover:text-primary"

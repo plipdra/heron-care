@@ -28,6 +28,28 @@ export function formatFullDateTime(iso: string, withYear = false): string {
   return `${date} at ${formatTime(iso)}`;
 }
 
+// Whole years between a birthday (ISO "YYYY-MM-DD") and today. Age is what a
+// doctor reads at a glance; the raw birthday is shown alongside for identity.
+export function deriveAge(birthday: string): number {
+  const b = new Date(birthday);
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const monthDiff = now.getMonth() - b.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < b.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
+// "12 Mar 1991" — a date with no time, for a birthday.
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 // Stable key for grouping slots into local calendar days.
 function localDayKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;

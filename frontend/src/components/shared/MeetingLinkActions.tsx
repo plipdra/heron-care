@@ -7,7 +7,13 @@ import { Button } from '@/components/ui/button';
 // stateful copy behaviour (clipboard, the 2s copied state, the icon swap, the
 // a11y label) lives in exactly one place and can't drift between the two.
 // Renders as a fragment; the caller owns the surrounding layout and helper copy.
-export function MeetingLinkActions({ link }: { link: string }) {
+export function MeetingLinkActions({
+  link,
+  label = 'Join your appointment',
+}: {
+  link: string;
+  label?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -40,7 +46,7 @@ export function MeetingLinkActions({ link }: { link: string }) {
       </div>
       <Button asChild>
         <a href={link} target="_blank" rel="noopener noreferrer">
-          Join your appointment
+          {label}
         </a>
       </Button>
     </>

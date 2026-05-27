@@ -7,35 +7,7 @@ import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
 import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
 import { useMyBookings, type PatientBooking } from './api';
-
-// Display state is DERIVED, not the raw status: a CONFIRMED booking whose time
-// has passed is "Ended" (no job marks it COMPLETED yet — that lands with notes),
-// never a live joinable card. Classification is a pure epoch compare; the
-// timezone helpers are for display only.
-type DisplayStatus = 'upcoming' | 'ended' | 'completed' | 'cancelled';
-
-function displayStatus(b: PatientBooking, now: number): DisplayStatus {
-  if (b.status === 'CANCELLED') return 'cancelled';
-  if (b.status === 'COMPLETED') return 'completed';
-  return new Date(b.endsAt).getTime() > now ? 'upcoming' : 'ended';
-}
-
-const STATUS_META: Record<DisplayStatus, { label: string; dot: string }> = {
-  upcoming: { label: 'Confirmed', dot: 'bg-primary' },
-  completed: { label: 'Completed', dot: 'bg-success' },
-  ended: { label: 'Ended', dot: 'bg-ink-muted' },
-  cancelled: { label: 'Cancelled', dot: 'bg-ink-muted' },
-};
-
-function StatusPill({ status }: { status: DisplayStatus }) {
-  const meta = STATUS_META[status];
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-ink-muted">
-      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
-      {meta.label}
-    </span>
-  );
-}
+import { StatusPill, displayStatus } from './status';
 
 function AppointmentCard({ booking, now }: { booking: PatientBooking; now: number }) {
   const status = displayStatus(booking, now);

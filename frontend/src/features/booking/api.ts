@@ -92,6 +92,52 @@ export function useMyBookings() {
   });
 }
 
+// A doctor's appointment-list row. Carries the patient's NAME only — no medical
+// history or demographics (those come from usePatientContext below, per booking).
+// meetingLink is present only when joinable, same server gate as the patient side.
+export type DoctorBooking = {
+  id: string;
+  patientUserId: string;
+  patientName: string | null;
+  startsAt: string;
+  endsAt: string;
+  status: BookingStatus;
+  concernNote: string | null;
+  joinable: boolean;
+  meetingLink: string | null;
+  createdAt: string;
+};
+
+// Key ['bookings','doctor'] — a distinct sibling of the patient ['bookings','me'],
+// so the two never collide in the query cache.
+export function useDoctorBookings() {
+  return useQuery({
+    queryKey: ['bookings', 'doctor'],
+    queryFn: () => apiFetch<PageResponse<DoctorBooking>>('/api/bookings/doctor/me?size=50'),
+  });
+}
+
+// The patient's medical context for one booking. Every field nullable — a
+// patient who left fields blank still renders ("Not provided").
+export type PatientContext = {
+  name: string | null;
+  birthday: string | null;
+  weightKg: number | null;
+  heightCm: number | null;
+  contactNumber: string | null;
+  medicalHistory: string | null;
+};
+
+// Lazily fetched: `enabled` is false until the doctor opens a booking's context,
+// so medical PII is never requested for rows the doctor only skims past.
+export function usePatientContext(bookingId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['patient-context', bookingId],
+    queryFn: () => apiFetch<PatientContext>(`/api/bookings/${bookingId}/patient`),
+    enabled: enabled && !!bookingId,
+  });
+}
+
 // The 409 ProblemDetail carries up to three nearest-open slots on an extension
 // field that isn't part of the shared ProblemDetail shape. Read it in one place
 // so the field name lives once, not scattered across casts.
