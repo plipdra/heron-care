@@ -22,8 +22,11 @@ export function SlotPicker({ slots, selectedStartsAt, onSelect }: SlotPickerProp
   const activeDay = days.find((d) => d.key === activeDayKey) ?? days[0];
 
   return (
-    <div>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto">
+    <div className="min-w-0">
+      {/* min-w-0 lets this row shrink-and-scroll inside a grid/flex parent (the
+          reschedule dialog is display:grid); without it the chips dictate the
+          parent's width and overflow the modal. */}
+      <div className="no-scrollbar flex min-w-0 gap-2 overflow-x-auto">
         {days.map((day) => {
           const { weekday, day: dayNum } = formatDayChip(day.startsAt);
           const active = day.key === activeDay?.key;
