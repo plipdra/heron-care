@@ -64,6 +64,19 @@ public class BookingService {
         return bookingRepository.findByPatientUserIdOrderByStartsAtDesc(patientUserId, pageable);
     }
 
+    // A booking is joinable only while it is still a future, confirmed slot.
+    // The meeting link is a static shared room, so an elapsed booking must never
+    // surface a live "join" — re-entering after the slot risks landing in a room
+    // the doctor is now using with a different patient. Past, cancelled, and
+    // completed bookings are never joinable. No CONFIRMED->COMPLETED job exists
+    // yet (that lands with consultation notes), so this time check is what keeps
+    // an elapsed-but-still-CONFIRMED booking from showing a stale link.
+    public boolean isJoinable(Booking booking) {
+        return booking.getStatus() == BookingStatus.CONFIRMED
+                && booking.getEndsAt() != null
+                && booking.getEndsAt().isAfter(clock.instant());
+    }
+
     // Ownership check is layer 2 of authz: role gating happens upstream
     // (@PreAuthorize), but only the patient who booked it and the doctor
     // who'll see them may read a specific booking.

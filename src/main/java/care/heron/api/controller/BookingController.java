@@ -4,10 +4,13 @@ import care.heron.api.document.Booking;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.dto.booking.BookingResponse;
 import care.heron.api.dto.booking.CreateBookingRequest;
+import care.heron.api.dto.booking.PatientBookingResponse;
 import care.heron.api.dto.common.PageResponse;
+import care.heron.api.dto.doctor.PublicDoctorResponse;
 import care.heron.api.exception.SlotTakenException;
 import care.heron.api.repository.DoctorProfileRepository;
 import care.heron.api.service.BookingService;
+import care.heron.api.service.DoctorService;
 import care.heron.api.service.SlotService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -39,7 +42,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -53,19 +59,30 @@ public class BookingController {
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
 
     private final BookingService bookingService;
+    private final DoctorService doctorService;
     private final SlotService slotService;
     private final DoctorProfileRepository doctorProfileRepository;
     private final Clock clock;
 
-    // Patient's own booking history. Pagination defaults to 20-per-page,
-    // most-recent first via the helper index on (patientUserId, startsAt desc).
+    // Patient's own booking history, most-recent first via the helper index on
+    // (patientUserId, startsAt desc). Each row is enriched at read time with the
+    // doctor's current display fields (resolved in one batch query, not N
+    // lookups) and a server-computed `joinable` flag that gates the meeting link.
     @GetMapping("/me")
     @PreAuthorize("hasRole('PATIENT')")
-    public PageResponse<BookingResponse> listMine(
+    public PageResponse<PatientBookingResponse> listMine(
             @AuthenticationPrincipal String patientUserId,
             @PageableDefault(size = 20, sort = "startsAt") Pageable pageable) {
         Page<Booking> page = bookingService.listForPatient(patientUserId, pageable);
-        return PageResponse.from(page.map(BookingResponse::from));
+        Set<String> doctorUserIds = page.getContent().stream()
+                .map(Booking::getDoctorUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, PublicDoctorResponse> doctors = doctorService.publicByUserIds(doctorUserIds);
+        return PageResponse.from(page.map(booking -> PatientBookingResponse.of(
+                booking,
+                doctors.get(booking.getDoctorUserId()),
+                bookingService.isJoinable(booking))));
     }
 
     // Single booking — either party can read it. Service layer enforces the

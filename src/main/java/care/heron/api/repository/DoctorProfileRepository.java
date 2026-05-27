@@ -6,11 +6,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface DoctorProfileRepository extends MongoRepository<DoctorProfile, String> {
 
     Optional<DoctorProfile> findByUserId(String userId);
+
+    // Batch resolve for read-time enrichment (e.g. a patient's booking list) —
+    // one query for the page's distinct doctors, not N lookups.
+    List<DoctorProfile> findByUserIdIn(Collection<String> userIds);
 
     Page<DoctorProfile> findBySpecialization(Specialization specialization, Pageable pageable);
 

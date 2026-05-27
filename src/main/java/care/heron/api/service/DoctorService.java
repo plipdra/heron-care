@@ -2,12 +2,17 @@ package care.heron.api.service;
 
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.enums.Specialization;
+import care.heron.api.dto.doctor.PublicDoctorResponse;
 import care.heron.api.exception.ResourceNotFoundException;
 import care.heron.api.repository.DoctorProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +44,18 @@ public class DoctorService {
     public DoctorProfile getPublic(String id) {
         return doctorProfileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor", id));
+    }
+
+    // Read-time enrichment: resolve the public display shape for a set of doctor
+    // userIds in one batch query, keyed by userId. Doctors absent from the map
+    // (e.g. a since-deleted profile) must be handled gracefully by the caller —
+    // a historical booking still renders even if the doctor is gone.
+    public Map<String, PublicDoctorResponse> publicByUserIds(Collection<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return doctorProfileRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.toMap(DoctorProfile::getUserId, PublicDoctorResponse::from));
     }
 
     public DoctorProfile getMine(String userId) {
