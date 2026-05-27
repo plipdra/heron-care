@@ -1,11 +1,15 @@
 package care.heron.api.service;
 
 import care.heron.api.document.Booking;
+import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.Notification;
+import care.heron.api.document.PatientProfile;
 import care.heron.api.document.enums.BookingStatus;
 import care.heron.api.document.enums.NotificationType;
 import care.heron.api.repository.BookingRepository;
+import care.heron.api.repository.DoctorProfileRepository;
 import care.heron.api.repository.NotificationRepository;
+import care.heron.api.repository.PatientProfileRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +56,8 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final BookingRepository bookingRepository;
+    private final PatientProfileRepository patientProfileRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
     private final MongoTemplate mongoTemplate;
     private final Clock clock;
 
@@ -147,37 +153,56 @@ public class NotificationService {
 
     // ---- write side (best-effort, never throws) ----
 
-    public void notify(String recipientUserId, NotificationType type, Instant startsAt) {
+    // A booking event — notify the doctor (the non-actor), naming the patient.
+    // The doctor already sees this patient's name on their consult list, so the
+    // name is not new disclosure; clinical detail (the concern note) is never
+    // included.
+    public void notifyBookingEvent(NotificationType type, Booking booking) {
         try {
-            Notification saved = notificationRepository.save(Notification.builder()
-                    .recipientUserId(recipientUserId)
-                    .type(type)
-                    .message(messageFor(type))
-                    .startsAt(startsAt)
-                    .build());
-            push(recipientUserId, saved);
+            String patientName = patientProfileRepository.findByUserId(booking.getPatientUserId())
+                    .map(PatientProfile::getName)
+                    .filter(n -> n != null && !n.isBlank())
+                    .orElse("A patient");
+            persistAndPush(booking.getDoctorUserId(), type,
+                    bookingMessage(type, patientName), booking.getStartsAt());
         } catch (Exception e) {
-            log.warn("notification_failed recipient={} type={}", recipientUserId, type, e);
+            log.warn("notification_failed recipient={} type={}", booking.getDoctorUserId(), type, e);
         }
     }
 
     // A doctor changed their availability — notify the patients with a future
-    // confirmed booking (deduped), scoped to this doctor's own bookings. Blocking
-    // time never cancels a booking, so this is informational ("review your visit"),
-    // never a cancellation.
+    // confirmed booking (deduped), scoped to this doctor's own bookings, naming
+    // the doctor. Blocking time never cancels a booking, so this is informational
+    // ("review your visit"), never a cancellation.
     public void notifyAvailabilityChanged(String doctorUserId) {
         try {
+            String doctorName = doctorProfileRepository.findByUserId(doctorUserId)
+                    .map(DoctorProfile::getName)
+                    .filter(n -> n != null && !n.isBlank())
+                    .orElse("Your doctor");
+            String message = doctorName
+                    + " updated their schedule — please review your upcoming visit.";
             Instant now = clock.instant();
             List<Booking> affected = bookingRepository.findByDoctorUserIdAndStatusAndStartsAtBetween(
                     doctorUserId, BookingStatus.CONFIRMED, now, now.plus(FANOUT_HORIZON_DAYS, ChronoUnit.DAYS));
             affected.stream()
                     .map(Booking::getPatientUserId)
                     .distinct()
-                    .forEach(patientUserId ->
-                            notify(patientUserId, NotificationType.AVAILABILITY_CHANGED, null));
+                    .forEach(patientUserId -> persistAndPush(
+                            patientUserId, NotificationType.AVAILABILITY_CHANGED, message, null));
         } catch (Exception e) {
             log.warn("availability_notification_failed doctor={}", doctorUserId, e);
         }
+    }
+
+    private void persistAndPush(String recipientUserId, NotificationType type, String message, Instant startsAt) {
+        Notification saved = notificationRepository.save(Notification.builder()
+                .recipientUserId(recipientUserId)
+                .type(type)
+                .message(message)
+                .startsAt(startsAt)
+                .build());
+        push(recipientUserId, saved);
     }
 
     // ---- read side ----
@@ -200,14 +225,12 @@ public class NotificationService {
                 Notification.class);
     }
 
-    private static String messageFor(NotificationType type) {
+    private static String bookingMessage(NotificationType type, String patientName) {
         return switch (type) {
-            case BOOKING_CONFIRMED -> "A new appointment was booked with you.";
-            case BOOKING_CANCELLED -> "A patient cancelled their appointment.";
-            case BOOKING_RESCHEDULED -> "A patient moved their appointment to a new time.";
-            case AVAILABILITY_CHANGED ->
-                    "Your doctor updated their schedule. Please review your upcoming visit.";
-            case APPOINTMENT_REMINDER -> "You have an upcoming appointment soon.";
+            case BOOKING_CONFIRMED -> "New appointment with " + patientName + ".";
+            case BOOKING_CANCELLED -> patientName + " cancelled their appointment.";
+            case BOOKING_RESCHEDULED -> patientName + " moved their appointment to a new time.";
+            default -> "You have an appointment update.";
         };
     }
 }
