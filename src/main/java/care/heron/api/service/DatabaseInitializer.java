@@ -68,6 +68,13 @@ public class DatabaseInitializer implements CommandLineRunner {
                 new Index().on("patientUserId", Direction.ASC).on("startsAt", Direction.DESC)
                         .named("bookings_patient_startsAt"));
 
+        // Doctor's appointment list view. The slot-derivation index above leads
+        // with (doctorUserId, status, ...) so it can't sort a doctor's whole
+        // history by startsAt; this dedicated index backs that paged sort.
+        ensureIndex("bookings",
+                new Index().on("doctorUserId", Direction.ASC).on("startsAt", Direction.DESC)
+                        .named("bookings_doctor_startsAt"));
+
         // Slot-derivation: subtract existing bookings for a doctor in a window.
         ensureIndex("bookings",
                 new Index().on("doctorUserId", Direction.ASC).on("status", Direction.ASC).on("startsAt", Direction.ASC)

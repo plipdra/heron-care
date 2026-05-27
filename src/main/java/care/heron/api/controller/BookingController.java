@@ -4,18 +4,22 @@ import care.heron.api.document.Booking;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.dto.booking.BookingResponse;
 import care.heron.api.dto.booking.CreateBookingRequest;
+import care.heron.api.dto.booking.DoctorBookingResponse;
 import care.heron.api.dto.booking.PatientBookingResponse;
+import care.heron.api.dto.booking.PatientContextResponse;
 import care.heron.api.dto.common.PageResponse;
 import care.heron.api.dto.doctor.PublicDoctorResponse;
 import care.heron.api.exception.SlotTakenException;
 import care.heron.api.repository.DoctorProfileRepository;
 import care.heron.api.service.BookingService;
 import care.heron.api.service.DoctorService;
+import care.heron.api.service.PatientService;
 import care.heron.api.service.SlotService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +55,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
 @Validated
+@Slf4j
 public class BookingController {
 
     private static final int ALTERNATIVE_HORIZON_DAYS = 7;
@@ -60,6 +65,7 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final DoctorService doctorService;
+    private final PatientService patientService;
     private final SlotService slotService;
     private final DoctorProfileRepository doctorProfileRepository;
     private final Clock clock;
@@ -93,6 +99,46 @@ public class BookingController {
             @AuthenticationPrincipal String callerUserId,
             @PathVariable String id) {
         return BookingResponse.from(bookingService.getByIdForCaller(id, callerUserId));
+    }
+
+    // Doctor's appointment list — their own consults (doctor = JWT subject, no
+    // id param, so a doctor can't list a colleague's). Enriched at read time with
+    // the patient's NAME only via one batched lookup; medical context is fetched
+    // separately, per booking, by the endpoint below.
+    @GetMapping("/doctor/me")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public PageResponse<DoctorBookingResponse> listForDoctor(
+            @AuthenticationPrincipal String doctorUserId,
+            @PageableDefault(size = 20, sort = "startsAt") Pageable pageable) {
+        Page<Booking> page = bookingService.listForDoctor(doctorUserId, pageable);
+        Set<String> patientUserIds = page.getContent().stream()
+                .map(Booking::getPatientUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, String> names = patientService.namesByUserIds(patientUserIds);
+        return PageResponse.from(page.map(booking -> DoctorBookingResponse.of(
+                booking,
+                names.get(booking.getPatientUserId()),
+                bookingService.isJoinable(booking))));
+    }
+
+    // Patient context for one booking — what the doctor reads before the consult.
+    // Booking-scoped: getBookingForPatientContext verifies the caller is the
+    // booking's doctor (or patient) and collapses not-owner/missing/cancelled to
+    // 404. Reading the patient's medical history is audit-logged so access is
+    // reconstructable. A booking whose patient never filled a profile returns an
+    // empty context (all nulls), not an error.
+    @GetMapping("/{id}/patient")
+    @PreAuthorize("hasAnyRole('PATIENT','DOCTOR')")
+    public PatientContextResponse getPatientContext(
+            @AuthenticationPrincipal String callerUserId,
+            @PathVariable String id) {
+        Booking booking = bookingService.getBookingForPatientContext(id, callerUserId);
+        log.info("patient_context_read requestId={} caller={} bookingId={} patient={}",
+                MDC.get("requestId"), callerUserId, id, booking.getPatientUserId());
+        return patientService.findByUserId(booking.getPatientUserId())
+                .map(PatientContextResponse::from)
+                .orElseGet(PatientContextResponse::empty);
     }
 
     @PostMapping

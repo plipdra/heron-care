@@ -29,4 +29,6 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
             Instant to);
 
     Page<Booking> findByPatientUserIdOrderByStartsAtDesc(String patientUserId, Pageable pageable);
+
+    Page<Booking> findByDoctorUserIdOrderByStartsAtDesc(String doctorUserId, Pageable pageable);
 }

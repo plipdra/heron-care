@@ -64,6 +64,26 @@ public class BookingService {
         return bookingRepository.findByPatientUserIdOrderByStartsAtDesc(patientUserId, pageable);
     }
 
+    public Page<Booking> listForDoctor(String doctorUserId, Pageable pageable) {
+        return bookingRepository.findByDoctorUserIdOrderByStartsAtDesc(doctorUserId, pageable);
+    }
+
+    // Resolves the booking behind a request to read a patient's medical context,
+    // with the stricter access rules that PII path needs:
+    //   - missing booking, OR caller is neither its patient nor its doctor -> 404
+    //     (NOT 403): a 403 would confirm "this bookingId exists but isn't yours",
+    //     letting a doctor probe which bookings belong to colleagues.
+    //   - CANCELLED booking -> 404: a cancelled consult has no clinical reason to
+    //     keep exposing the patient's history.
+    // The caller then loads the patient profile for booking.patientUserId.
+    public Booking getBookingForPatientContext(String bookingId, String callerUserId) {
+        return bookingRepository.findById(bookingId)
+                .filter(b -> Objects.equals(b.getPatientUserId(), callerUserId)
+                        || Objects.equals(b.getDoctorUserId(), callerUserId))
+                .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+    }
+
     // A booking is joinable only while it is still a future, confirmed slot.
     // The meeting link is a static shared room, so an elapsed booking must never
     // surface a live "join" — re-entering after the slot risks landing in a room
