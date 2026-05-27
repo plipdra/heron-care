@@ -24,26 +24,75 @@ const WEEKDAYS: { value: string; label: string }[] = [
   { value: 'SUNDAY', label: 'Sunday' },
 ];
 
+// Half-hour options, 00:00 → 23:30. A native <input type="time"> can't be
+// constrained to a 30-minute grid in the dropdown (step only gates typing, not
+// the wheel), and slots run on 30-minute steps — so a styled select that offers
+// exactly those choices is both correct and on-brand. Value is 24h "HH:mm" to
+// match the backend; label reads warm 12h ("9:00 AM", BRAND.md §4/§6).
+const TIME_OPTIONS: { value: string; label: string }[] = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? '00' : '30';
+  const value = `${String(h).padStart(2, '0')}:${m}`;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return { value, label: `${h12}:${m} ${ampm}` };
+});
+
 type DayState = { enabled: boolean; start: string; end: string };
+// Time off is whole-day: start/end are date strings ("YYYY-MM-DD"). Stored as
+// absolute instants — start at local midnight, end at the start of the day AFTER
+// the last blocked day (exclusive), so the whole end-day is covered.
 type BlockState = { key: string; start: string; end: string; reason: string };
 
 const DEFAULT_HOURS = { start: '09:00', end: '17:00' };
 
-// "09:00:00" → "09:00" for a native time input.
+// "09:00:00" → "09:00" to match a TIME_OPTIONS value.
 const hhmm = (t: string) => t.slice(0, 5);
 
-// An ISO instant ↔ the value a <input type="datetime-local"> expects, both in
-// the browser's local wall-clock (the doctor authors time off in their own time).
-function isoToLocalInput(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const pad = (n: number) => String(n).padStart(2, '0');
+
+// An instant → the local calendar date that contains it ("YYYY-MM-DD"). For an
+// exclusive end (start-of-next-day midnight) we step back a millisecond first so
+// it maps to the last actually-blocked day.
+function isoToDateInput(iso: string, exclusiveEnd = false): string {
+  const d = new Date(new Date(iso).getTime() - (exclusiveEnd ? 1 : 0));
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
-const localInputToIso = (local: string) => new Date(local).toISOString();
+const startDateToIso = (date: string) => new Date(`${date}T00:00:00`).toISOString();
+function endDateToIsoExclusive(date: string): string {
+  const d = new Date(`${date}T00:00:00`);
+  d.setDate(d.getDate() + 1); // block through the end of the chosen day
+  return d.toISOString();
+}
 
 function emptyDays(): Record<string, DayState> {
   return Object.fromEntries(
     WEEKDAYS.map((d) => [d.value, { enabled: false, ...DEFAULT_HOURS }]),
+  );
+}
+
+function TimeSelect({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="tabular h-10 w-32 rounded-md border border-line bg-surface px-3 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+    >
+      {TIME_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -79,8 +128,8 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
     setBlocks(
       availability.blockedRanges.map((r, i) => ({
         key: `existing-${i}`,
-        start: isoToLocalInput(r.startsAt),
-        end: isoToLocalInput(r.endsAt),
+        start: isoToDateInput(r.startsAt),
+        end: isoToDateInput(r.endsAt, true),
         reason: r.reason ?? '',
       })),
     );
@@ -104,10 +153,9 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
   const blockConflicts = useMemo(() => {
     const now = Date.now();
     return blocks.map((b) => {
-      if (!b.start || !b.end) return [];
-      const start = new Date(b.start).getTime();
-      const end = new Date(b.end).getTime();
-      if (!(end > start)) return [];
+      if (!b.start || !b.end || b.end < b.start) return [];
+      const start = new Date(startDateToIso(b.start)).getTime();
+      const end = new Date(endDateToIsoExclusive(b.end)).getTime();
       return bookings.filter((bk) => {
         if (bk.status !== 'CONFIRMED') return false;
         const t = new Date(bk.startsAt).getTime();
@@ -136,14 +184,19 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
 
     const incomplete = blocks.find((b) => (b.start && !b.end) || (!b.start && b.end));
     if (incomplete) {
-      setFeedback({ kind: 'error', message: 'Each time-off range needs both a start and an end.' });
+      setFeedback({ kind: 'error', message: 'Each time-off range needs both a start and an end date.' });
+      return;
+    }
+    const inverted = blocks.find((b) => b.start && b.end && b.end < b.start);
+    if (inverted) {
+      setFeedback({ kind: 'error', message: 'A time-off end date can’t be before its start date.' });
       return;
     }
     const blockedRanges = blocks
       .filter((b) => b.start && b.end)
       .map((b) => ({
-        startsAt: localInputToIso(b.start),
-        endsAt: localInputToIso(b.end),
+        startsAt: startDateToIso(b.start),
+        endsAt: endDateToIsoExclusive(b.end),
         reason: b.reason.trim() || undefined,
       }));
 
@@ -186,22 +239,16 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
                   </label>
                   {day.enabled ? (
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="time"
-                        step={1800}
-                        aria-label={`${d.label} start time`}
+                      <TimeSelect
+                        label={`${d.label} start time`}
                         value={day.start}
-                        onChange={(e) => setDay(d.value, { start: e.target.value })}
-                        className="tabular w-32"
+                        onChange={(v) => setDay(d.value, { start: v })}
                       />
                       <span className="text-sm text-ink-muted">to</span>
-                      <Input
-                        type="time"
-                        step={1800}
-                        aria-label={`${d.label} end time`}
+                      <TimeSelect
+                        label={`${d.label} end time`}
                         value={day.end}
-                        onChange={(e) => setDay(d.value, { end: e.target.value })}
-                        className="tabular w-32"
+                        onChange={(v) => setDay(d.value, { end: v })}
                       />
                     </div>
                   ) : (
@@ -218,13 +265,13 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
         <CardHeader>
           <CardTitle>Time off</CardTitle>
           <CardDescription>
-            Block dates you're away. Patients won't be offered slots during these ranges.
+            Block whole days you're away. Patients won't be offered any slots on these dates.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {blocks.length === 0 ? (
             <p className="text-sm text-ink-muted">
-              No time off scheduled. Add a range when you're away and those slots stay closed.
+              No time off scheduled. Add a range when you're away and those days stay closed.
             </p>
           ) : (
             <div className="flex flex-col gap-4">
@@ -234,20 +281,20 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
                   <div key={b.key} className="rounded-md border border-line p-4">
                     <div className="flex flex-wrap items-end gap-3">
                       <div className="flex flex-col gap-1.5">
-                        <Label htmlFor={`block-start-${b.key}`}>From</Label>
+                        <Label htmlFor={`block-start-${b.key}`}>First day</Label>
                         <Input
                           id={`block-start-${b.key}`}
-                          type="datetime-local"
+                          type="date"
                           value={b.start}
                           onChange={(e) => updateBlock(b.key, { start: e.target.value })}
                           className="tabular"
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <Label htmlFor={`block-end-${b.key}`}>To</Label>
+                        <Label htmlFor={`block-end-${b.key}`}>Last day</Label>
                         <Input
                           id={`block-end-${b.key}`}
-                          type="datetime-local"
+                          type="date"
                           value={b.end}
                           onChange={(e) => updateBlock(b.key, { end: e.target.value })}
                           className="tabular"
