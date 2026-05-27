@@ -195,28 +195,38 @@ function DoctorAppointmentCard({
           </div>
         )}
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={onViewContext}>
-            View patient details
-          </Button>
-          {status === 'upcoming' && booking.meetingLink && (
-            <Button asChild>
-              <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer">
-                Join the consult
-              </a>
+        {status === 'cancelled' ? (
+          // A cancelled consult intentionally stops exposing the patient's
+          // medical context (the context endpoint returns 404 for it), so we
+          // don't offer a "View patient details" button that's guaranteed to
+          // fail — just a calm note that the patient called it off.
+          <p className="mt-4 text-sm text-ink-muted">
+            The patient cancelled this consultation.
+          </p>
+        ) : (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={onViewContext}>
+              View patient details
             </Button>
-          )}
-          {status === 'ended' && (
-            <Button onClick={onWriteNotes}>
-              {booking.hasDraft ? 'Continue notes' : 'Write consultation notes'}
-            </Button>
-          )}
-          {status === 'completed' && (
-            <Button variant="secondary" onClick={onViewNotes}>
-              View notes
-            </Button>
-          )}
-        </div>
+            {status === 'upcoming' && booking.meetingLink && (
+              <Button asChild>
+                <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer">
+                  Join the consult
+                </a>
+              </Button>
+            )}
+            {status === 'ended' && (
+              <Button onClick={onWriteNotes}>
+                {booking.hasDraft ? 'Continue notes' : 'Write consultation notes'}
+              </Button>
+            )}
+            {status === 'completed' && (
+              <Button variant="secondary" onClick={onViewNotes}>
+                View notes
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
