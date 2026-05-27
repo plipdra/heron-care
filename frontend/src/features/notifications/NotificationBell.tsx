@@ -1,10 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check } from 'lucide-react';
+import {
+  Bell,
+  CalendarClock,
+  CalendarCog,
+  CalendarPlus,
+  CalendarX,
+  Check,
+  Clock,
+  type LucideIcon,
+} from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/lib/api';
 import { formatFullDateTime } from '@/lib/datetime';
 import { fetchStreamToken, useMarkAllRead, useNotifications } from './api';
+
+// Per-type glyph — shape carries the meaning; colour stays neutral (BRAND.md §5
+// reserves red/amber for "something is wrong", which routine scheduling is not).
+const ICON_FOR: Record<string, LucideIcon> = {
+  BOOKING_CONFIRMED: CalendarPlus,
+  BOOKING_CANCELLED: CalendarX,
+  BOOKING_RESCHEDULED: CalendarClock,
+  AVAILABILITY_CHANGED: CalendarCog,
+  APPOINTMENT_REMINDER: Clock,
+};
 
 // Calm relative stamp for the panel ("just now" / "5m ago" / "2h ago" / "3d ago").
 function timeAgo(iso: string): string {
@@ -132,28 +151,34 @@ export function NotificationBell() {
             </div>
           ) : (
             <ul className="max-h-96 divide-y divide-line overflow-y-auto">
-              {items.map((n) => (
-                <li key={n.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      navigate('/appointments');
-                    }}
-                    className={`flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left transition-colors hover:bg-primary-tint ${
-                      n.read ? '' : 'bg-primary-tint/40'
-                    }`}
-                  >
-                    <span className="text-sm text-ink">{n.message}</span>
-                    {n.startsAt && (
-                      <span className="tabular text-xs text-ink-muted">
-                        {formatFullDateTime(n.startsAt)}
+              {items.map((n) => {
+                const Icon = ICON_FOR[n.type] ?? Bell;
+                return (
+                  <li key={n.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        navigate('/appointments');
+                      }}
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-primary-tint ${
+                        n.read ? '' : 'bg-primary-tint/40'
+                      }`}
+                    >
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
+                      <span className="flex flex-col items-start gap-0.5">
+                        <span className="text-sm text-ink">{n.message}</span>
+                        {n.startsAt && (
+                          <span className="tabular text-xs text-ink-muted">
+                            {formatFullDateTime(n.startsAt)}
+                          </span>
+                        )}
+                        <span className="text-xs text-ink-muted">{timeAgo(n.createdAt)}</span>
                       </span>
-                    )}
-                    <span className="text-xs text-ink-muted">{timeAgo(n.createdAt)}</span>
-                  </button>
-                </li>
-              ))}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

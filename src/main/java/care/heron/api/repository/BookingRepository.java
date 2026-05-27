@@ -28,6 +28,11 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
             Instant from,
             Instant to);
 
+    // Reminder sweep: CONFIRMED bookings entering the next-hour window that
+    // haven't been reminded yet. reminderSentAt is the idempotency marker.
+    List<Booking> findByStatusAndReminderSentAtIsNullAndStartsAtBetween(
+            BookingStatus status, Instant from, Instant to);
+
     Page<Booking> findByPatientUserIdOrderByStartsAtDesc(String patientUserId, Pageable pageable);
 
     Page<Booking> findByDoctorUserIdOrderByStartsAtDesc(String doctorUserId, Pageable pageable);

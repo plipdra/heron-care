@@ -180,8 +180,7 @@ public class NotificationService {
                     .map(DoctorProfile::getName)
                     .filter(n -> n != null && !n.isBlank())
                     .orElse("Your doctor");
-            String message = doctorName
-                    + " updated their schedule — please review your upcoming visit.";
+            String message = doctorName + " updated their availability.";
             Instant now = clock.instant();
             List<Booking> affected = bookingRepository.findByDoctorUserIdAndStatusAndStartsAtBetween(
                     doctorUserId, BookingStatus.CONFIRMED, now, now.plus(FANOUT_HORIZON_DAYS, ChronoUnit.DAYS));
@@ -193,6 +192,19 @@ public class NotificationService {
         } catch (Exception e) {
             log.warn("availability_notification_failed doctor={}", doctorUserId, e);
         }
+    }
+
+    // The "upcoming visit" reminder — patient-facing, names the doctor. The time
+    // rides on startsAt (formatted in the patient's local zone by the panel), so
+    // the message itself carries no countdown (calm, per the brand). Throws on a
+    // persistence failure so the scheduler leaves the booking unmarked and retries.
+    public void notifyReminder(Booking booking) {
+        String doctorName = doctorProfileRepository.findByUserId(booking.getDoctorUserId())
+                .map(DoctorProfile::getName)
+                .filter(n -> n != null && !n.isBlank())
+                .orElse("your doctor");
+        persistAndPush(booking.getPatientUserId(), NotificationType.APPOINTMENT_REMINDER,
+                "Your visit with " + doctorName + " is coming up.", booking.getStartsAt());
     }
 
     private void persistAndPush(String recipientUserId, NotificationType type, String message, Instant startsAt) {
@@ -229,7 +241,7 @@ public class NotificationService {
         return switch (type) {
             case BOOKING_CONFIRMED -> "New appointment with " + patientName + ".";
             case BOOKING_CANCELLED -> patientName + " cancelled their appointment.";
-            case BOOKING_RESCHEDULED -> patientName + " moved their appointment to a new time.";
+            case BOOKING_RESCHEDULED -> patientName + " rescheduled their appointment.";
             default -> "You have an appointment update.";
         };
     }

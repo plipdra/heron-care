@@ -71,6 +71,11 @@ public class Booking {
     // cancelled" is answerable without diffing the audit log.
     private Instant cancelledAt;
 
+    // Stamped when the "upcoming visit" reminder has been sent, so the scheduler
+    // sweep never reminds the same booking twice (idempotency marker). Null until
+    // the booking enters the reminder window.
+    private Instant reminderSentAt;
+
     // Client-supplied UUID. Scoped per patient via the unique sparse index.
     private String idempotencyKey;
 
