@@ -14,6 +14,7 @@ import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.List;
 
 // Bookings reference User._id for both parties — the booking is a
 // relationship between two accounts. Profile metadata (specialization,
@@ -58,6 +59,18 @@ public class Booking {
     // doctor finalizes the consult (which also flips status to COMPLETED).
     private ConsultationRecord consultationRecord;
 
+    // Append-only trail of every time this booking was moved. Each entry records
+    // the slot it was moved AWAY from; the live startsAt/endsAt above is always
+    // the current slot. A List (not a single field) so the full history survives
+    // repeated reschedules — the medico-legally honest record of when a consult
+    // shifted. Null/empty means the booking has never been rescheduled.
+    private List<RescheduledFrom> rescheduledHistory;
+
+    // Stamped when the patient cancels. Null while CONFIRMED/COMPLETED. Kept
+    // separate from updatedAt (which any save touches) so "when was this
+    // cancelled" is answerable without diffing the audit log.
+    private Instant cancelledAt;
+
     // Client-supplied UUID. Scoped per patient via the unique sparse index.
     private String idempotencyKey;
 
@@ -77,4 +90,18 @@ public class Booking {
     private Instant updatedAt;
 
     private Instant deletedAt;
+
+    // One leg of a reschedule: the slot this booking occupied before a move.
+    // Embedded value object with no independent lifecycle, same pattern as
+    // ConsultationRecord. rescheduledAt is when the patient made the change.
+    @Getter
+    @Setter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    public static class RescheduledFrom {
+        private Instant previousStartsAt;
+        private Instant previousEndsAt;
+        private Instant rescheduledAt;
+    }
 }

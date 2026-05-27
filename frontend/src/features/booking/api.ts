@@ -80,6 +80,8 @@ export type PatientBooking = {
   concernNote: string | null;
   joinable: boolean;
   meetingLink: string | null;
+  // The slot this booking was last moved away from, or null if never rescheduled.
+  rescheduledFrom: string | null;
   createdAt: string;
 };
 
@@ -89,6 +91,52 @@ export function useMyBookings() {
   return useQuery({
     queryKey: ['bookings', 'me'],
     queryFn: () => apiFetch<PageResponse<PatientBooking>>('/api/bookings/me?size=50'),
+  });
+}
+
+// Cancel an upcoming booking (PATCH, no body). On success the patient's list
+// refreshes (the card flips to Cancelled, drops the join link) and the doctor's
+// freed slot list is dropped so it reappears as bookable. We pass doctorProfileId
+// purely to scope that slot invalidation — null when the doctor has since left.
+export function useCancelBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookingId }: { bookingId: string; doctorProfileId: string | null }) =>
+      apiFetch<BookingResponse>(`/api/bookings/${bookingId}/cancel`, { method: 'PATCH' }),
+    onSuccess: (_data, { doctorProfileId }) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
+      if (doctorProfileId) {
+        queryClient.invalidateQueries({ queryKey: ['doctor-slots', doctorProfileId] });
+      }
+    },
+  });
+}
+
+// Move an upcoming booking to a new slot (PATCH). Same booking id. A 409 carries
+// alternativeSlots, read by the dialog via extractAlternatives. On success both
+// the freed old slot and the now-taken new slot need to re-derive, so we drop the
+// doctor's slot snapshot, plus the patient's bookings list.
+export function useRescheduleBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      startsAt,
+    }: {
+      bookingId: string;
+      startsAt: string;
+      doctorProfileId: string | null;
+    }) =>
+      apiFetch<BookingResponse>(`/api/bookings/${bookingId}/reschedule`, {
+        method: 'PATCH',
+        body: JSON.stringify({ startsAt }),
+      }),
+    onSuccess: (_data, { doctorProfileId }) => {
+      queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
+      if (doctorProfileId) {
+        queryClient.invalidateQueries({ queryKey: ['doctor-slots', doctorProfileId] });
+      }
+    },
   });
 }
 

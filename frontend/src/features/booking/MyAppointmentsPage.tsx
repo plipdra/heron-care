@@ -1,24 +1,100 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/shared/Avatar';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
+import { ApiError } from '@/lib/api';
 import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
-import { useMyBookings, type PatientBooking } from './api';
+import { useCancelBooking, useMyBookings, type PatientBooking } from './api';
 import { StatusPill, displayStatus } from './status';
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
+import { RescheduleDialog } from './RescheduleDialog';
+
+// Confirm step for cancelling. Calm, not alarmed: cancelling a telehealth visit
+// is routine, so no danger-red framing — red is reserved for an actual request
+// failure. The buttons avoid the "Cancel" verb collision (which would mean both
+// "abort this dialog" and "cancel the booking"): the dismiss action reads "Keep
+// appointment", the destructive one "Cancel appointment".
+function CancelAppointmentDialog({
+  booking,
+  onClose,
+}: {
+  booking: PatientBooking;
+  onClose: () => void;
+}) {
+  const cancel = useCancelBooking();
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    setError(null);
+    try {
+      await cancel.mutateAsync({
+        bookingId: booking.id,
+        doctorProfileId: booking.doctorProfileId,
+      });
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.problem?.detail ?? 'Couldn’t cancel your appointment. Please try again.'
+          : 'Couldn’t reach the server. Please try again.',
+      );
+    }
+  }
+
+  const submitting = cancel.isPending;
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Cancel this appointment?</DialogTitle>
+          <DialogDescription>
+            Your{' '}
+            <span className="tabular text-ink">{formatFullDateTime(booking.startsAt)}</span>
+            {booking.doctorName ? ` visit with ${booking.doctorName}` : ' visit'} will be
+            released. You can always book again later.
+          </DialogDescription>
+        </DialogHeader>
+
+        {error && <p className="text-sm text-danger">{error}</p>}
+
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={submitting}>
+            Keep appointment
+          </Button>
+          <Button variant="destructive" onClick={confirm} disabled={submitting}>
+            {submitting ? 'Cancelling…' : 'Cancel appointment'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function AppointmentCard({
   booking,
   now,
   onViewSummary,
+  onReschedule,
+  onCancel,
 }: {
   booking: PatientBooking;
   now: number;
   onViewSummary: () => void;
+  onReschedule: () => void;
+  onCancel: () => void;
 }) {
   const status = displayStatus(booking, now);
   const isPast = status !== 'upcoming';
@@ -50,6 +126,12 @@ function AppointmentCard({
         <p className="mt-4 tabular font-medium text-ink">
           {formatFullDateTime(booking.startsAt, isPast)}
         </p>
+        {booking.rescheduledFrom && (
+          <p className="mt-1 text-xs text-ink-muted">
+            Moved from{' '}
+            <span className="tabular">{formatFullDateTime(booking.rescheduledFrom, true)}</span>
+          </p>
+        )}
 
         {booking.concernNote && (
           <div className="mt-4">
@@ -58,17 +140,30 @@ function AppointmentCard({
           </div>
         )}
 
-        {status === 'upcoming' &&
-          (booking.meetingLink ? (
-            <div className="mt-4 flex flex-col gap-2">
-              <MeetingLinkActions link={booking.meetingLink} />
-              <p className="text-xs text-ink-muted">This link opens your video room.</p>
+        {status === 'upcoming' && (
+          <>
+            {booking.meetingLink ? (
+              <div className="mt-4 flex flex-col gap-2">
+                <MeetingLinkActions link={booking.meetingLink} />
+                <p className="text-xs text-ink-muted">This link opens your video room.</p>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-ink-muted">
+                Your doctor will share the video link before your appointment.
+              </p>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {booking.doctorProfileId && (
+                <Button variant="secondary" size="sm" onClick={onReschedule}>
+                  Reschedule
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={onCancel}>
+                Cancel appointment
+              </Button>
             </div>
-          ) : (
-            <p className="mt-4 text-sm text-ink-muted">
-              Your doctor will share the video link before your appointment.
-            </p>
-          ))}
+          </>
+        )}
 
         {status === 'ended' && (
           <p className="mt-4 text-sm text-ink-muted">This appointment has ended.</p>
@@ -91,6 +186,8 @@ export function MyAppointmentsPage() {
   const tzLabel = localTimeZoneLabel();
   const now = Date.now();
   const [viewingSummary, setViewingSummary] = useState<PatientBooking | null>(null);
+  const [rescheduling, setRescheduling] = useState<PatientBooking | null>(null);
+  const [cancelling, setCancelling] = useState<PatientBooking | null>(null);
 
   const header = (
     <header>
@@ -166,6 +263,8 @@ export function MyAppointmentsPage() {
                 booking={b}
                 now={now}
                 onViewSummary={() => setViewingSummary(b)}
+                onReschedule={() => setRescheduling(b)}
+                onCancel={() => setCancelling(b)}
               />
             ))}
           </div>
@@ -190,6 +289,8 @@ export function MyAppointmentsPage() {
                 booking={b}
                 now={now}
                 onViewSummary={() => setViewingSummary(b)}
+                onReschedule={() => setRescheduling(b)}
+                onCancel={() => setCancelling(b)}
               />
             ))}
           </div>
@@ -211,6 +312,12 @@ export function MyAppointmentsPage() {
           heading={`With ${viewingSummary.doctorName ?? 'your doctor'}`}
           onClose={() => setViewingSummary(null)}
         />
+      )}
+      {rescheduling && (
+        <RescheduleDialog booking={rescheduling} onClose={() => setRescheduling(null)} />
+      )}
+      {cancelling && (
+        <CancelAppointmentDialog booking={cancelling} onClose={() => setCancelling(null)} />
       )}
     </main>
   );

@@ -10,6 +10,7 @@ import care.heron.api.dto.booking.CreateBookingRequest;
 import care.heron.api.dto.booking.DoctorBookingResponse;
 import care.heron.api.dto.booking.PatientBookingResponse;
 import care.heron.api.dto.booking.PatientContextResponse;
+import care.heron.api.dto.booking.RescheduleRequest;
 import care.heron.api.dto.common.PageResponse;
 import care.heron.api.dto.doctor.PublicDoctorResponse;
 import care.heron.api.exception.SlotTakenException;
@@ -36,6 +37,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -212,6 +214,38 @@ public class BookingController {
                 request.concernNote(),
                 idempotencyKey));
         return ResponseEntity.status(HttpStatus.CREATED).body(BookingResponse.from(booking));
+    }
+
+    // Cancel an upcoming booking. PATCH (a state transition on an existing
+    // resource), patient-only, no body. Resource-level idempotent — re-sending
+    // against an already-cancelled booking returns 400 from the service guard,
+    // not a duplicate side effect, so no Idempotency-Key ceremony is needed.
+    // Ownership + state guards live in the service (not-owner/missing -> 404).
+    @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('PATIENT')")
+    public BookingResponse cancel(
+            @AuthenticationPrincipal String patientUserId,
+            @PathVariable String id) {
+        Booking booking = bookingService.cancelBooking(id, patientUserId);
+        log.info("booking_cancelled requestId={} caller={} bookingId={} doctor={}",
+                MDC.get("requestId"), patientUserId, id, booking.getDoctorUserId());
+        return BookingResponse.from(booking);
+    }
+
+    // Move an upcoming booking to a new slot. PATCH, patient-only. The new slot
+    // is validated against the booking's own doctor; a conflict surfaces the same
+    // 409-with-alternativeSlots response as create (the SlotTakenException handler
+    // below). A no-op move (same instant) returns the booking unchanged.
+    @PatchMapping("/{id}/reschedule")
+    @PreAuthorize("hasRole('PATIENT')")
+    public BookingResponse reschedule(
+            @AuthenticationPrincipal String patientUserId,
+            @PathVariable String id,
+            @Valid @RequestBody RescheduleRequest request) {
+        Booking booking = bookingService.rescheduleBooking(id, patientUserId, request.startsAt());
+        log.info("booking_rescheduled requestId={} caller={} bookingId={} doctor={} newStartsAt={}",
+                MDC.get("requestId"), patientUserId, id, booking.getDoctorUserId(), request.startsAt());
+        return BookingResponse.from(booking);
     }
 
     // Local handler so we can reach SlotService and DoctorProfileRepository

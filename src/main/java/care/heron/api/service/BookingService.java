@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
@@ -165,6 +166,86 @@ public class BookingService {
                                 && b.getStatus() == BookingStatus.COMPLETED))
                 .orElseThrow(() -> new ResourceNotFoundException("Consultation record", bookingId));
         return booking.getConsultationRecord();
+    }
+
+    // Patient-only loader for the mutation paths (cancel/reschedule). Unlike
+    // getByIdForCaller (which lets the doctor through and throws 403), this
+    // collapses not-the-patient AND missing to 404 — a patient must never get a
+    // 403 that confirms "this bookingId exists but isn't yours". The booking's
+    // doctorUserId is read FROM the document on every downstream use, never taken
+    // from the request, so a patient can't redirect a reschedule onto another
+    // doctor's calendar. Guards shared by both mutations: must still be CONFIRMED
+    // (a cancelled/completed consult is closed to changes) and must not have
+    // started yet (you can't move or cancel a visit already underway).
+    private Booking loadOwnUpcomingBooking(String bookingId, String patientUserId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .filter(b -> Objects.equals(b.getPatientUserId(), patientUserId))
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalArgumentException("Only an upcoming appointment can be changed.");
+        }
+        if (booking.getStartsAt() == null || !booking.getStartsAt().isAfter(clock.instant())) {
+            throw new IllegalArgumentException(
+                    "This appointment has already started and can no longer be changed.");
+        }
+        return booking;
+    }
+
+    // Cancel an upcoming booking. Free any time before it starts: status ->
+    // CANCELLED, cancelledAt stamped. No slot is deleted; because the conflict
+    // index is filtered to status=CONFIRMED, the freed slot becomes re-bookable
+    // immediately. @Version guards a cancel/finalize race (mapped to 409).
+    public Booking cancelBooking(String bookingId, String patientUserId) {
+        Booking booking = loadOwnUpcomingBooking(bookingId, patientUserId);
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelledAt(clock.instant());
+        return bookingRepository.save(booking);
+    }
+
+    // Move an upcoming booking to a new slot, in place — same booking id, same
+    // concernNote, same meetingLink. The prior slot is appended to
+    // rescheduledHistory so the trail is preserved across repeated moves.
+    //
+    // Three things make this distinct from create():
+    //   - No-op short-circuit: rescheduling to the same instant returns the
+    //     booking untouched, so we don't trip the unique index against ourselves.
+    //   - The new slot is validated against the SAME doctor (read from the
+    //     booking) — half-hour boundary, future, in schedule, not blocked.
+    //   - The save() is wrapped in its OWN DuplicateKey catch that maps straight
+    //     to SlotTakenException. We deliberately do NOT reuse create()'s catch,
+    //     which is entangled with idempotency-replay re-querying that has no
+    //     meaning here (a PATCH is resource-idempotent on its own).
+    public Booking rescheduleBooking(String bookingId, String patientUserId, Instant newStartsAt) {
+        Booking booking = loadOwnUpcomingBooking(bookingId, patientUserId);
+
+        if (Objects.equals(booking.getStartsAt(), newStartsAt)) {
+            return booking; // No move requested — nothing to validate or save.
+        }
+
+        DoctorProfile doctor = doctorProfileRepository.findByUserId(booking.getDoctorUserId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Doctor user", booking.getDoctorUserId()));
+        validateSlot(doctor, newStartsAt);
+
+        List<Booking.RescheduledFrom> history = booking.getRescheduledHistory() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(booking.getRescheduledHistory());
+        history.add(Booking.RescheduledFrom.builder()
+                .previousStartsAt(booking.getStartsAt())
+                .previousEndsAt(booking.getEndsAt())
+                .rescheduledAt(clock.instant())
+                .build());
+
+        booking.setStartsAt(newStartsAt);
+        booking.setEndsAt(newStartsAt.plus(SLOT_DURATION_MINUTES, ChronoUnit.MINUTES));
+        booking.setRescheduledHistory(history);
+
+        try {
+            return bookingRepository.save(booking);
+        } catch (DuplicateKeyException ex) {
+            // The new slot was taken by another CONFIRMED booking on this doctor.
+            throw new SlotTakenException(booking.getDoctorUserId(), newStartsAt);
+        }
     }
 
     public Booking create(CreateBookingCommand command) {

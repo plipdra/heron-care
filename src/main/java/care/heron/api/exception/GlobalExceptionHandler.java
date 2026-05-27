@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
@@ -80,6 +81,15 @@ public class GlobalExceptionHandler {
                 "Idempotency key reused", ex.getMessage());
         p.setType(java.net.URI.create("https://heron.care/errors/idempotency-key-reused"));
         return p;
+    }
+
+    // A concurrent write won the @Version race (e.g. the doctor finalized while
+    // the patient was cancelling, or two reschedules collided). The client's view
+    // is stale — 409 so the UI can refetch and let the user retry against truth.
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ProblemDetail handleOptimisticLock(OptimisticLockingFailureException ex) {
+        return problem(HttpStatus.CONFLICT, "Update conflict",
+                "This appointment changed while you were editing it. Please refresh and try again.");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

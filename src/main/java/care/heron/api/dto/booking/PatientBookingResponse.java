@@ -27,10 +27,19 @@ public record PatientBookingResponse(
         String concernNote,
         boolean joinable,
         String meetingLink,
+        // The slot this booking was most recently moved away from, or null if it
+        // has never been rescheduled. Drives the muted "Moved from …" card line.
+        // Only the latest leg is surfaced — the full trail stays server-side.
+        Instant rescheduledFrom,
         Instant createdAt
 ) {
     public static PatientBookingResponse of(
             Booking booking, PublicDoctorResponse doctor, boolean joinable) {
+        Instant rescheduledFrom = null;
+        var history = booking.getRescheduledHistory();
+        if (history != null && !history.isEmpty()) {
+            rescheduledFrom = history.get(history.size() - 1).getPreviousStartsAt();
+        }
         return new PatientBookingResponse(
                 booking.getId(),
                 booking.getDoctorUserId(),
@@ -43,6 +52,7 @@ public record PatientBookingResponse(
                 booking.getConcernNote(),
                 joinable,
                 joinable ? booking.getMeetingLink() : null,
+                rescheduledFrom,
                 booking.getCreatedAt());
     }
 }
