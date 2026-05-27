@@ -300,24 +300,25 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
                           className="tabular"
                         />
                       </div>
-                      <div className="flex flex-1 flex-col gap-1.5">
-                        <Label htmlFor={`block-reason-${b.key}`}>Reason (optional)</Label>
-                        <Input
-                          id={`block-reason-${b.key}`}
-                          maxLength={200}
-                          value={b.reason}
-                          onChange={(e) => updateBlock(b.key, { reason: e.target.value })}
-                          placeholder="Conference, leave…"
-                        />
-                      </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
+                        className="ml-auto"
                         onClick={() => removeBlock(b.key)}
                       >
                         Remove
                       </Button>
+                    </div>
+                    <div className="mt-3 flex flex-col gap-1.5">
+                      <Label htmlFor={`block-reason-${b.key}`}>Reason (optional)</Label>
+                      <Input
+                        id={`block-reason-${b.key}`}
+                        maxLength={200}
+                        value={b.reason}
+                        onChange={(e) => updateBlock(b.key, { reason: e.target.value })}
+                        placeholder="Conference, annual leave, public holiday…"
+                      />
                     </div>
                     {conflicts.length > 0 && (
                       <p className="mt-3 text-xs text-warning">
