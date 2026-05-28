@@ -36,34 +36,66 @@ public class DoctorService {
     private final NotificationService notificationService;
     private final Clock clock;
 
-    // Public discovery — dispatches to the right repository method based on which
-    // filters are set. Patch-update on profile fields means doctors don't lose
-    // unrelated fields on partial submits.
+    // Public discovery — dispatches to the right query based on which filters are
+    // set. Free text is matched token-by-token against name/bio (see searchPublished);
+    // this is a keyword filter, NOT a symptom router. A pure symptom like "shoulder
+    // pain" won't match a thin bio — that's the AI recommend flow's job, and the
+    // empty state hands off to it.
     public Page<DoctorProfile> listPublic(
             Specialization specialization, String search, Pageable pageable) {
         boolean hasSearch = search != null && !search.isBlank();
-        if (specialization != null && hasSearch) {
-            return doctorProfileRepository
-                    .findByPublishedTrueAndSpecializationAndNameContainingIgnoreCase(
-                            specialization, search.trim(), pageable);
+        if (!hasSearch) {
+            return specialization != null
+                    ? doctorProfileRepository.findByPublishedTrueAndSpecialization(specialization, pageable)
+                    : doctorProfileRepository.findByPublishedTrue(pageable);
         }
-        if (specialization != null) {
-            return doctorProfileRepository.findByPublishedTrueAndSpecialization(specialization, pageable);
-        }
-        if (hasSearch) {
-            String term = search.trim();
-            // If the term names a specialty ("neurology", "derm"), filter by specialty:
-            // the name/bio index doesn't cover the specialization label, so a specialty
-            // search would otherwise come back empty.
+
+        String term = search.trim();
+        // With no specialty pill selected, a term that names a specialty
+        // ("neurology", "derm") filters by that specialty — the name/bio match
+        // doesn't cover the specialization label, so this would otherwise come back
+        // empty. A chosen pill already pins the specialty, so we skip this there.
+        if (specialization == null) {
             List<Specialization> bySpecialtyTerm = matchSpecializations(term);
             if (!bySpecialtyTerm.isEmpty()) {
                 return doctorProfileRepository.findByPublishedTrueAndSpecializationIn(bySpecialtyTerm, pageable);
             }
-            return doctorProfileRepository
-                    .findByPublishedTrueAndNameContainingIgnoreCaseOrPublishedTrueAndBioContainingIgnoreCase(
-                            term, term, pageable);
         }
-        return doctorProfileRepository.findByPublishedTrue(pageable);
+
+        // Tokenized text search: split into words and match ANY word against name or
+        // bio. "skin cancer" then hits a bio reading "…skin cancer screening", and a
+        // typo'd extra word no longer zeroes out the whole query.
+        List<String> tokens = tokenize(term);
+        if (tokens.isEmpty()) {
+            // The query was all noise (stopwords / single chars) — treat as no search.
+            return specialization != null
+                    ? doctorProfileRepository.findByPublishedTrueAndSpecialization(specialization, pageable)
+                    : doctorProfileRepository.findByPublishedTrue(pageable);
+        }
+        return doctorProfileRepository.searchPublished(specialization, tokens, pageable);
+    }
+
+    // Most words a single search will act on — caps the OR fan-out so a pasted
+    // paragraph can't build a pathological query.
+    private static final int MAX_SEARCH_TOKENS = 10;
+
+    // Connectors and pronouns that carry no search intent but commonly appear in
+    // bios ("…joint, bone, and sports injuries"), so left in they'd match almost
+    // everyone. Dropped before querying.
+    private static final Set<String> SEARCH_STOPWORDS = Set.of(
+            "and", "the", "for", "with", "from", "that", "this", "are", "you",
+            "your", "who", "when", "what", "have", "has", "had", "was", "were",
+            "can", "any", "all", "not", "but", "out");
+
+    // Lowercase, split on whitespace, drop blanks, single characters, duplicates,
+    // and stopwords. Case is irrelevant downstream (the regex match is
+    // case-insensitive); lowercasing only normalises stopword comparison.
+    private static List<String> tokenize(String term) {
+        return Arrays.stream(term.toLowerCase(Locale.ROOT).split("\\s+"))
+                .filter(t -> t.length() >= 2 && !SEARCH_STOPWORDS.contains(t))
+                .distinct()
+                .limit(MAX_SEARCH_TOKENS)
+                .toList();
     }
 
     // Specialties whose display label or enum name contains the search term

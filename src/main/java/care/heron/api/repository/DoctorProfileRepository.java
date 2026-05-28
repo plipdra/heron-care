@@ -10,7 +10,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface DoctorProfileRepository extends MongoRepository<DoctorProfile, String> {
+public interface DoctorProfileRepository
+        extends MongoRepository<DoctorProfile, String>, DoctorProfileRepositoryCustom {
 
     Optional<DoctorProfile> findByUserId(String userId);
 
@@ -19,10 +20,9 @@ public interface DoctorProfileRepository extends MongoRepository<DoctorProfile, 
     List<DoctorProfile> findByUserIdIn(Collection<String> userIds);
 
     // Public discovery is gated on `published` so incomplete / test profiles
-    // never surface. The OR variant repeats PublishedTrue in BOTH branches on
-    // purpose — that groups as (published AND name) OR (published AND bio), i.e.
-    // published AND (name OR bio); a single PublishedTrue would leak unpublished
-    // doctors through the bio branch.
+    // never surface. Free-text search lives in searchPublished (the custom
+    // fragment) — these derived methods cover the no-search and specialty-only
+    // listings.
     Page<DoctorProfile> findByPublishedTrue(Pageable pageable);
 
     Page<DoctorProfile> findByPublishedTrueAndSpecialization(
@@ -30,10 +30,4 @@ public interface DoctorProfileRepository extends MongoRepository<DoctorProfile, 
 
     Page<DoctorProfile> findByPublishedTrueAndSpecializationIn(
             Collection<Specialization> specializations, Pageable pageable);
-
-    Page<DoctorProfile> findByPublishedTrueAndSpecializationAndNameContainingIgnoreCase(
-            Specialization specialization, String name, Pageable pageable);
-
-    Page<DoctorProfile> findByPublishedTrueAndNameContainingIgnoreCaseOrPublishedTrueAndBioContainingIgnoreCase(
-            String name, String bio, Pageable pageable);
 }
