@@ -202,8 +202,10 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(clock.instant());
         Booking saved = bookingRepository.save(booking);
-        // Notify the doctor (the non-actor) — best-effort, never throws.
+        // Notify the doctor (the non-actor) and the patient (their own record) —
+        // best-effort, never throws.
         notificationService.notifyBookingEvent(NotificationType.BOOKING_CANCELLED, saved);
+        notificationService.notifyPatientBookingEvent(NotificationType.BOOKING_CANCELLED, saved);
         return saved;
     }
 
@@ -253,6 +255,7 @@ public class BookingService {
             throw new SlotTakenException(booking.getDoctorUserId(), newStartsAt);
         }
         notificationService.notifyBookingEvent(NotificationType.BOOKING_RESCHEDULED, saved);
+        notificationService.notifyPatientBookingEvent(NotificationType.BOOKING_RESCHEDULED, saved);
         return saved;
     }
 
@@ -300,8 +303,9 @@ public class BookingService {
             throw new SlotTakenException(command.doctorUserId(), command.startsAt());
         }
         // Genuine create only (not an idempotent replay, not a slot conflict) —
-        // notify the doctor. Best-effort, never throws.
+        // notify the doctor and confirm to the patient. Best-effort, never throws.
         notificationService.notifyBookingEvent(NotificationType.BOOKING_CONFIRMED, saved);
+        notificationService.notifyPatientBookingEvent(NotificationType.BOOKING_CONFIRMED, saved);
         return saved;
     }
 

@@ -170,6 +170,22 @@ public class NotificationService {
         }
     }
 
+    // The patient's own booking action — a confirmation/record in THEIR notification
+    // center (notifyBookingEvent above covers the doctor side). Names the doctor; no
+    // clinical detail rides along. Best-effort, never throws.
+    public void notifyPatientBookingEvent(NotificationType type, Booking booking) {
+        try {
+            String doctorName = doctorProfileRepository.findByUserId(booking.getDoctorUserId())
+                    .map(DoctorProfile::getName)
+                    .filter(n -> n != null && !n.isBlank())
+                    .orElse("your doctor");
+            persistAndPush(booking.getPatientUserId(), type,
+                    patientBookingMessage(type, doctorName), booking.getStartsAt());
+        } catch (Exception e) {
+            log.warn("notification_failed recipient={} type={}", booking.getPatientUserId(), type, e);
+        }
+    }
+
     // A doctor changed their availability — notify the patients with a future
     // confirmed booking (deduped), scoped to this doctor's own bookings, naming
     // the doctor. Blocking time never cancels a booking, so this is informational
@@ -243,6 +259,15 @@ public class NotificationService {
             case BOOKING_CANCELLED -> patientName + " cancelled their appointment.";
             case BOOKING_RESCHEDULED -> patientName + " rescheduled their appointment.";
             default -> "You have an appointment update.";
+        };
+    }
+
+    private static String patientBookingMessage(NotificationType type, String doctorName) {
+        return switch (type) {
+            case BOOKING_CONFIRMED -> "Your appointment with " + doctorName + " is confirmed.";
+            case BOOKING_CANCELLED -> "Your appointment with " + doctorName + " was cancelled.";
+            case BOOKING_RESCHEDULED -> "Your appointment with " + doctorName + " was rescheduled.";
+            default -> "Your appointment was updated.";
         };
     }
 }

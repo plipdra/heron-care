@@ -20,6 +20,9 @@ public interface DoctorProfileRepository extends MongoRepository<DoctorProfile, 
 
     Page<DoctorProfile> findBySpecialization(Specialization specialization, Pageable pageable);
 
+    Page<DoctorProfile> findBySpecializationIn(
+            Collection<Specialization> specializations, Pageable pageable);
+
     Page<DoctorProfile> findByNameContainingIgnoreCaseOrBioContainingIgnoreCase(
             String name, String bio, Pageable pageable);
 

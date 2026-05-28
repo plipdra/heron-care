@@ -15,9 +15,11 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,10 +51,31 @@ public class DoctorService {
         }
         if (hasSearch) {
             String term = search.trim();
+            // If the term names a specialty ("neurology", "derm"), filter by specialty:
+            // the name/bio index doesn't cover the specialization label, so a specialty
+            // search would otherwise come back empty.
+            List<Specialization> bySpecialtyTerm = matchSpecializations(term);
+            if (!bySpecialtyTerm.isEmpty()) {
+                return doctorProfileRepository.findBySpecializationIn(bySpecialtyTerm, pageable);
+            }
             return doctorProfileRepository.findByNameContainingIgnoreCaseOrBioContainingIgnoreCase(
                     term, term, pageable);
         }
         return doctorProfileRepository.findAll(pageable);
+    }
+
+    // Specialties whose display label or enum name contains the search term
+    // (case-insensitive). Guarded to 3+ chars so a one- or two-letter query doesn't
+    // sweep in half the taxonomy; "neuro", "derm", "general" resolve cleanly.
+    private static List<Specialization> matchSpecializations(String term) {
+        if (term.length() < 3) {
+            return List.of();
+        }
+        String needle = term.toLowerCase(Locale.ROOT);
+        return Arrays.stream(Specialization.values())
+                .filter(s -> s.displayName().toLowerCase(Locale.ROOT).contains(needle)
+                        || s.name().toLowerCase(Locale.ROOT).contains(needle))
+                .toList();
     }
 
     public DoctorProfile getPublic(String id) {

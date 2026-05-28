@@ -127,7 +127,7 @@ export function RecommendPage() {
                 {result.suggestedSpecializationLabel && result.doctors[0] && (
                   <p className="mt-4 rounded-md bg-primary-tint px-4 py-3 text-sm text-ink">
                     <span className="font-semibold text-primary">
-                      We suggest a {result.suggestedSpecializationLabel}.
+                      We suggest {result.suggestedSpecializationLabel}.
                     </span>{' '}
                     {result.doctors[0].reason}
                   </p>

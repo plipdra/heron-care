@@ -22,6 +22,7 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
+        <libphonenumber.version>8.13.50</libphonenumber.version>
         <!-- Spring AI BOM governs only the AI artifacts; the Boot parent (3.3.5)
              still pins everything else, so this coexists without a Boot bump. -->
         <spring-ai.version>1.0.0</spring-ai.version>
@@ -84,6 +85,16 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- Google's phone number library: the authoritative way to validate a
+             phone number against a region's real numbering plan, instead of a
+             hand-rolled regex that can't tell a valid PH mobile from a run of
+             digits. Used by the @ValidPhone Bean Validation constraint. -->
+        <dependency>
+            <groupId>com.googlecode.libphonenumber</groupId>
+            <artifactId>libphonenumber</artifactId>
+            <version>${libphonenumber.version}</version>
         </dependency>
 
         <dependency>

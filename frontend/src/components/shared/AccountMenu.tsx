@@ -1,6 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { Avatar } from '@/components/shared/Avatar';
+import { apiFetch } from '@/lib/api';
+import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,15 +18,28 @@ const ROLE_LABEL: Record<string, string> = { PATIENT: 'Patient', DOCTOR: 'Doctor
 
 // The session's account menu — the authed bar's right anchor. Profile + Sign out
 // live here, off the flat bar, with Sign out as the terminal/destructive action.
-// We only hold email in the session (the display name lives on the profile,
-// fetched per page), so the avatar initials + identity line use the email.
+// The session token only carries email/role, so we fetch the role-appropriate
+// profile for the display name (shared cache with the profile pages) — that's
+// what drives the avatar initials, falling back to the email handle while it loads.
 export function AccountMenu() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const profile = useQuery({
+    queryKey: [user?.role === 'DOCTOR' ? 'doctors' : 'patients', 'me'],
+    queryFn: () =>
+      apiFetch<{ name: string | null }>(
+        user?.role === 'DOCTOR' ? '/api/doctors/me' : '/api/patients/me',
+      ),
+    enabled: !!user,
+  });
+
+  const photoUrl = useAuthedImageUrl(user ? `/api/profile-pictures/${user.id}` : null);
+
   if (!user) return null;
 
   const handle = user.email.split('@')[0].replace(/[._-]+/g, ' ');
+  const displayName = profile.data?.name?.trim() || handle;
 
   async function handleSignOut() {
     await logout();
@@ -38,13 +54,14 @@ export function AccountMenu() {
           aria-label="Account menu"
           className="group flex items-center gap-1 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <Avatar name={handle} size={32} />
+          <Avatar name={displayName} photoUrl={photoUrl} size={32} />
           <ChevronDown className="h-4 w-4 text-ink-muted transition-transform group-data-[state=open]:rotate-180" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuLabel>
-          <p className="truncate text-sm font-medium text-ink">{user.email}</p>
+          <p className="truncate text-sm font-medium text-ink">{displayName}</p>
+          <p className="truncate text-xs text-ink-muted">{user.email}</p>
           <p className="text-xs text-ink-muted">{ROLE_LABEL[user.role] ?? user.role}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

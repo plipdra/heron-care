@@ -11,6 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { ApiError } from '@/lib/api';
+import {
+  validateHttpUrl,
+  validateNumberInRange,
+  validateOptionalName,
+} from '@/lib/validation';
 import { useAuth } from '@/features/auth/AuthContext';
 import { MyPatientProfilePage } from '@/features/patient/MyPatientProfilePage';
 import { SPECIALIZATIONS } from './specializations';
@@ -43,6 +48,12 @@ function DoctorProfileEditor() {
   const [feedback, setFeedback] = useState<
     { kind: 'success' | 'error'; message: string } | null
   >(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    bio?: string;
+    yearsOfExperience?: string;
+    defaultMeetingLink?: string;
+  }>({});
 
   useEffect(() => {
     if (data) {
@@ -80,6 +91,20 @@ function DoctorProfileEditor() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFeedback(null);
+
+    // Mirror the backend rules PER FIELD so an invalid value is flagged on its
+    // own input, not as a vague form-level message; the backend is the gate.
+    const next = {
+      name: validateOptionalName(name) ?? undefined,
+      yearsOfExperience:
+        validateNumberInRange(yearsOfExperience, 0, 70, 'Years of experience') ?? undefined,
+      defaultMeetingLink: validateHttpUrl(defaultMeetingLink) ?? undefined,
+    };
+    setFieldErrors(next);
+    if (Object.values(next).some(Boolean)) {
+      setFeedback({ kind: 'error', message: 'Please fix the highlighted fields.' });
+      return;
+    }
     try {
       await updateMutation.mutateAsync({
         name: name || undefined,
@@ -88,16 +113,34 @@ function DoctorProfileEditor() {
         defaultMeetingLink: defaultMeetingLink || undefined,
         yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : undefined,
       });
+      setFieldErrors({});
       setFeedback({ kind: 'success', message: 'Your profile is up to date.' });
     } catch (err) {
-      setFeedback({
-        kind: 'error',
-        message:
-          err instanceof ApiError
-            ? err.problem?.detail ?? err.message
-            : 'Could not save changes.',
-      });
+      // Land the backend's per-field errors on the fields themselves.
+      const backend = err instanceof ApiError ? err.problem?.errors : undefined;
+      const mapped = {
+        name: backend?.name,
+        bio: backend?.bio,
+        yearsOfExperience: backend?.yearsOfExperience,
+        defaultMeetingLink: backend?.defaultMeetingLink,
+      };
+      if (Object.values(mapped).some(Boolean)) {
+        setFieldErrors(mapped);
+        setFeedback({ kind: 'error', message: 'Please fix the highlighted fields.' });
+      } else {
+        setFeedback({
+          kind: 'error',
+          message:
+            err instanceof ApiError
+              ? err.problem?.detail ?? err.message
+              : 'Could not save changes.',
+        });
+      }
     }
+  }
+
+  function clearFieldError(field: keyof typeof fieldErrors) {
+    setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   }
 
   return (
@@ -121,9 +164,16 @@ function DoctorProfileEditor() {
               <Input
                 id="profile-name"
                 maxLength={200}
+                aria-invalid={fieldErrors.name ? true : undefined}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearFieldError('name');
+                }}
               />
+              {fieldErrors.name && (
+                <p className="text-sm text-danger">{fieldErrors.name}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="profile-specialization">Specialisation</Label>
@@ -147,10 +197,17 @@ function DoctorProfileEditor() {
                 rows={4}
                 maxLength={2000}
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                aria-invalid={fieldErrors.bio ? true : undefined}
+                onChange={(e) => {
+                  setBio(e.target.value);
+                  clearFieldError('bio');
+                }}
                 className="flex w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                 placeholder="What you specialise in, how patients describe working with you."
               />
+              {fieldErrors.bio && (
+                <p className="text-sm text-danger">{fieldErrors.bio}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="profile-years">Years of experience</Label>
@@ -159,9 +216,16 @@ function DoctorProfileEditor() {
                 type="number"
                 min={0}
                 max={70}
+                aria-invalid={fieldErrors.yearsOfExperience ? true : undefined}
                 value={yearsOfExperience}
-                onChange={(e) => setYearsOfExperience(e.target.value)}
+                onChange={(e) => {
+                  setYearsOfExperience(e.target.value);
+                  clearFieldError('yearsOfExperience');
+                }}
               />
+              {fieldErrors.yearsOfExperience && (
+                <p className="text-sm text-danger">{fieldErrors.yearsOfExperience}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="profile-meeting">Default meeting link</Label>
@@ -169,10 +233,17 @@ function DoctorProfileEditor() {
                 id="profile-meeting"
                 type="url"
                 maxLength={500}
+                aria-invalid={fieldErrors.defaultMeetingLink ? true : undefined}
                 value={defaultMeetingLink}
-                onChange={(e) => setDefaultMeetingLink(e.target.value)}
+                onChange={(e) => {
+                  setDefaultMeetingLink(e.target.value);
+                  clearFieldError('defaultMeetingLink');
+                }}
                 placeholder="https://meet.google.com/your-room"
               />
+              {fieldErrors.defaultMeetingLink && (
+                <p className="text-sm text-danger">{fieldErrors.defaultMeetingLink}</p>
+              )}
               <p className="text-xs text-ink-muted">
                 Patients see this link when they join your consultation. Use a
                 Google Meet, Zoom, or Teams link you control.

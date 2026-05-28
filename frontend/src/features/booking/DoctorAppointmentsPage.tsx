@@ -18,6 +18,7 @@ import {
   localTimeZoneLabel,
 } from '@/lib/datetime';
 import { useNow } from '@/lib/useNow';
+import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
 import { StatusPill, displayStatus } from './status';
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
 import { WriteConsultationNotesDialog } from './WriteConsultationNotesDialog';
@@ -50,13 +51,16 @@ function PatientContextDialog({
   const { data: context, isPending, isError } = usePatientContext(booking.id, true);
   const status = displayStatus(booking, Date.now());
   const tzLabel = localTimeZoneLabel();
+  // The patient's chosen avatar — visible to the doctor for this booking only
+  // (fetched with the doctor's token; falls back to initials when unset).
+  const patientPhoto = useAuthedImageUrl(`/api/profile-pictures/${booking.patientUserId}`);
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <Avatar name={booking.patientName ?? '?'} size={48} />
+            <Avatar name={booking.patientName ?? '?'} photoUrl={patientPhoto} size={48} />
             <div>
               <DialogTitle>{booking.patientName ?? 'Patient'}</DialogTitle>
               <div className="mt-1">
@@ -170,13 +174,14 @@ function DoctorAppointmentCard({
 }) {
   const status = displayStatus(booking, now);
   const isPast = status !== 'upcoming';
+  const patientPhoto = useAuthedImageUrl(`/api/profile-pictures/${booking.patientUserId}`);
 
   return (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <Avatar name={booking.patientName ?? '?'} size={48} />
+            <Avatar name={booking.patientName ?? '?'} photoUrl={patientPhoto} size={48} />
             <div>
               <h3 className="text-lg font-semibold leading-tight">
                 {booking.patientName ?? 'Patient'}

@@ -13,6 +13,13 @@ import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { ImageUploadField } from '@/components/shared/ImageUploadField';
 import { ApiError } from '@/lib/api';
 import {
+  validateBirthday,
+  validateNumberInRange,
+  validateOptionalName,
+  validatePhone,
+} from '@/lib/validation';
+import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
+import {
   useDeleteProfilePicture,
   useMyPatientProfile,
   useUpdateMyPatientProfile,
@@ -23,16 +30,6 @@ type PictureAction =
   | { kind: 'unchanged' }
   | { kind: 'upload'; dataUrl: string }
   | { kind: 'remove' };
-
-const TRACKED_FIELDS = [
-  'name',
-  'birthday',
-  'weightKg',
-  'heightCm',
-  'contactNumber',
-  'medicalHistory',
-  'profilePicture',
-] as const;
 
 export function MyPatientProfilePage() {
   const { data, isPending, isError, error } = useMyPatientProfile();
@@ -50,6 +47,14 @@ export function MyPatientProfilePage() {
   const [feedback, setFeedback] = useState<
     { kind: 'success' | 'error'; message: string } | null
   >(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    birthday?: string;
+    weightKg?: string;
+    heightCm?: string;
+    contactNumber?: string;
+    medicalHistory?: string;
+  }>({});
 
   // Cache-bust the picture URL on each profile refetch so a freshly uploaded
   // picture loads instead of the browser's 5-min cached copy.
@@ -69,16 +74,30 @@ export function MyPatientProfilePage() {
 
   const completeness = useMemo(() => {
     if (!data) return null;
-    const filled = [
+    // Count exactly the fields we evaluate, and divide by that same count — so the
+    // ratio can never claim "complete" while fields are blank.
+    const fields = [
       data.name,
       data.birthday,
       data.weightKg,
       data.heightCm,
       data.contactNumber,
       data.medicalHistory,
-    ].filter((v) => v !== null && v !== '').length;
-    return { filled, total: TRACKED_FIELDS.length - 1 };
+    ];
+    const filled = fields.filter(
+      (v) => v !== null && v !== undefined && v !== '',
+    ).length;
+    return { filled, total: fields.length };
   }, [data]);
+
+  // The picture endpoint is auth-gated, so fetch the bytes with our token and
+  // render an object URL; null (no picture / removed) falls back to "Upload".
+  // ?v bumps on every refetch so a freshly saved picture isn't the cached one.
+  const pictureServerUrl =
+    data && pictureAction.kind !== 'remove'
+      ? `${data.profilePictureUrl}?v=${pictureVersion}`
+      : null;
+  const resolvedPictureUrl = useAuthedImageUrl(pictureServerUrl);
 
   if (isPending) {
     return (
@@ -99,16 +118,27 @@ export function MyPatientProfilePage() {
     );
   }
 
-  const currentPictureUrl =
-    pictureAction.kind === 'remove'
-      ? null
-      : `${data.profilePictureUrl}?v=${pictureVersion}`;
   const pendingPicture =
     pictureAction.kind === 'upload' ? pictureAction.dataUrl : null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFeedback(null);
+
+    // Mirror the backend rules PER FIELD for instant, located feedback — so an
+    // invalid value is flagged on its own input, never a vague form-level message.
+    const next = {
+      name: validateOptionalName(name) ?? undefined,
+      birthday: validateBirthday(birthday) ?? undefined,
+      weightKg: validateNumberInRange(weightKg, 0.1, 1000, 'Weight') ?? undefined,
+      heightCm: validateNumberInRange(heightCm, 10, 300, 'Height') ?? undefined,
+      contactNumber: validatePhone(contactNumber) ?? undefined,
+    };
+    setFieldErrors(next);
+    if (Object.values(next).some(Boolean)) {
+      setFeedback({ kind: 'error', message: 'Please fix the highlighted fields.' });
+      return;
+    }
     try {
       if (pictureAction.kind === 'upload') {
         await uploadPicture.mutateAsync(pictureAction.dataUrl);
@@ -123,16 +153,39 @@ export function MyPatientProfilePage() {
         contactNumber: contactNumber || undefined,
         medicalHistory: medicalHistory || undefined,
       });
+      setFieldErrors({});
       setFeedback({ kind: 'success', message: 'Your profile is up to date.' });
     } catch (err) {
-      setFeedback({
-        kind: 'error',
-        message:
-          err instanceof ApiError
-            ? err.problem?.detail ?? err.message
-            : 'Could not save changes.',
-      });
+      // Place the backend's per-field errors on the fields themselves, so the
+      // patient never has to guess which input the server rejected (e.g. a phone
+      // number that passed the light client check but failed libphonenumber).
+      const backend = err instanceof ApiError ? err.problem?.errors : undefined;
+      const mapped = {
+        name: backend?.name,
+        birthday: backend?.birthday,
+        weightKg: backend?.weightKg,
+        heightCm: backend?.heightCm,
+        contactNumber: backend?.contactNumber,
+        medicalHistory: backend?.medicalHistory,
+      };
+      if (Object.values(mapped).some(Boolean)) {
+        setFieldErrors(mapped);
+        setFeedback({ kind: 'error', message: 'Please fix the highlighted fields.' });
+      } else {
+        setFeedback({
+          kind: 'error',
+          message:
+            err instanceof ApiError
+              ? err.problem?.detail ?? err.message
+              : 'Could not save changes.',
+        });
+      }
     }
+  }
+
+  // Clear a field's error as soon as the patient edits it.
+  function clearFieldError(field: keyof typeof fieldErrors) {
+    setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   }
 
   const saving =
@@ -166,7 +219,7 @@ export function MyPatientProfilePage() {
             <ImageUploadField
               label="Profile picture"
               description="JPEG or PNG, up to 1MB. We resize to a 400px square."
-              currentUrl={currentPictureUrl}
+              currentUrl={resolvedPictureUrl}
               pendingDataUrl={pendingPicture}
               onChange={(dataUrl) => {
                 setPictureAction(
@@ -182,9 +235,16 @@ export function MyPatientProfilePage() {
               <Input
                 id="profile-name"
                 maxLength={200}
+                aria-invalid={fieldErrors.name ? true : undefined}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearFieldError('name');
+                }}
               />
+              {fieldErrors.name && (
+                <p className="text-sm text-danger">{fieldErrors.name}</p>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
@@ -192,9 +252,16 @@ export function MyPatientProfilePage() {
                 <Input
                   id="profile-birthday"
                   type="date"
+                  aria-invalid={fieldErrors.birthday ? true : undefined}
                   value={birthday}
-                  onChange={(e) => setBirthday(e.target.value)}
+                  onChange={(e) => {
+                    setBirthday(e.target.value);
+                    clearFieldError('birthday');
+                  }}
                 />
+                {fieldErrors.birthday && (
+                  <p className="text-sm text-danger">{fieldErrors.birthday}</p>
+                )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="profile-weight">Weight (kg)</Label>
@@ -204,9 +271,16 @@ export function MyPatientProfilePage() {
                   step="0.1"
                   min="0"
                   max="1000"
+                  aria-invalid={fieldErrors.weightKg ? true : undefined}
                   value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
+                  onChange={(e) => {
+                    setWeightKg(e.target.value);
+                    clearFieldError('weightKg');
+                  }}
                 />
+                {fieldErrors.weightKg && (
+                  <p className="text-sm text-danger">{fieldErrors.weightKg}</p>
+                )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="profile-height">Height (cm)</Label>
@@ -216,9 +290,16 @@ export function MyPatientProfilePage() {
                   step="1"
                   min="10"
                   max="300"
+                  aria-invalid={fieldErrors.heightCm ? true : undefined}
                   value={heightCm}
-                  onChange={(e) => setHeightCm(e.target.value)}
+                  onChange={(e) => {
+                    setHeightCm(e.target.value);
+                    clearFieldError('heightCm');
+                  }}
                 />
+                {fieldErrors.heightCm && (
+                  <p className="text-sm text-danger">{fieldErrors.heightCm}</p>
+                )}
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -227,10 +308,17 @@ export function MyPatientProfilePage() {
                 id="profile-contact"
                 type="tel"
                 maxLength={30}
+                aria-invalid={fieldErrors.contactNumber ? true : undefined}
                 value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
+                onChange={(e) => {
+                  setContactNumber(e.target.value);
+                  clearFieldError('contactNumber');
+                }}
                 placeholder="+63 917 555 1234"
               />
+              {fieldErrors.contactNumber && (
+                <p className="text-sm text-danger">{fieldErrors.contactNumber}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="profile-history">Basic medical history</Label>
@@ -239,10 +327,17 @@ export function MyPatientProfilePage() {
                 rows={5}
                 maxLength={5000}
                 value={medicalHistory}
-                onChange={(e) => setMedicalHistory(e.target.value)}
+                aria-invalid={fieldErrors.medicalHistory ? true : undefined}
+                onChange={(e) => {
+                  setMedicalHistory(e.target.value);
+                  clearFieldError('medicalHistory');
+                }}
                 className="flex w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                 placeholder="Conditions, allergies, medications, prior surgeries — anything your doctor should know."
               />
+              {fieldErrors.medicalHistory && (
+                <p className="text-sm text-danger">{fieldErrors.medicalHistory}</p>
+              )}
               <p className="text-xs text-ink-muted">
                 Shared with the doctors you book with. Up to 5,000 characters.
               </p>

@@ -88,7 +88,8 @@ HTTP → Controller (DTO) → Service (business logic) → Repository (MongoRepo
 
 ## Known limitations
 
-_To be expanded as features land._ Day 1 covers scaffolding, auth, and doctor discovery — booking, AI recommendation, SSE notifications, and clinical records arrive across Days 2–3.
+- **Phone numbers are Philippine-only.** Contact numbers are validated against the PH numbering plan via libphonenumber — `+63 …`, `09…`, and PH landlines pass; well-formed foreign numbers (e.g. a `+1 …` US number) are rejected by design. Format validity is checked, not ownership (no number is dialled or verified).
+- **Best-effort emergency screening, not triage.** The AI recommendation runs a deterministic red-flag pre-screen, but it is not a clinical triage system and should not be relied on in an emergency.
 
 ## Future work
 
@@ -99,6 +100,7 @@ _To be expanded as features land._ Day 1 covers scaffolding, auth, and doctor di
 - **Cancellation cutoff + no-show fee policy** (currently free cancellation until appointment start).
 - **HttpOnly cookie token storage** (currently localStorage — XSS-readable).
 - **Column-level PII encryption** for clinical notes with envelope encryption.
+- **International phone numbers + SMS/OTP verification** (currently Philippine-only and format-validated, not ownership-verified).
 - **Rate limiting** per user, stricter on auth endpoints.
 - **Background reminder jobs** via Spring `@Scheduled` and later a queue.
 - **Append-only audit log** for clinical record access (compliance).

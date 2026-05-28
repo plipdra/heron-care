@@ -106,3 +106,33 @@ export async function apiFetch<T = unknown>(
 
   return (await response.json()) as T;
 }
+
+// Like apiFetch but returns raw bytes. Profile-picture bytes sit behind an
+// authenticated endpoint, which a plain <img src> can't reach (it can't attach
+// our bearer token); callers fetch with this and render an object URL instead.
+// Mirrors the 401-refresh-retry so an expired access token recovers transparently.
+export async function apiFetchBlob(
+  path: string,
+  options: RequestOptions = {},
+): Promise<Blob> {
+  const { skipAuth, skipRefreshOnUnauthorized, headers, ...rest } = options;
+
+  const finalHeaders = new Headers(headers);
+  if (!skipAuth) {
+    const access = tokenStore.getAccess();
+    if (access) finalHeaders.set('Authorization', `Bearer ${access}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...rest, headers: finalHeaders });
+
+  if (response.status === 401 && !skipAuth && !skipRefreshOnUnauthorized) {
+    await refreshAccessToken();
+    return apiFetchBlob(path, { ...options, skipRefreshOnUnauthorized: true });
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText);
+  }
+
+  return response.blob();
+}

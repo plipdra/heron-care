@@ -10,6 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
+import {
+  validateEmail,
+  validatePassword,
+  validateRequiredName,
+} from '@/lib/validation';
 import { SPECIALIZATIONS } from '@/features/doctors/specializations';
 import { useAuth, type AuthIntent } from './AuthContext';
 
@@ -181,11 +186,29 @@ function RegisterForm({
   const [password, setPassword] = useState('');
   const [specialization, setSpecialization] = useState<string>('GENERAL_PRACTICE');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+  }>({});
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Mirror the backend signup rules for instant feedback. The backend is still
+    // the authoritative gate and will re-reject anything that slips past here.
+    const nextFieldErrors = {
+      name: validateRequiredName(name) ?? undefined,
+      email: validateEmail(email) ?? undefined,
+      password: validatePassword(password) ?? undefined,
+    };
+    setFieldErrors(nextFieldErrors);
+    if (nextFieldErrors.name || nextFieldErrors.email || nextFieldErrors.password) {
+      return;
+    }
+
     setPending(true);
     try {
       if (role === 'PATIENT') {
@@ -240,9 +263,14 @@ function RegisterForm({
           id="register-name"
           required
           maxLength={200}
+          aria-invalid={fieldErrors.name ? true : undefined}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (fieldErrors.name) setFieldErrors((f) => ({ ...f, name: undefined }));
+          }}
         />
+        {fieldErrors.name && <p className="text-sm text-danger">{fieldErrors.name}</p>}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -252,9 +280,14 @@ function RegisterForm({
           type="email"
           autoComplete="email"
           required
+          aria-invalid={fieldErrors.email ? true : undefined}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
+          }}
         />
+        {fieldErrors.email && <p className="text-sm text-danger">{fieldErrors.email}</p>}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -265,10 +298,20 @@ function RegisterForm({
           autoComplete="new-password"
           required
           minLength={8}
+          aria-invalid={fieldErrors.password ? true : undefined}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
+          }}
         />
-        <p className="text-xs text-ink-muted">At least 8 characters.</p>
+        {fieldErrors.password ? (
+          <p className="text-sm text-danger">{fieldErrors.password}</p>
+        ) : (
+          <p className="text-xs text-ink-muted">
+            At least 8 characters, including a letter and a number.
+          </p>
+        )}
       </div>
 
       {role === 'DOCTOR' && (
