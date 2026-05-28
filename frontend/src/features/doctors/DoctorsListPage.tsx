@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar } from '@/components/shared/Avatar';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import {
   SPECIALIZATIONS,
   specializationLabel,
   type Specialization,
 } from './specializations';
-import { useDoctors, type PublicDoctor } from './api';
+import { DoctorCard } from './DoctorCard';
+import { useDoctors } from './api';
 
 // Symptom vocabulary → specialty bridge for the marketplace browse flow.
 // The spec calls this out: discovery should map medical-need language onto
@@ -61,10 +59,25 @@ export function DoctorsListPage() {
         </p>
       </header>
 
+      <Link
+        to="/recommend"
+        className="group mt-8 flex items-center justify-between gap-4 rounded-lg border border-line bg-surface p-6 transition-colors hover:border-primary"
+      >
+        <div>
+          <p className="text-lg font-semibold text-ink">Not sure who to see?</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Describe what's going on and we'll suggest the right specialist.
+          </p>
+        </div>
+        <span className="shrink-0 text-sm font-medium text-primary group-hover:underline">
+          Get a recommendation →
+        </span>
+      </Link>
+
       <div className="mt-8 grid gap-8 lg:grid-cols-4">
         <details className="rounded-md border border-line bg-surface px-4 py-3 lg:hidden">
           <summary className="cursor-pointer text-sm font-semibold text-ink">
-            Common concerns
+            Quick filters
           </summary>
           <p className="mt-2 text-xs text-ink-muted">
             Tap to filter by specialty.
@@ -75,7 +88,7 @@ export function DoctorsListPage() {
         </details>
 
         <aside className="hidden lg:col-span-1 lg:block">
-          <h2 className="text-sm font-semibold text-ink">Common concerns</h2>
+          <h2 className="text-sm font-semibold text-ink">Quick filters</h2>
           <p className="mt-1 text-xs text-ink-muted">
             Tap to filter by specialty.
           </p>
@@ -208,31 +221,3 @@ function CommonConcernsList({
   );
 }
 
-function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
-  return (
-    <Link to={`/doctors/${doctor.id}`} className="group">
-      <Card className="h-full transition-colors group-hover:border-primary">
-        <CardContent className="flex flex-col gap-3 p-6">
-          <div className="flex items-start gap-4">
-            <Avatar name={doctor.name} size={48} />
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold leading-tight">{doctor.name}</h2>
-              {doctor.specializationLabel && (
-                <Badge className="mt-2">{doctor.specializationLabel}</Badge>
-              )}
-            </div>
-          </div>
-          {doctor.bio && (
-            <p className="line-clamp-3 text-sm text-ink-muted">{doctor.bio}</p>
-          )}
-          {doctor.yearsOfExperience !== null &&
-            doctor.yearsOfExperience !== undefined && (
-              <p className="text-xs text-ink-muted tabular">
-                {doctor.yearsOfExperience} years of experience
-              </p>
-            )}
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}

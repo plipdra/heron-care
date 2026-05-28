@@ -22,6 +22,7 @@ import { RequireAuth } from '@/features/auth/RequireAuth';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { DoctorProfilePage } from '@/features/doctors/DoctorProfilePage';
 import { DoctorsListPage } from '@/features/doctors/DoctorsListPage';
+import { RecommendPage } from '@/features/recommend/RecommendPage';
 import { MyDoctorProfilePage } from '@/features/doctors/MyDoctorProfilePage';
 import { AppointmentsPage } from '@/features/booking/AppointmentsPage';
 import { LandingPage } from '@/features/landing/LandingPage';
@@ -58,6 +59,14 @@ export default function App() {
                   element={
                     <PatientFacing>
                       <DoctorProfilePage />
+                    </PatientFacing>
+                  }
+                />
+                <Route
+                  path="/recommend"
+                  element={
+                    <PatientFacing>
+                      <RecommendPage />
                     </PatientFacing>
                   }
                 />

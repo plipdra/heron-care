@@ -57,6 +57,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/doctors", "/api/doctors/*", "/api/doctors/*/slots").permitAll()
+                        // AI doctor recommendation is part of guest discovery (the
+                        // recommendation is the marketing surface). Concern-only, no PII.
+                        .requestMatchers(HttpMethod.POST, "/api/recommendations").permitAll()
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
