@@ -37,6 +37,17 @@ class LlmStrategy implements DoctorRecommendationStrategy {
               PSYCHIATRY, NEUROLOGY, ORTHOPEDICS, ENDOCRINOLOGY.
             - Only return doctorIds that appear verbatim in the candidate list.
             - If the concern is about a child, prefer PEDIATRICS.
+            - Set "emergency" to true ONLY when the concern clearly describes an
+              acute, immediately life-threatening situation happening now — for
+              example: severe or crushing chest pain with radiation, sweating, or
+              breathlessness (a heart attack); face drooping, slurred speech, or
+              sudden one-sided weakness or numbness (a stroke); severe difficulty
+              breathing; severe or uncontrolled bleeding; a severe allergic
+              reaction; loss of consciousness; or active intent to self-harm.
+              Do NOT set it for mild, occasional, chronic, or exertional symptoms
+              (for example occasional chest pain on exertion, or a long-standing
+              headache) — those should be routed to the right specialist for a
+              booking. When it is not clearly an emergency, set it to false.
             """;
 
     private final ChatClient chatClient;
@@ -75,7 +86,15 @@ class LlmStrategy implements DoctorRecommendationStrategy {
     }
 
     private RecommendationOutcome toOutcome(LlmRecommendation result, List<DoctorProfile> candidates) {
-        if (result == null || result.suggestedSpecialization() == null) {
+        if (result == null) {
+            throw new IllegalStateException("LLM returned nothing");
+        }
+        // An LLM-detected emergency short-circuits to the safety notice — no
+        // specialty or doctor list needed (the service ignores them when urgent).
+        if (result.emergency()) {
+            return RecommendationOutcome.emergencyOutcome();
+        }
+        if (result.suggestedSpecialization() == null) {
             throw new IllegalStateException("LLM returned no specialization");
         }
         // valueOf throws IllegalArgumentException on a hallucinated/out-of-enum value → fallback.
@@ -107,10 +126,11 @@ class LlmStrategy implements DoctorRecommendationStrategy {
                 .limit(MAX_RESULTS)
                 .map(d -> new RecommendationOutcome.Ranked(d, reason))
                 .toList();
-        return new RecommendationOutcome(suggested, ranked);
+        return RecommendationOutcome.of(suggested, ranked);
     }
 
     // Structured-output target — Spring AI's BeanOutputConverter instructs the model
     // to emit JSON matching this shape and binds the reply into it.
-    record LlmRecommendation(String suggestedSpecialization, List<String> doctorIds) {}
+    record LlmRecommendation(
+            String suggestedSpecialization, List<String> doctorIds, boolean emergency) {}
 }

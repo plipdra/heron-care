@@ -93,6 +93,53 @@ class RecommendationServiceTest {
         verify(doctorService, never()).listPublic(any(), any(), any());
     }
 
+    @Test
+    void flags_a_described_heart_attack_even_without_the_words() {
+        RecommendationResponse r = service.recommend(new RecommendationQuery(
+                "Crushing chest pain radiating to my left arm with shortness of breath and sweating",
+                null, null));
+
+        assertThat(r.urgent()).isTrue();
+        assertThat(r.doctors()).isEmpty();
+        verify(doctorService, never()).listPublic(any(), any(), any());
+    }
+
+    @Test
+    void flags_a_described_stroke_even_without_the_word() {
+        RecommendationResponse r = service.recommend(new RecommendationQuery(
+                "Face drooping, slurred speech, and weakness on one side, started 30 minutes ago",
+                null, null));
+
+        assertThat(r.urgent()).isTrue();
+        assertThat(r.doctors()).isEmpty();
+        verify(doctorService, never()).listPublic(any(), any(), any());
+    }
+
+    @Test
+    void does_not_flag_bare_chest_pain_as_an_emergency() {
+        givenDirectory(doc("Cardio Doc", Specialization.CARDIOLOGY, 10));
+
+        RecommendationResponse r = service.recommend(
+                new RecommendationQuery("occasional mild chest pain", null, null));
+
+        assertThat(r.urgent()).isFalse();
+        assertThat(r.suggestedSpecializationLabel()).isEqualTo("Cardiology");
+    }
+
+    @Test
+    void treats_a_strategy_flagged_emergency_as_urgent() {
+        givenDirectory(doc("GP Doc", Specialization.GENERAL_PRACTICE, 5));
+        // A strategy (e.g. the LLM) can flag an emergency the keyword screen missed.
+        RecommendationService emergencyService = new RecommendationService(
+                doctorService, (q, c) -> RecommendationOutcome.emergencyOutcome());
+
+        RecommendationResponse r = emergencyService.recommend(
+                new RecommendationQuery("a subtle description the keywords miss", null, null));
+
+        assertThat(r.urgent()).isTrue();
+        assertThat(r.doctors()).isEmpty();
+    }
+
     private void givenDirectory(DoctorProfile... docs) {
         given(doctorService.listPublic(any(), any(), any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of(docs)));

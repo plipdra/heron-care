@@ -82,7 +82,7 @@ public class RulesStrategy implements DoctorRecommendationStrategy {
                 .limit(MAX_RESULTS)
                 .map(doctor -> new RecommendationOutcome.Ranked(doctor, reason))
                 .toList();
-        return new RecommendationOutcome(effective, ranked);
+        return RecommendationOutcome.of(effective, ranked);
     }
 
     private List<DoctorProfile> byExperience(List<DoctorProfile> doctors) {

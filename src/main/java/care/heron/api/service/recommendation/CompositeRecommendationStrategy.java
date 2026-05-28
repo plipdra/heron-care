@@ -47,7 +47,9 @@ class CompositeRecommendationStrategy implements DoctorRecommendationStrategy {
         Future<RecommendationOutcome> future = executor.submit(() -> llm.recommend(query, candidates));
         try {
             RecommendationOutcome outcome = future.get(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            if (outcome == null || outcome.doctors().isEmpty()) {
+            // An emergency outcome legitimately carries no doctors — pass it through.
+            // Otherwise an empty result means the LLM gave us nothing usable → fall back.
+            if (outcome == null || (!outcome.emergency() && outcome.doctors().isEmpty())) {
                 throw new IllegalStateException("empty LLM outcome");
             }
             return outcome;
