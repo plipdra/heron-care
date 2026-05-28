@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { API_BASE_URL } from '@/lib/api';
 import { formatFullDateTime } from '@/lib/datetime';
 import { fetchStreamToken, useMarkAllRead, useNotifications } from './api';
@@ -37,23 +38,23 @@ function timeAgo(iso: string): string {
 
 // The notification center: a quiet bell + unread badge that "stands quietly until
 // care needs to act". The persistent panel (server-backed) is the system of
-// record; SSE just keeps it live. One EventSource, owned here — the bell renders
-// only while authenticated, so the stream opens on sign-in and closes on sign-out.
+// record; SSE just keeps it live. The panel is a Radix Popover, so Escape,
+// outside-click, and focus return are handled for us. One EventSource, owned here
+// — the bell renders only while authenticated, so the stream opens on sign-in and
+// closes on sign-out.
 export function NotificationBell() {
   const { data } = useNotifications();
   const markAllRead = useMarkAllRead();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const items = data?.items ?? [];
   const unread = data?.unreadCount ?? 0;
 
   // Live stream. Re-mints a fresh token on every (re)connect — the token is
-  // short-lived, so reconnecting after a drop or expiry just gets a new one.
-  // We drive reconnection ourselves (not native EventSource retry, which would
+  // short-lived, so reconnecting after a drop or expiry just gets a new one. We
+  // drive reconnection ourselves (not native EventSource retry, which would
   // replay an expired token) with capped backoff.
   useEffect(() => {
     let closed = false;
@@ -73,7 +74,6 @@ export function NotificationBell() {
           backoff = 1000;
         };
         es.addEventListener('notification', () => {
-          // Re-derive everything the event could affect from server truth.
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
           queryClient.invalidateQueries({ queryKey: ['bookings', 'me'] });
           queryClient.invalidateQueries({ queryKey: ['bookings', 'doctor'] });
@@ -101,88 +101,72 @@ export function NotificationBell() {
     };
   }, [queryClient]);
 
-  // Close the panel on an outside click.
-  useEffect(() => {
-    if (!open) return;
-    function onClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, [open]);
-
-  function toggle() {
-    const next = !open;
+  // Opening the panel clears the unread badge.
+  function onOpenChange(next: boolean) {
     setOpen(next);
-    if (next && unread > 0) {
-      markAllRead.mutate();
-    }
+    if (next && unread > 0) markAllRead.mutate();
   }
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={toggle}
-        aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
-        className="relative flex h-9 w-9 items-center justify-center rounded-md text-ink hover:bg-primary-tint hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        <Bell className="h-5 w-5" />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
-          <div className="border-b border-line px-4 py-3">
-            <p className="text-sm font-semibold text-ink">Notifications</p>
-          </div>
-          {items.length === 0 ? (
-            <div className="px-4 py-8 text-center">
-              <Check className="mx-auto h-5 w-5 text-success" />
-              <p className="mt-2 text-sm text-ink-muted">
-                You're all caught up. Booking and schedule updates appear here.
-              </p>
-            </div>
-          ) : (
-            <ul className="max-h-96 divide-y divide-line overflow-y-auto">
-              {items.map((n) => {
-                const Icon = ICON_FOR[n.type] ?? Bell;
-                return (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        navigate('/appointments');
-                      }}
-                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-primary-tint ${
-                        n.read ? '' : 'bg-primary-tint/40'
-                      }`}
-                    >
-                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
-                      <span className="flex flex-col items-start gap-0.5">
-                        <span className="text-sm text-ink">{n.message}</span>
-                        {n.startsAt && (
-                          <span className="tabular text-xs text-ink-muted">
-                            {formatFullDateTime(n.startsAt)}
-                          </span>
-                        )}
-                        <span className="text-xs text-ink-muted">{timeAgo(n.createdAt)}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+          className="relative flex h-9 w-9 items-center justify-center rounded-md text-ink transition-colors hover:bg-primary-tint hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+              {unread > 99 ? '99+' : unread}
+            </span>
           )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 overflow-hidden p-0">
+        <div className="border-b border-line px-4 py-3">
+          <p className="text-sm font-semibold text-ink">Notifications</p>
         </div>
-      )}
-    </div>
+        {items.length === 0 ? (
+          <div className="px-4 py-8 text-center">
+            <Check className="mx-auto h-5 w-5 text-success" />
+            <p className="mt-2 text-sm text-ink-muted">
+              You're all caught up. Booking and schedule updates appear here.
+            </p>
+          </div>
+        ) : (
+          <ul className="max-h-96 divide-y divide-line overflow-y-auto">
+            {items.map((n) => {
+              const Icon = ICON_FOR[n.type] ?? Bell;
+              return (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      navigate('/appointments');
+                    }}
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-primary-tint ${
+                      n.read ? '' : 'bg-primary-tint/40'
+                    }`}
+                  >
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
+                    <span className="flex flex-col items-start gap-0.5">
+                      <span className="text-sm text-ink">{n.message}</span>
+                      {n.startsAt && (
+                        <span className="tabular text-xs text-ink-muted">
+                          {formatFullDateTime(n.startsAt)}
+                        </span>
+                      )}
+                      <span className="text-xs text-ink-muted">{timeAgo(n.createdAt)}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
