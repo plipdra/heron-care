@@ -18,6 +18,7 @@ import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
 import { ApiError } from '@/lib/api';
 import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
 import { useNow } from '@/lib/useNow';
+import { ProfileCompletionNudge } from '@/features/patient/ProfileCompletionNudge';
 import { useCancelBooking, useMyBookings, type PatientBooking } from './api';
 import { StatusPill, displayStatus } from './status';
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
@@ -242,6 +243,7 @@ export function MyAppointmentsPage() {
     return (
       <main className="container mx-auto max-w-3xl px-4 py-10">
         {header}
+        <ProfileCompletionNudge />
         <div className="mt-10 rounded-lg border border-line bg-surface p-10 text-center">
           <p className="text-lg font-medium">No appointments yet.</p>
           <p className="mt-2 text-ink-muted">
@@ -265,6 +267,8 @@ export function MyAppointmentsPage() {
   return (
     <main className="container mx-auto max-w-3xl px-4 py-10">
       {header}
+
+      <ProfileCompletionNudge />
 
       {confirmation && (
         <div
