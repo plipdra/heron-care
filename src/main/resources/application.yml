@@ -17,6 +17,22 @@ spring:
     serialization:
       write-dates-as-timestamps: false
     default-property-inclusion: non_null
+  ai:
+    # We only use chat — don't autoconfigure an embedding model (Gemini's
+    # OpenAI-compat surface needn't expose embeddings, and we never call it).
+    model:
+      embedding: none
+    openai:
+      # Gemini's OpenAI-compatible endpoint. Empty key default so the app still
+      # boots without it — the recommendation just falls back to rules. Provider
+      # swap to real OpenAI is base-url + key, no service-code change.
+      api-key: ${GEMINI_API_KEY:}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: gemini-2.5-flash
+          temperature: 0.2
 
 server:
   port: 8080

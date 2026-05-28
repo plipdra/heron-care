@@ -64,7 +64,7 @@ public class RulesStrategy implements DoctorRecommendationStrategy {
         // No signal → General Practice is the safe, useful default (never "no match").
         Specialization suggested = best != null ? best : Specialization.GENERAL_PRACTICE;
 
-        String reason = reasonFor(suggested);
+        String reason = SpecialtyReasons.reasonFor(suggested);
         List<RecommendationOutcome.Ranked> ranked = pickDoctors(suggested, candidates).stream()
                 .limit(MAX_RESULTS)
                 .map(doctor -> new RecommendationOutcome.Ranked(doctor, reason))
@@ -93,20 +93,5 @@ public class RulesStrategy implements DoctorRecommendationStrategy {
             if (d.getSpecialization() == specialization) out.add(d);
         }
         return out;
-    }
-
-    private String reasonFor(Specialization specialization) {
-        return switch (specialization) {
-            case CARDIOLOGY -> "Cardiologists focus on the heart and chest-related concerns.";
-            case DERMATOLOGY -> "Dermatologists handle skin, hair, and nail concerns.";
-            case PSYCHIATRY -> "Psychiatrists support mental health and mood concerns.";
-            case NEUROLOGY -> "Neurologists focus on the nervous system, including headaches and dizziness.";
-            case OB_GYN -> "OB-GYNs care for reproductive and pregnancy-related health.";
-            case PEDIATRICS -> "Pediatricians care for infants, children, and teens.";
-            case ORTHOPEDICS -> "Orthopedic doctors handle bones, joints, and muscles.";
-            case ENDOCRINOLOGY -> "Endocrinologists manage hormones, the thyroid, and diabetes.";
-            case INTERNAL_MEDICINE -> "Internal medicine doctors handle a broad range of adult health concerns.";
-            case GENERAL_PRACTICE -> "A general practice doctor is a good starting point and can refer you onward.";
-        };
     }
 }
