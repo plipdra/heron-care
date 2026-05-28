@@ -73,7 +73,25 @@ public class SeedRunner implements CommandLineRunner {
             Map.entry("dr.mendoza@heron.care", "https://meet.google.com/mvx-cqwn-bzl"),
             Map.entry("dr.romero@heron.care", "https://meet.google.com/rno-tjpa-cdk"),
             Map.entry("dr.ocampo@heron.care", "https://meet.google.com/oqz-hdrl-mnk"),
-            Map.entry("dr.velasco@heron.care", "https://meet.google.com/vbe-fkqp-trn"));
+            Map.entry("dr.velasco@heron.care", "https://meet.google.com/vbe-fkqp-trn"),
+            Map.entry("dr.domingo@heron.care", "https://meet.google.com/kfp-rbnq-wda"),
+            Map.entry("dr.navarro@heron.care", "https://meet.google.com/tcm-jhle-xou"),
+            Map.entry("dr.salazar@heron.care", "https://meet.google.com/bgw-nxpd-qle"),
+            Map.entry("dr.aguilar@heron.care", "https://meet.google.com/hsv-mkrt-zpa"),
+            Map.entry("dr.castillo@heron.care", "https://meet.google.com/dyq-wfbn-rce"),
+            Map.entry("dr.delrosario@heron.care", "https://meet.google.com/lpa-zhmk-tne"),
+            Map.entry("dr.bernardo@heron.care", "https://meet.google.com/qos-vdcl-rwm"),
+            Map.entry("dr.pascual@heron.care", "https://meet.google.com/jne-tqbx-hdc"),
+            Map.entry("dr.ramos@heron.care", "https://meet.google.com/wmk-rlfp-aze"),
+            Map.entry("dr.torres@heron.care", "https://meet.google.com/cxh-ndtq-bvo"),
+            Map.entry("dr.mercado@heron.care", "https://meet.google.com/rpa-jwkm-led"),
+            Map.entry("dr.dimaano@heron.care", "https://meet.google.com/zbt-fqnh-mcu"),
+            Map.entry("dr.soriano@heron.care", "https://meet.google.com/ynd-kxrp-jba"),
+            Map.entry("dr.valdez@heron.care", "https://meet.google.com/hqw-mtlc-rdn"),
+            Map.entry("dr.manalo@heron.care", "https://meet.google.com/pkf-bzqn-wae"),
+            Map.entry("dr.carpio@heron.care", "https://meet.google.com/dlm-rhtp-ouc"),
+            Map.entry("dr.tolentino@heron.care", "https://meet.google.com/vsq-knbw-mfa"),
+            Map.entry("dr.padilla@heron.care", "https://meet.google.com/gtr-hpld-zcx"));
 
     // The demo doctor roster — at least one doctor per specialization the
     // recommendation engine can suggest, so every suggested specialty resolves to a
@@ -100,7 +118,56 @@ public class SeedRunner implements CommandLineRunner {
             new DoctorSpec("dr.ocampo@heron.care", "Bianca Ocampo, MD", Specialization.OB_GYN,
                     "OB-GYN providing prenatal care, women's health, and reproductive medicine.", 12),
             new DoctorSpec("dr.velasco@heron.care", "Ramon Velasco, MD", Specialization.ENDOCRINOLOGY,
-                    "Endocrinologist treating thyroid disorders, diabetes, and hormonal imbalances.", 15));
+                    "Endocrinologist treating thyroid disorders, diabetes, and hormonal imbalances.", 15),
+            // Depth is weighted to telehealth demand, not in-person volume: behavioral
+            // health and the primary-care front doors run deepest (4), the high-fit
+            // chronic/cognitive specialties next (3), and the exam- or procedure-heavy
+            // specialties stay honestly lean (2). See the recommendation council notes.
+            // -- Psychiatry (telehealth's #1 category) -> 4 total
+            new DoctorSpec("dr.domingo@heron.care", "Teresa Domingo, MD", Specialization.PSYCHIATRY,
+                    "Treats mood and anxiety disorders with CBT-informed medication management; special interest in burnout and work stress.", 13),
+            new DoctorSpec("dr.navarro@heron.care", "Rafael Navarro, MD", Specialization.PSYCHIATRY,
+                    "Adult ADHD, OCD, and insomnia; favours a collaborative, goal-oriented approach to medication and therapy referral.", 7),
+            new DoctorSpec("dr.salazar@heron.care", "Camille Salazar, MD", Specialization.PSYCHIATRY,
+                    "Nearly two decades in trauma and PTSD care, including perinatal and postpartum mental health.", 18),
+            // -- General Practice (the universal front door / fallback) -> 4 total
+            new DoctorSpec("dr.aguilar@heron.care", "Antonio Aguilar, MD", Specialization.GENERAL_PRACTICE,
+                    "Everyday illness, preventive screening, and coordinating chronic care across specialties.", 9),
+            new DoctorSpec("dr.castillo@heron.care", "Marisol Castillo, MD", Specialization.GENERAL_PRACTICE,
+                    "Family medicine for all ages — minor infections, vaccinations, and knowing when to refer onward.", 16),
+            new DoctorSpec("dr.delrosario@heron.care", "Noel del Rosario, MD", Specialization.GENERAL_PRACTICE,
+                    "Lifestyle medicine, men's health checks, and smoking-cessation support.", 6),
+            // -- Internal Medicine (the symptom workhorse) -> 4 total
+            new DoctorSpec("dr.bernardo@heron.care", "Diana Bernardo, MD", Specialization.INTERNAL_MEDICINE,
+                    "Hypertension, type 2 diabetes, and metabolic syndrome, with a focus on long-term follow-up.", 12),
+            new DoctorSpec("dr.pascual@heron.care", "Eduardo Pascual, MD", Specialization.INTERNAL_MEDICINE,
+                    "Respiratory infections, persistent fatigue work-ups, and recovery after acute illness.", 8),
+            new DoctorSpec("dr.ramos@heron.care", "Beatriz Ramos, MD", Specialization.INTERNAL_MEDICINE,
+                    "Complex chronic disease and medication review for older adults.", 22),
+            // -- Endocrinology -> 3 total
+            new DoctorSpec("dr.torres@heron.care", "Isabel Torres, MD", Specialization.ENDOCRINOLOGY,
+                    "Diabetes and insulin management, PCOS, and bone-health concerns.", 10),
+            new DoctorSpec("dr.mercado@heron.care", "Gabriel Mercado, MD", Specialization.ENDOCRINOLOGY,
+                    "Thyroid disorders alongside adrenal and pituitary conditions.", 14),
+            // -- Neurology -> 3 total
+            new DoctorSpec("dr.dimaano@heron.care", "Hannah Dimaano, MD", Specialization.NEUROLOGY,
+                    "Migraine and headache programmes, dizziness, and post-concussion follow-up.", 9),
+            new DoctorSpec("dr.soriano@heron.care", "Victor Soriano, MD", Specialization.NEUROLOGY,
+                    "Epilepsy, neuropathy, and movement-disorder management.", 19),
+            // -- Dermatology -> 3 total
+            new DoctorSpec("dr.valdez@heron.care", "Olivia Valdez, MD", Specialization.DERMATOLOGY,
+                    "Acne, rosacea, and pigmentation, with photo-based review between visits.", 7),
+            new DoctorSpec("dr.manalo@heron.care", "Paolo Manalo, MD", Specialization.DERMATOLOGY,
+                    "Eczema, psoriasis, and routine skin-cancer surveillance.", 15),
+            // -- Pediatrics -> 2 total
+            new DoctorSpec("dr.carpio@heron.care", "Sandra Carpio, MD", Specialization.PEDIATRICS,
+                    "Newborn and toddler care — fevers, feeding, and the childhood immunization schedule.", 11),
+            // -- OB-GYN -> 2 total
+            new DoctorSpec("dr.tolentino@heron.care", "Lourdes Tolentino, MD", Specialization.OB_GYN,
+                    "Prenatal care, contraception counselling, and menstrual-health concerns.", 13),
+            // -- Orthopedics (lowest telehealth fit — kept lean) -> 2 total
+            new DoctorSpec("dr.padilla@heron.care", "Manuel Padilla, MD", Specialization.ORTHOPEDICS,
+                    "Sports injuries, back and joint pain triage, and guidance through post-operative rehab.", 8));
 
     // 11 demo patients. A couple are deliberately sparse (jose, mark) so the
     // doctor's patient-context view also exercises the "Not provided" handling.
@@ -177,7 +244,25 @@ public class SeedRunner implements CommandLineRunner {
             new BookingSpec("maria.santos@heron.care", "dr.garcia@heron.care", 2, 15, 0,
                     BookingStatus.CONFIRMED, "Trouble sleeping and persistent anxiety."),
             new BookingSpec("ana.reyes@heron.care", "dr.garcia@heron.care", -4, 16, 30,
-                    BookingStatus.CONFIRMED, "Medication review for depression."));
+                    BookingStatus.CONFIRMED, "Medication review for depression."),
+            // Bookings on the newly deepened high-traffic doctors so their dashboards
+            // are alive, not empty, when the demo dataset is seeded fresh.
+            new BookingSpec("juan.cruz@heron.care", "dr.bernardo@heron.care", 2, 10, 0,
+                    BookingStatus.CONFIRMED, "Blood pressure has been creeping up; want to review my medication."),
+            new BookingSpec("patient.demo@heron.care", "dr.bernardo@heron.care", -6, 14, 0,
+                    BookingStatus.CONFIRMED, "Routine diabetes check and recent lab review."),
+            new BookingSpec("maria.santos@heron.care", "dr.domingo@heron.care", 3, 11, 0,
+                    BookingStatus.CONFIRMED, "Anxiety has been worse lately; would like to talk through options."),
+            new BookingSpec("ana.reyes@heron.care", "dr.domingo@heron.care", -4, 15, 30,
+                    BookingStatus.CONFIRMED, "Follow-up on mood and sleep."),
+            new BookingSpec("jose.protacio@heron.care", "dr.aguilar@heron.care", 1, 9, 30,
+                    BookingStatus.CONFIRMED, "General check-up — feeling run down for a couple of weeks."),
+            new BookingSpec("sofia.delosreyes@heron.care", "dr.torres@heron.care", 4, 13, 30,
+                    BookingStatus.CONFIRMED, "Thyroid medication review."),
+            new BookingSpec("grace.tan@heron.care", "dr.dimaano@heron.care", 2, 16, 0,
+                    BookingStatus.CONFIRMED, "Recurring migraines, want a management plan."),
+            new BookingSpec("liza.garcia@heron.care", "dr.valdez@heron.care", -3, 10, 30,
+                    BookingStatus.CONFIRMED, "Persistent acne flare, would like to review treatment."));
 
     private final UserRepository userRepository;
     private final PatientProfileRepository patientProfileRepository;
