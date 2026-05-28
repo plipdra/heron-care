@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { Avatar } from '@/components/shared/Avatar';
 import {
   DropdownMenu,
@@ -36,9 +36,10 @@ export function AccountMenu() {
         <button
           type="button"
           aria-label="Account menu"
-          className="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="group flex items-center gap-1 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <Avatar name={handle} size={36} />
+          <Avatar name={handle} size={32} />
+          <ChevronDown className="h-4 w-4 text-ink-muted transition-transform group-data-[state=open]:rotate-180" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
