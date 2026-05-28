@@ -22,7 +22,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 class CompositeRecommendationStrategy implements DoctorRecommendationStrategy {
 
-    private static final long LLM_TIMEOUT_SECONDS = 6;
+    // The Lite model answers in well under a second; this is generous headroom
+    // for a cold connection or a transient slow call, not the expected latency.
+    private static final long LLM_TIMEOUT_SECONDS = 10;
 
     private final LlmStrategy llm;
     private final RulesStrategy rules;

@@ -38,7 +38,9 @@ import java.util.UUID;
 // indexes must exist before we insert.
 //
 // Idempotency model:
-//   - doctors: seeded only when the database is empty; meeting links backfilled.
+//   - doctors: ensured on every startup (each created only if missing), so a
+//     specialty newly added to the roster appears on the next restart without
+//     wiping or duplicating existing doctors; meeting links backfilled.
 //   - patients: ensured on every startup (each created only if missing).
 //   - bookings: seeded only when the bookings collection is empty, so a normal
 //     restart never clobbers a booking made live. Setting the SEED_RESET=true
@@ -60,13 +62,45 @@ public class SeedRunner implements CommandLineRunner {
     // Static per-doctor video room links for the demo. They are placeholder
     // Google Meet URLs (no real rooms behind them) — the consultation join
     // surface is intentionally an external link, not a built-in video pipe.
-    private static final Map<String, String> DOCTOR_MEETING_LINKS = Map.of(
-            "dr.reyes@heron.care", "https://meet.google.com/qpz-hwkm-rva",
-            "dr.tan@heron.care", "https://meet.google.com/dnf-kxtb-uoe",
-            "dr.santos@heron.care", "https://meet.google.com/wjs-mvqd-pkl",
-            "dr.lim@heron.care", "https://meet.google.com/hbt-ynra-cgx",
-            "dr.cruz@heron.care", "https://meet.google.com/zod-fhqe-mns",
-            "dr.garcia@heron.care", "https://meet.google.com/uak-rbwp-tje");
+    private static final Map<String, String> DOCTOR_MEETING_LINKS = Map.ofEntries(
+            Map.entry("dr.reyes@heron.care", "https://meet.google.com/qpz-hwkm-rva"),
+            Map.entry("dr.tan@heron.care", "https://meet.google.com/dnf-kxtb-uoe"),
+            Map.entry("dr.santos@heron.care", "https://meet.google.com/wjs-mvqd-pkl"),
+            Map.entry("dr.lim@heron.care", "https://meet.google.com/hbt-ynra-cgx"),
+            Map.entry("dr.cruz@heron.care", "https://meet.google.com/zod-fhqe-mns"),
+            Map.entry("dr.garcia@heron.care", "https://meet.google.com/uak-rbwp-tje"),
+            Map.entry("dr.flores@heron.care", "https://meet.google.com/fke-mzqd-rtp"),
+            Map.entry("dr.mendoza@heron.care", "https://meet.google.com/mvx-cqwn-bzl"),
+            Map.entry("dr.romero@heron.care", "https://meet.google.com/rno-tjpa-cdk"),
+            Map.entry("dr.ocampo@heron.care", "https://meet.google.com/oqz-hdrl-mnk"),
+            Map.entry("dr.velasco@heron.care", "https://meet.google.com/vbe-fkqp-trn"));
+
+    // The demo doctor roster — at least one doctor per specialization the
+    // recommendation engine can suggest, so every suggested specialty resolves to a
+    // real bookable doctor (never "We suggest Orthopedics" over an empty result).
+    private static final List<DoctorSpec> DOCTORS = List.of(
+            new DoctorSpec("dr.reyes@heron.care", "Maria Reyes, MD", Specialization.CARDIOLOGY,
+                    "Board-certified cardiologist with 12 years' experience in preventive care and arrhythmia management.", 12),
+            new DoctorSpec("dr.tan@heron.care", "Joshua Tan, MD", Specialization.CARDIOLOGY,
+                    "Interventional cardiologist focused on coronary disease and post-procedure follow-up.", 8),
+            new DoctorSpec("dr.santos@heron.care", "Anna Santos, MD", Specialization.DERMATOLOGY,
+                    "Clinical dermatologist specialising in eczema, acne, and skin cancer screening.", 10),
+            new DoctorSpec("dr.lim@heron.care", "Daniel Lim, MD", Specialization.PEDIATRICS,
+                    "Paediatrician working with newborn-to-teen care; developmental and adolescent medicine.", 14),
+            new DoctorSpec("dr.cruz@heron.care", "Patricia Cruz, MD", Specialization.INTERNAL_MEDICINE,
+                    "Internist seeing adults for chronic disease management, hypertension, and diabetes.", 16),
+            new DoctorSpec("dr.garcia@heron.care", "Miguel Garcia, MD", Specialization.PSYCHIATRY,
+                    "Adult psychiatrist; anxiety, depression, ADHD, and medication management.", 9),
+            new DoctorSpec("dr.flores@heron.care", "Elena Flores, MD", Specialization.GENERAL_PRACTICE,
+                    "Family physician and first point of contact for everyday illness, check-ups, and referrals.", 11),
+            new DoctorSpec("dr.mendoza@heron.care", "Carlo Mendoza, MD", Specialization.ORTHOPEDICS,
+                    "Orthopaedic surgeon treating joint, bone, and sports injuries — from sprains to fractures.", 13),
+            new DoctorSpec("dr.romero@heron.care", "Sofia Romero, MD", Specialization.NEUROLOGY,
+                    "Neurologist managing headaches and migraine, dizziness, seizures, and nerve disorders.", 10),
+            new DoctorSpec("dr.ocampo@heron.care", "Bianca Ocampo, MD", Specialization.OB_GYN,
+                    "OB-GYN providing prenatal care, women's health, and reproductive medicine.", 12),
+            new DoctorSpec("dr.velasco@heron.care", "Ramon Velasco, MD", Specialization.ENDOCRINOLOGY,
+                    "Endocrinologist treating thyroid disorders, diabetes, and hormonal imbalances.", 15));
 
     // 11 demo patients. A couple are deliberately sparse (jose, mark) so the
     // doctor's patient-context view also exercises the "Not provided" handling.
@@ -156,61 +190,40 @@ public class SeedRunner implements CommandLineRunner {
     public void run(String... args) {
         boolean reset = "true".equalsIgnoreCase(System.getenv("SEED_RESET"));
 
-        if (userRepository.count() == 0) {
-            log.info("[seed] empty database — seeding doctors and patients");
-            seedDoctors();
-        } else {
-            log.info("[seed] users present — ensuring demo data is complete");
-            backfillMeetingLinks();
-        }
+        ensureDoctors();
+        backfillMeetingLinks();
         ensurePatients();
         seedBookings(reset);
     }
 
-    private void seedDoctors() {
-        seedDoctor("dr.reyes@heron.care", "Maria Reyes, MD",
-                Specialization.CARDIOLOGY,
-                "Board-certified cardiologist with 12 years' experience in preventive care and arrhythmia management.",
-                12);
-        seedDoctor("dr.tan@heron.care", "Joshua Tan, MD",
-                Specialization.CARDIOLOGY,
-                "Interventional cardiologist focused on coronary disease and post-procedure follow-up.",
-                8);
-        seedDoctor("dr.santos@heron.care", "Anna Santos, MD",
-                Specialization.DERMATOLOGY,
-                "Clinical dermatologist specialising in eczema, acne, and skin cancer screening.",
-                10);
-        seedDoctor("dr.lim@heron.care", "Daniel Lim, MD",
-                Specialization.PEDIATRICS,
-                "Paediatrician working with newborn-to-teen care; developmental and adolescent medicine.",
-                14);
-        seedDoctor("dr.cruz@heron.care", "Patricia Cruz, MD",
-                Specialization.INTERNAL_MEDICINE,
-                "Internist seeing adults for chronic disease management, hypertension, and diabetes.",
-                16);
-        seedDoctor("dr.garcia@heron.care", "Miguel Garcia, MD",
-                Specialization.PSYCHIATRY,
-                "Adult psychiatrist; anxiety, depression, ADHD, and medication management.",
-                9);
-        log.info("[seed] seeded 6 doctors across 5 specialties");
-    }
-
-    private void seedDoctor(
-            String email, String name, Specialization specialization, String bio, int years) {
-        User user = userRepository.save(User.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode(DEMO_PASSWORD))
-                .role(UserRole.DOCTOR)
-                .build());
-        doctorProfileRepository.save(DoctorProfile.builder()
-                .userId(user.getId())
-                .name(name)
-                .specialization(specialization)
-                .bio(bio)
-                .yearsOfExperience(years)
-                .defaultMeetingLink(DOCTOR_MEETING_LINKS.get(email))
-                .availability(Availability.defaultBusinessHours())
-                .build());
+    // Creates any demo doctor that doesn't exist yet (matched by email). Idempotent
+    // like ensurePatients — so a specialty newly added to DOCTORS appears on the next
+    // restart without wiping or duplicating the doctors already on the roster.
+    private void ensureDoctors() {
+        int created = 0;
+        for (DoctorSpec spec : DOCTORS) {
+            if (userRepository.findByEmail(spec.email()).isPresent()) {
+                continue;
+            }
+            User user = userRepository.save(User.builder()
+                    .email(spec.email())
+                    .passwordHash(passwordEncoder.encode(DEMO_PASSWORD))
+                    .role(UserRole.DOCTOR)
+                    .build());
+            doctorProfileRepository.save(DoctorProfile.builder()
+                    .userId(user.getId())
+                    .name(spec.name())
+                    .specialization(spec.specialization())
+                    .bio(spec.bio())
+                    .yearsOfExperience(spec.years())
+                    .defaultMeetingLink(DOCTOR_MEETING_LINKS.get(spec.email()))
+                    .availability(Availability.defaultBusinessHours())
+                    .build());
+            created++;
+        }
+        if (created > 0) {
+            log.info("[seed] created {} doctor(s)", created);
+        }
     }
 
     // Creates any demo patient that doesn't exist yet. Idempotent — existing
@@ -311,6 +324,9 @@ public class SeedRunner implements CommandLineRunner {
                 LocalTime.of(hour, minute),
                 DEMO_ZONE).toInstant();
     }
+
+    private record DoctorSpec(
+            String email, String name, Specialization specialization, String bio, int years) {}
 
     private record PatientSpec(
             String email, String name, LocalDate birthday, Double weightKg,

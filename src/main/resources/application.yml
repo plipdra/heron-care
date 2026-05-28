@@ -31,7 +31,11 @@ spring:
       chat:
         completions-path: /chat/completions
         options:
-          model: gemini-2.5-flash
+          # A non-"thinking" Lite model: sub-second responses (the thinking
+          # variants' reasoning step blew past the composite's timeout and
+          # always fell back to rules), and a far larger free-tier daily quota
+          # (~500/day vs ~20/day) — headroom for testing plus a live demo.
+          model: gemini-3.1-flash-lite
           temperature: 0.2
 
 server:

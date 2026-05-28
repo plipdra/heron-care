@@ -27,13 +27,28 @@ public class RecommendationService {
     // Best-effort, NOT a triage system. Unambiguous emergency / crisis phrasing
     // short-circuits to a calm safety notice instead of a doctor recommendation.
     // Deliberately narrow (e.g. not bare "chest pain", which is a valid cardiology
-    // concern) to avoid over-triggering.
+    // concern) to avoid over-triggering. Entries are multi-word phrases wherever a
+    // single word would substring-match a benign one: bare "dying" hides in
+    // "studying", "stab" in "stable"/"establish", "to death" in "worried to death".
     private static final List<String> RED_FLAGS = List.of(
+            // Self-harm / suicide
             "suicid", "kill myself", "kill my self", "end my life", "want to die",
             "self-harm", "self harm", "overdose",
+            // Cardiac / respiratory
             "heart attack", "stroke", "can't breathe", "cant breathe", "can not breathe",
-            "difficulty breathing", "trouble breathing", "not breathing",
-            "unconscious", "passed out", "severe bleeding", "bleeding heavily");
+            "cannot breathe", "difficulty breathing", "trouble breathing",
+            "not breathing", "stopped breathing", "choking",
+            // Loss of consciousness
+            "unconscious", "passed out", "unresponsive", "collapsed",
+            "won't wake up", "wont wake up", "not waking up",
+            // Severe bleeding
+            "severe bleeding", "bleeding heavily", "bleeding out", "bleeding to death",
+            "won't stop bleeding", "wont stop bleeding", "can't stop the bleeding",
+            "cant stop the bleeding",
+            // Imminent-death phrasing
+            "will die", "going to die", "gonna die", "about to die", "is dying",
+            // Acute trauma / severe allergic reaction
+            "stabbed", "stab wound", "gunshot", "anaphyla");
 
     private static final String SAFETY_NOTICE =
             "If this could be an emergency, please call your local emergency number now "

@@ -62,29 +62,33 @@ public class RulesStrategy implements DoctorRecommendationStrategy {
         }
 
         // No signal → General Practice is the safe, useful default (never "no match").
-        Specialization suggested = best != null ? best : Specialization.GENERAL_PRACTICE;
+        Specialization desired = best != null ? best : Specialization.GENERAL_PRACTICE;
 
-        String reason = SpecialtyReasons.reasonFor(suggested);
-        List<RecommendationOutcome.Ranked> ranked = pickDoctors(suggested, candidates).stream()
+        // The specialty we NAME must match the doctors we SHOW. Take doctors of the
+        // desired specialty; if we have none on the roster, fall back honestly to
+        // General Practice — and that becomes the suggestion, so we never parade
+        // off-specialty doctors under a specialty banner ("We suggest Orthopedics"
+        // over a cardiologist card). GP is guaranteed to have doctors (seeded), so
+        // there is no need to widen to "anyone".
+        List<DoctorProfile> matched = byExperience(bySpecialty(desired, candidates));
+        Specialization effective = desired;
+        if (matched.isEmpty() && desired != Specialization.GENERAL_PRACTICE) {
+            matched = byExperience(bySpecialty(Specialization.GENERAL_PRACTICE, candidates));
+            effective = Specialization.GENERAL_PRACTICE;
+        }
+
+        String reason = SpecialtyReasons.reasonFor(effective);
+        List<RecommendationOutcome.Ranked> ranked = matched.stream()
                 .limit(MAX_RESULTS)
                 .map(doctor -> new RecommendationOutcome.Ranked(doctor, reason))
                 .toList();
-        return new RecommendationOutcome(suggested, ranked);
+        return new RecommendationOutcome(effective, ranked);
     }
 
-    // Doctors of the suggested specialty, ranked by experience; gracefully widen to
-    // GP, then to anyone, so the result is never empty.
-    private List<DoctorProfile> pickDoctors(Specialization suggested, List<DoctorProfile> candidates) {
-        List<DoctorProfile> matched = bySpecialty(suggested, candidates);
-        if (matched.isEmpty() && suggested != Specialization.GENERAL_PRACTICE) {
-            matched = bySpecialty(Specialization.GENERAL_PRACTICE, candidates);
-        }
-        if (matched.isEmpty()) {
-            matched = new ArrayList<>(candidates);
-        }
-        matched.sort(Comparator.comparingInt(
+    private List<DoctorProfile> byExperience(List<DoctorProfile> doctors) {
+        doctors.sort(Comparator.comparingInt(
                 (DoctorProfile d) -> d.getYearsOfExperience() == null ? 0 : d.getYearsOfExperience()).reversed());
-        return matched;
+        return doctors;
     }
 
     private List<DoctorProfile> bySpecialty(Specialization specialization, List<DoctorProfile> candidates) {
