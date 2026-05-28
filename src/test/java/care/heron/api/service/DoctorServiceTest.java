@@ -114,11 +114,38 @@ class DoctorServiceTest {
 
     @Test
     void updateMine_publishes_a_complete_profile() {
+        givenDoctorWithAvailability();
+        given(doctorProfileRepository.save(any(DoctorProfile.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        DoctorProfile result = service.updateMine(DOCTOR_USER_ID,
+                new DoctorService.UpdateDoctorProfileCommand("Dr Complete", "Experienced clinician.",
+                        Specialization.CARDIOLOGY, "https://meet.google.com/abc-defg-hij", 10));
+
+        assertThat(result.isPublished()).isTrue();
+    }
+
+    @Test
+    void updateMine_does_not_publish_an_incomplete_profile() {
+        givenDoctorWithAvailability();
+        given(doctorProfileRepository.save(any(DoctorProfile.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        // No bio in the submitted state → not publishable.
+        DoctorProfile result = service.updateMine(DOCTOR_USER_ID,
+                new DoctorService.UpdateDoctorProfileCommand("Dr X", null,
+                        Specialization.CARDIOLOGY, "https://meet.google.com/abc-defg-hij", 10));
+
+        assertThat(result.isPublished()).isFalse();
+    }
+
+    @Test
+    void updateMine_clears_a_field_when_the_submitted_value_is_null() {
         given(doctorProfileRepository.findByUserId(DOCTOR_USER_ID))
                 .willReturn(Optional.of(DoctorProfile.builder()
                         .userId(DOCTOR_USER_ID)
-                        .name("Dr Complete")
-                        .bio("Experienced clinician.")
+                        .name("Dr X")
+                        .bio("an old bio the doctor cleared in the form")
                         .specialization(Specialization.CARDIOLOGY)
                         .yearsOfExperience(10)
                         .defaultMeetingLink("https://meet.google.com/abc-defg-hij")
@@ -128,25 +155,19 @@ class DoctorServiceTest {
                 .willAnswer(inv -> inv.getArgument(0));
 
         DoctorProfile result = service.updateMine(DOCTOR_USER_ID,
-                new DoctorService.UpdateDoctorProfileCommand(null, null, null, null, null));
+                new DoctorService.UpdateDoctorProfileCommand("Dr X", null,
+                        Specialization.CARDIOLOGY, "https://meet.google.com/abc-defg-hij", 10));
 
-        assertThat(result.isPublished()).isTrue();
+        assertThat(result.getBio()).isNull(); // full replace cleared it, not retained
     }
 
-    @Test
-    void updateMine_does_not_publish_an_incomplete_profile() {
+    private void givenDoctorWithAvailability() {
         given(doctorProfileRepository.findByUserId(DOCTOR_USER_ID))
                 .willReturn(Optional.of(DoctorProfile.builder()
                         .userId(DOCTOR_USER_ID)
-                        .name("Dr Incomplete") // no bio, specialization, years, link, or availability
+                        .name("Existing")
+                        .availability(Availability.defaultBusinessHours())
                         .build()));
-        given(doctorProfileRepository.save(any(DoctorProfile.class)))
-                .willAnswer(inv -> inv.getArgument(0));
-
-        DoctorProfile result = service.updateMine(DOCTOR_USER_ID,
-                new DoctorService.UpdateDoctorProfileCommand(null, null, null, null, null));
-
-        assertThat(result.isPublished()).isFalse();
     }
 
     private void givenExistingDoctor() {

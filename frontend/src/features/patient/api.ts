@@ -20,13 +20,15 @@ export function useMyPatientProfile() {
   });
 }
 
+// null clears a field (full replace from the editor); undefined would be dropped
+// from the JSON and leave the value unchanged.
 export type UpdatePatientProfileBody = {
-  name?: string;
-  birthday?: string;
-  weightKg?: number;
-  heightCm?: number;
-  contactNumber?: string;
-  medicalHistory?: string;
+  name?: string | null;
+  birthday?: string | null;
+  weightKg?: number | null;
+  heightCm?: number | null;
+  contactNumber?: string | null;
+  medicalHistory?: string | null;
 };
 
 export function useUpdateMyPatientProfile() {

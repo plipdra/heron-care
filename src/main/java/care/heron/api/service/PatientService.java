@@ -40,16 +40,17 @@ public class PatientService {
                 .collect(Collectors.toMap(PatientProfile::getUserId, PatientProfile::getName));
     }
 
-    // Patch-style: non-null fields overwrite, nulls leave existing values
-    // alone. Patients fill the form progressively across multiple saves.
+    // Full replace from the patient's profile editor: the form always submits the
+    // complete intended state, so each field is set as given — a null (a field the
+    // patient cleared) overwrites, rather than silently keeping the old value.
     public PatientProfile updateMine(String userId, UpdatePatientProfileCommand command) {
         PatientProfile profile = getMine(userId);
-        if (command.name() != null) profile.setName(command.name());
-        if (command.birthday() != null) profile.setBirthday(command.birthday());
-        if (command.weightKg() != null) profile.setWeightKg(command.weightKg());
-        if (command.heightCm() != null) profile.setHeightCm(command.heightCm());
-        if (command.contactNumber() != null) profile.setContactNumber(command.contactNumber());
-        if (command.medicalHistory() != null) profile.setMedicalHistory(command.medicalHistory());
+        profile.setName(command.name());
+        profile.setBirthday(command.birthday());
+        profile.setWeightKg(command.weightKg());
+        profile.setHeightCm(command.heightCm());
+        profile.setContactNumber(command.contactNumber());
+        profile.setMedicalHistory(command.medicalHistory());
         return patientProfileRepository.save(profile);
     }
 

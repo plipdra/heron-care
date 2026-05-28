@@ -106,12 +106,14 @@ function DoctorProfileEditor() {
       return;
     }
     try {
+      // Full replace: send every field (null when cleared) so emptying a field
+      // actually clears it server-side, instead of being dropped and reverting.
       await updateMutation.mutateAsync({
-        name: name || undefined,
-        bio: bio || undefined,
-        specialization: specialization || undefined,
-        defaultMeetingLink: defaultMeetingLink || undefined,
-        yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : undefined,
+        name: name.trim() || null,
+        bio: bio.trim() || null,
+        specialization: specialization || null,
+        defaultMeetingLink: defaultMeetingLink.trim() || null,
+        yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : null,
       });
       setFieldErrors({});
       setFeedback({ kind: 'success', message: 'Your profile is up to date.' });

@@ -103,13 +103,17 @@ public class DoctorService {
                         "Doctor profile for user " + userId + " not found"));
     }
 
+    // Full replace from the doctor's profile editor (same model as the patient
+    // side): the form submits the complete state, so a cleared field overwrites
+    // with null rather than silently keeping the old value. The published flag is
+    // then recomputed — clearing a required field correctly unlists the doctor.
     public DoctorProfile updateMine(String userId, UpdateDoctorProfileCommand command) {
         DoctorProfile profile = getMine(userId);
-        if (command.name() != null) profile.setName(command.name());
-        if (command.bio() != null) profile.setBio(command.bio());
-        if (command.specialization() != null) profile.setSpecialization(command.specialization());
-        if (command.defaultMeetingLink() != null) profile.setDefaultMeetingLink(command.defaultMeetingLink());
-        if (command.yearsOfExperience() != null) profile.setYearsOfExperience(command.yearsOfExperience());
+        profile.setName(command.name());
+        profile.setBio(command.bio());
+        profile.setSpecialization(command.specialization());
+        profile.setDefaultMeetingLink(command.defaultMeetingLink());
+        profile.setYearsOfExperience(command.yearsOfExperience());
         profile.setPublished(ProfileCompleteness.isDoctorPublishable(profile));
         return doctorProfileRepository.save(profile);
     }

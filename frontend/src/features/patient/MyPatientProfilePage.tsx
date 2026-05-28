@@ -145,13 +145,15 @@ export function MyPatientProfilePage() {
       } else if (pictureAction.kind === 'remove') {
         await deletePicture.mutateAsync();
       }
+      // Full replace: send every field (null when cleared) so emptying a field
+      // actually clears it server-side, instead of being dropped and reverting.
       await updateProfile.mutateAsync({
-        name: name || undefined,
-        birthday: birthday || undefined,
-        weightKg: weightKg ? Number(weightKg) : undefined,
-        heightCm: heightCm ? Number(heightCm) : undefined,
-        contactNumber: contactNumber || undefined,
-        medicalHistory: medicalHistory || undefined,
+        name: name.trim() || null,
+        birthday: birthday || null,
+        weightKg: weightKg ? Number(weightKg) : null,
+        heightCm: heightCm ? Number(heightCm) : null,
+        contactNumber: contactNumber.trim() || null,
+        medicalHistory: medicalHistory.trim() || null,
       });
       setFieldErrors({});
       setFeedback({ kind: 'success', message: 'Your profile is up to date.' });

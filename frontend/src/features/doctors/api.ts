@@ -77,12 +77,14 @@ export function useMyDoctorProfile() {
   });
 }
 
+// null clears a field (full replace from the editor); undefined would be dropped
+// from the JSON and leave the value unchanged.
 type UpdateDoctorProfileBody = {
-  name?: string;
-  bio?: string;
-  specialization?: string;
-  defaultMeetingLink?: string;
-  yearsOfExperience?: number;
+  name?: string | null;
+  bio?: string | null;
+  specialization?: string | null;
+  defaultMeetingLink?: string | null;
+  yearsOfExperience?: number | null;
 };
 
 export function useUpdateMyDoctorProfile() {
