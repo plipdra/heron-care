@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { TriangleAlert } from 'lucide-react';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { Button } from '@/components/ui/button';
@@ -24,8 +24,20 @@ const CONCERN_CHIPS = [
 // shared DoctorCard and hands off to the existing profile/slot flow by link.
 export function RecommendPage() {
   const recommend = useRecommend();
+  const location = useLocation();
   const [concern, setConcern] = useState('');
   const result = recommend.data;
+
+  // Handoff from the homepage hero: if a concern was carried in via navigation
+  // state, prefill it and run the recommendation immediately. Runs once on mount.
+  useEffect(() => {
+    const initial = (location.state as { concern?: string } | null)?.concern?.trim();
+    if (initial) {
+      setConcern(initial);
+      recommend.mutate({ concern: initial });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function addChip(chip: string) {
     setConcern((prev) => {

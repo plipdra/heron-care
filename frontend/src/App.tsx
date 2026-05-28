@@ -120,11 +120,15 @@ function primaryDestinations(role: string | undefined): NavDest[] {
   if (role === 'DOCTOR') return [{ to: '/appointments', label: 'Consults' }];
   if (role === 'PATIENT') {
     return [
+      { to: '/recommend', label: 'Find a doctor' },
       { to: '/doctors', label: 'Browse doctors' },
       { to: '/appointments', label: 'Appointments' },
     ];
   }
-  return [{ to: '/doctors', label: 'Browse doctors' }]; // guest
+  return [
+    { to: '/recommend', label: 'Find a doctor' },
+    { to: '/doctors', label: 'Browse doctors' },
+  ]; // guest
 }
 
 function HeaderNav() {
