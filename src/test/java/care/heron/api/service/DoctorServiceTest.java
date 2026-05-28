@@ -2,6 +2,7 @@ package care.heron.api.service;
 
 import care.heron.api.document.Availability;
 import care.heron.api.document.DoctorProfile;
+import care.heron.api.document.enums.Specialization;
 import care.heron.api.repository.DoctorProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -109,6 +110,43 @@ class DoctorServiceTest {
                 List.of(blocked("2028-06-01T00:00:00Z", "2028-06-02T00:00:00Z")))))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(doctorProfileRepository, never()).save(any());
+    }
+
+    @Test
+    void updateMine_publishes_a_complete_profile() {
+        given(doctorProfileRepository.findByUserId(DOCTOR_USER_ID))
+                .willReturn(Optional.of(DoctorProfile.builder()
+                        .userId(DOCTOR_USER_ID)
+                        .name("Dr Complete")
+                        .bio("Experienced clinician.")
+                        .specialization(Specialization.CARDIOLOGY)
+                        .yearsOfExperience(10)
+                        .defaultMeetingLink("https://meet.google.com/abc-defg-hij")
+                        .availability(Availability.defaultBusinessHours())
+                        .build()));
+        given(doctorProfileRepository.save(any(DoctorProfile.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        DoctorProfile result = service.updateMine(DOCTOR_USER_ID,
+                new DoctorService.UpdateDoctorProfileCommand(null, null, null, null, null));
+
+        assertThat(result.isPublished()).isTrue();
+    }
+
+    @Test
+    void updateMine_does_not_publish_an_incomplete_profile() {
+        given(doctorProfileRepository.findByUserId(DOCTOR_USER_ID))
+                .willReturn(Optional.of(DoctorProfile.builder()
+                        .userId(DOCTOR_USER_ID)
+                        .name("Dr Incomplete") // no bio, specialization, years, link, or availability
+                        .build()));
+        given(doctorProfileRepository.save(any(DoctorProfile.class)))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        DoctorProfile result = service.updateMine(DOCTOR_USER_ID,
+                new DoctorService.UpdateDoctorProfileCommand(null, null, null, null, null));
+
+        assertThat(result.isPublished()).isFalse();
     }
 
     private void givenExistingDoctor() {

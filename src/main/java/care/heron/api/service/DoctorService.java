@@ -43,11 +43,12 @@ public class DoctorService {
             Specialization specialization, String search, Pageable pageable) {
         boolean hasSearch = search != null && !search.isBlank();
         if (specialization != null && hasSearch) {
-            return doctorProfileRepository.findBySpecializationAndNameContainingIgnoreCase(
-                    specialization, search.trim(), pageable);
+            return doctorProfileRepository
+                    .findByPublishedTrueAndSpecializationAndNameContainingIgnoreCase(
+                            specialization, search.trim(), pageable);
         }
         if (specialization != null) {
-            return doctorProfileRepository.findBySpecialization(specialization, pageable);
+            return doctorProfileRepository.findByPublishedTrueAndSpecialization(specialization, pageable);
         }
         if (hasSearch) {
             String term = search.trim();
@@ -56,12 +57,13 @@ public class DoctorService {
             // search would otherwise come back empty.
             List<Specialization> bySpecialtyTerm = matchSpecializations(term);
             if (!bySpecialtyTerm.isEmpty()) {
-                return doctorProfileRepository.findBySpecializationIn(bySpecialtyTerm, pageable);
+                return doctorProfileRepository.findByPublishedTrueAndSpecializationIn(bySpecialtyTerm, pageable);
             }
-            return doctorProfileRepository.findByNameContainingIgnoreCaseOrBioContainingIgnoreCase(
-                    term, term, pageable);
+            return doctorProfileRepository
+                    .findByPublishedTrueAndNameContainingIgnoreCaseOrPublishedTrueAndBioContainingIgnoreCase(
+                            term, term, pageable);
         }
-        return doctorProfileRepository.findAll(pageable);
+        return doctorProfileRepository.findByPublishedTrue(pageable);
     }
 
     // Specialties whose display label or enum name contains the search term
@@ -108,6 +110,7 @@ public class DoctorService {
         if (command.specialization() != null) profile.setSpecialization(command.specialization());
         if (command.defaultMeetingLink() != null) profile.setDefaultMeetingLink(command.defaultMeetingLink());
         if (command.yearsOfExperience() != null) profile.setYearsOfExperience(command.yearsOfExperience());
+        profile.setPublished(ProfileCompleteness.isDoctorPublishable(profile));
         return doctorProfileRepository.save(profile);
     }
 
@@ -130,6 +133,7 @@ public class DoctorService {
                 .weeklySchedule(command.weeklySchedule())
                 .blockedRanges(command.blockedRanges() != null ? command.blockedRanges() : List.of())
                 .build());
+        profile.setPublished(ProfileCompleteness.isDoctorPublishable(profile));
 
         DoctorProfile saved = doctorProfileRepository.save(profile);
         // Availability changed → notify patients with a future confirmed booking

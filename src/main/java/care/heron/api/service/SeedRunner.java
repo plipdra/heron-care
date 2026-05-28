@@ -278,9 +278,31 @@ public class SeedRunner implements CommandLineRunner {
 
         ensureDoctors();
         backfillMeetingLinks();
+        backfillPublishedFlag();
         ensurePatients();
         seedBookings(reset);
         ensureDemoConsultation();
+    }
+
+    // Sets the public-listing `published` flag on every doctor from the
+    // completeness rule. Doctors created before this flag existed get listed if
+    // complete; incomplete or test profiles (no bio/meeting link/availability)
+    // drop out of discovery and recommendations. Runs after the meeting-link
+    // backfill so a just-backfilled link counts toward completeness. Idempotent —
+    // only writes when the computed flag differs from what's stored.
+    private void backfillPublishedFlag() {
+        int updated = 0;
+        for (DoctorProfile profile : doctorProfileRepository.findAll()) {
+            boolean shouldPublish = ProfileCompleteness.isDoctorPublishable(profile);
+            if (profile.isPublished() != shouldPublish) {
+                profile.setPublished(shouldPublish);
+                doctorProfileRepository.save(profile);
+                updated++;
+            }
+        }
+        if (updated > 0) {
+            log.info("[seed] set published flag on {} doctor(s)", updated);
+        }
     }
 
     // Ensures one COMPLETED consult with finalized SOAP notes + a prescription, so
@@ -359,6 +381,7 @@ public class SeedRunner implements CommandLineRunner {
                     .yearsOfExperience(spec.years())
                     .defaultMeetingLink(DOCTOR_MEETING_LINKS.get(spec.email()))
                     .availability(Availability.defaultBusinessHours())
+                    .published(true) // seeded doctors are complete → publicly listed
                     .build());
             created++;
         }

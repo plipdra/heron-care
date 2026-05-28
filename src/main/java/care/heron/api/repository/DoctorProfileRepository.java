@@ -18,14 +18,22 @@ public interface DoctorProfileRepository extends MongoRepository<DoctorProfile, 
     // one query for the page's distinct doctors, not N lookups.
     List<DoctorProfile> findByUserIdIn(Collection<String> userIds);
 
-    Page<DoctorProfile> findBySpecialization(Specialization specialization, Pageable pageable);
+    // Public discovery is gated on `published` so incomplete / test profiles
+    // never surface. The OR variant repeats PublishedTrue in BOTH branches on
+    // purpose — that groups as (published AND name) OR (published AND bio), i.e.
+    // published AND (name OR bio); a single PublishedTrue would leak unpublished
+    // doctors through the bio branch.
+    Page<DoctorProfile> findByPublishedTrue(Pageable pageable);
 
-    Page<DoctorProfile> findBySpecializationIn(
+    Page<DoctorProfile> findByPublishedTrueAndSpecialization(
+            Specialization specialization, Pageable pageable);
+
+    Page<DoctorProfile> findByPublishedTrueAndSpecializationIn(
             Collection<Specialization> specializations, Pageable pageable);
 
-    Page<DoctorProfile> findByNameContainingIgnoreCaseOrBioContainingIgnoreCase(
-            String name, String bio, Pageable pageable);
-
-    Page<DoctorProfile> findBySpecializationAndNameContainingIgnoreCase(
+    Page<DoctorProfile> findByPublishedTrueAndSpecializationAndNameContainingIgnoreCase(
             Specialization specialization, String name, Pageable pageable);
+
+    Page<DoctorProfile> findByPublishedTrueAndNameContainingIgnoreCaseOrPublishedTrueAndBioContainingIgnoreCase(
+            String name, String bio, Pageable pageable);
 }

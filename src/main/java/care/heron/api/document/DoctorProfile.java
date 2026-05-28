@@ -42,6 +42,12 @@ public class DoctorProfile {
     // this and derives available 30-min slots on the fly.
     private Availability availability;
 
+    // Public-listing gate. A doctor appears in discovery + AI recommendations
+    // only when their profile is complete enough to be credible and bookable
+    // (set by the service on save via ProfileCompleteness). Defaults false, so
+    // an incomplete or test account stays out of public surfaces until finished.
+    private boolean published;
+
     @CreatedDate
     private Instant createdAt;
 
