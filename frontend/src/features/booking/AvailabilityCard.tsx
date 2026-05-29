@@ -68,9 +68,9 @@ export function AvailabilityCard({
   }
 
   return (
-    <Card className="mt-10">
+    <Card className="mt-8 shadow-sm">
       <CardContent className="p-6">
-        <h2 className="text-lg font-semibold">Availability</h2>
+        <h2 className="text-lg font-semibold text-primary-800">Availability</h2>
         <p className="mt-1 text-xs text-ink-muted">
           Times shown in your local time ({tzLabel}).
         </p>
@@ -115,7 +115,12 @@ export function AvailabilityCard({
                 </p>
               ) : (
                 <>
-                  <Button onClick={handleBookClick} disabled={!selectedSlot}>
+                  <Button
+                    size="lg"
+                    className="w-full shadow-sm sm:w-auto"
+                    onClick={handleBookClick}
+                    disabled={!selectedSlot}
+                  >
                     Book this time
                   </Button>
                   {!selectedSlot && (
