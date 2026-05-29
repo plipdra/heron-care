@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { formatDate } from '@/lib/datetime';
@@ -31,10 +32,15 @@ export function ConsultationSummaryDialog({
   bookingId,
   heading,
   onClose,
+  // When set (patient view), show "Download" actions that open the printable
+  // visit summary / prescription in a new tab. Omitted on the doctor's side,
+  // whose documents are generated from the patient's own profile data.
+  documentsBookingId,
 }: {
   bookingId: string;
   heading: string;
   onClose: () => void;
+  documentsBookingId?: string;
 }) {
   const { data, isPending, isError } = useConsultationNotes(bookingId, true);
 
@@ -109,7 +115,35 @@ export function ConsultationSummaryDialog({
           </>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="sm:justify-between">
+          {documentsBookingId && data ? (
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="secondary" size="sm" className="gap-1.5">
+                <a
+                  href={`/documents/visit-summary/${documentsBookingId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FileText className="h-4 w-4" />
+                  Visit summary
+                </a>
+              </Button>
+              {data.prescription.length > 0 && (
+                <Button asChild variant="secondary" size="sm" className="gap-1.5">
+                  <a
+                    href={`/documents/prescription/${documentsBookingId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Prescription
+                  </a>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <span />
+          )}
           <Button variant="secondary" onClick={onClose}>
             Done
           </Button>

@@ -1,6 +1,7 @@
 package care.heron.api.dto.booking;
 
 import care.heron.api.document.Booking;
+import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.enums.BookingStatus;
 import care.heron.api.dto.doctor.PublicDoctorResponse;
 
@@ -21,6 +22,11 @@ public record PatientBookingResponse(
         String doctorProfileId,
         String doctorName,
         String doctorSpecializationLabel,
+        // The prescribing doctor's PRC / PTR license numbers, surfaced so the
+        // patient can render the printable visit summary and prescription. Null
+        // for a since-departed doctor. Not secret — MVP-flavor demo credentials.
+        String doctorPrcLicenseNo,
+        String doctorPtrNo,
         Instant startsAt,
         Instant endsAt,
         BookingStatus status,
@@ -34,7 +40,8 @@ public record PatientBookingResponse(
         Instant createdAt
 ) {
     public static PatientBookingResponse of(
-            Booking booking, PublicDoctorResponse doctor, boolean joinable) {
+            Booking booking, PublicDoctorResponse doctor, DoctorProfile doctorProfile,
+            boolean joinable) {
         Instant rescheduledFrom = null;
         var history = booking.getRescheduledHistory();
         if (history != null && !history.isEmpty()) {
@@ -46,6 +53,8 @@ public record PatientBookingResponse(
                 doctor != null ? doctor.id() : null,
                 doctor != null ? doctor.name() : null,
                 doctor != null ? doctor.specializationLabel() : null,
+                doctorProfile != null ? doctorProfile.getPrcLicenseNo() : null,
+                doctorProfile != null ? doctorProfile.getPtrNo() : null,
                 booking.getStartsAt(),
                 booking.getEndsAt(),
                 booking.getStatus(),

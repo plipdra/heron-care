@@ -74,6 +74,10 @@ export type PatientBooking = {
   doctorProfileId: string | null;
   doctorName: string | null;
   doctorSpecializationLabel: string | null;
+  // The prescribing doctor's PRC / PTR license numbers, for the printable
+  // visit summary and prescription. Null for a since-departed doctor.
+  doctorPrcLicenseNo: string | null;
+  doctorPtrNo: string | null;
   startsAt: string;
   endsAt: string;
   status: BookingStatus;

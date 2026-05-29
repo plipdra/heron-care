@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Link, NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Link, NavLink, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { queryClient } from '@/lib/queryClient';
 import { cn } from '@/lib/utils';
@@ -41,6 +41,13 @@ const MyDoctorProfilePage = lazy(() =>
 const AppointmentsPage = lazy(() =>
   import('@/features/booking/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })),
 );
+// Printable clinical documents render bare (no app chrome) and open in a new tab.
+const VisitSummaryDocument = lazy(() =>
+  import('@/features/documents/VisitSummaryDocument').then((m) => ({ default: m.VisitSummaryDocument })),
+);
+const PrescriptionDocument = lazy(() =>
+  import('@/features/documents/PrescriptionDocument').then((m) => ({ default: m.PrescriptionDocument })),
+);
 
 export default function App() {
   return (
@@ -48,19 +55,28 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <ScrollToTop />
-          <div className="flex min-h-screen flex-col">
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
-            >
-              Skip to content
-            </a>
-            <AppHeader>
-              <HeaderNav />
-            </AppHeader>
-            <div id="main-content" tabIndex={-1} className="flex-1 outline-none">
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              {/* Bare, chrome-less document routes — printable, opened in a new tab. */}
+              <Route
+                path="/documents/visit-summary/:bookingId"
+                element={
+                  <RequireAuth>
+                    <VisitSummaryDocument />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/documents/prescription/:bookingId"
+                element={
+                  <RequireAuth>
+                    <PrescriptionDocument />
+                  </RequireAuth>
+                }
+              />
+
+              {/* Everything else renders inside the app shell (header + footer). */}
+              <Route element={<ChromeLayout />}>
                 <Route path="/" element={<LandingPage />} />
                 <Route
                   path="/doctors"
@@ -103,16 +119,41 @@ export default function App() {
                   }
                 />
                 <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </Suspense>
-            </div>
-            <AppFooter />
-          </div>
-          <AuthModal />
-          <BackToTop />
+              </Route>
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
+  );
+}
+
+// The standard app shell: skip link, header, footer, and the global auth modal +
+// back-to-top. Chrome pages render through the <Outlet />. Document routes opt out
+// of this layout entirely so a printable sheet has no app furniture.
+function ChromeLayout() {
+  return (
+    <>
+      <div className="flex min-h-screen flex-col">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
+        <AppHeader>
+          <HeaderNav />
+        </AppHeader>
+        <div id="main-content" tabIndex={-1} className="flex-1 outline-none">
+          <Suspense fallback={<RouteFallback />}>
+            <Outlet />
+          </Suspense>
+        </div>
+        <AppFooter />
+      </div>
+      <AuthModal />
+      <BackToTop />
+    </>
   );
 }
 

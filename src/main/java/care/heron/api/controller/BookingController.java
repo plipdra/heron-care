@@ -91,9 +91,11 @@ public class BookingController {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Map<String, PublicDoctorResponse> doctors = doctorService.publicByUserIds(doctorUserIds);
+        Map<String, DoctorProfile> doctorProfiles = doctorService.profilesByUserIds(doctorUserIds);
         return PageResponse.from(page.map(booking -> PatientBookingResponse.of(
                 booking,
                 doctors.get(booking.getDoctorUserId()),
+                doctorProfiles.get(booking.getDoctorUserId()),
                 bookingService.isJoinable(booking))));
     }
 

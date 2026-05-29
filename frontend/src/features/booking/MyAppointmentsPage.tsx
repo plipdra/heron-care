@@ -338,6 +338,7 @@ export function MyAppointmentsPage() {
           bookingId={viewingSummary.id}
           heading={`With ${viewingSummary.doctorName ?? 'your doctor'}`}
           onClose={() => setViewingSummary(null)}
+          documentsBookingId={viewingSummary.id}
         />
       )}
       {rescheduling && (

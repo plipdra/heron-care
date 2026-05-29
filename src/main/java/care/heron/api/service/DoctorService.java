@@ -133,6 +133,17 @@ public class DoctorService {
                 .collect(Collectors.toMap(DoctorProfile::getUserId, PublicDoctorResponse::from));
     }
 
+    // Full profiles keyed by userId — used where read-time enrichment needs fields
+    // the public shape omits (e.g. the prescriber's license numbers on a patient's
+    // booking, for the printable clinical documents). One batch query, no N+1.
+    public Map<String, DoctorProfile> profilesByUserIds(Collection<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return doctorProfileRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.toMap(DoctorProfile::getUserId, p -> p));
+    }
+
     public DoctorProfile getMine(String userId) {
         return doctorProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
