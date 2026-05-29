@@ -64,7 +64,7 @@ public class DoctorController {
     // photo shows to guests immediately; the ETag still lets an unchanged fetch 304.
     @GetMapping("/{id}/picture")
     public ResponseEntity<byte[]> picture(@PathVariable String id) {
-        DoctorProfile doctor = doctorService.getPublishedProfile(id);
+        DoctorProfile doctor = doctorService.getPublic(id);
         return profilePictureService.get(doctor.getUserId())
                 .map(this::toPublicResponse)
                 .orElse(ResponseEntity.notFound().build());

@@ -41,8 +41,11 @@ public class SlotService {
     private final BookingRepository bookingRepository;
     private final Clock clock;
 
+    // Published-gated: slots are only derivable for doctors visible in public
+    // discovery. Guessing an unpublished doctor's profile id yields a 404, not
+    // an availability window that reveals their schedule.
     public List<Slot> computeAvailableSlots(String doctorProfileId, Instant from, Instant to) {
-        DoctorProfile doctor = doctorProfileRepository.findById(doctorProfileId)
+        DoctorProfile doctor = doctorProfileRepository.findByIdAndPublishedTrue(doctorProfileId)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor", doctorProfileId));
         return computeFor(doctor, from, to);
     }

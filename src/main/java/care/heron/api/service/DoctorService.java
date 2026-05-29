@@ -112,15 +112,11 @@ public class DoctorService {
                 .toList();
     }
 
+    // Published-gated single lookup for all public discovery surfaces (profile
+    // card, avatar bytes, slot listing). An unpublished / incomplete doctor —
+    // and any non-doctor id — returns 404, so a guest route built on this can
+    // never expose a not-yet-public face.
     public DoctorProfile getPublic(String id) {
-        return doctorProfileRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Doctor", id));
-    }
-
-    // Published-gated single lookup for fully public byte surfaces (the avatar
-    // endpoint). An unpublished / incomplete doctor — and any non-doctor id — is a
-    // 404, so a public route built on this can never reveal a not-yet-public face.
-    public DoctorProfile getPublishedProfile(String id) {
         return doctorProfileRepository.findByIdAndPublishedTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor", id));
     }
