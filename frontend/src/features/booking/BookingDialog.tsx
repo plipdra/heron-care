@@ -103,8 +103,8 @@ export function BookingDialog({
       }
       setSubmitError(
         err instanceof ApiError
-          ? err.problem?.detail ?? 'Your booking didn’t save. Please try again.'
-          : 'Your booking didn’t save — couldn’t reach the server. Try again in a moment.',
+          ? err.problem?.detail ?? 'Your booking didn’t save — the slot may have just been taken. Try another time.'
+          : 'Your booking didn’t save — couldn’t reach the server. Check your connection and try again.',
       );
     }
   }

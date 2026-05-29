@@ -97,7 +97,7 @@ function PatientContextDialog({
 
         {isError && (
           <p className="text-sm text-ink-muted">
-            Couldn’t load this patient’s details. Close and try again.
+            Couldn’t load this patient’s details. Check your connection, then close and reopen this panel.
           </p>
         )}
 

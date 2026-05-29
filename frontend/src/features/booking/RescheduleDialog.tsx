@@ -68,8 +68,8 @@ export function RescheduleDialog({
       }
       setError(
         err instanceof ApiError
-          ? err.problem?.detail ?? 'Couldn’t move your appointment. Please try again.'
-          : 'Couldn’t reach the server. Please try again.',
+          ? err.problem?.detail ?? 'Couldn’t move your appointment — your current booking is unchanged.'
+          : 'Couldn’t reach the server. Check your connection and try again.',
       );
     }
   }

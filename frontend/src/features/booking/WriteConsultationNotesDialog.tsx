@@ -130,8 +130,8 @@ export function WriteConsultationNotesDialog({
     } catch (err) {
       setError(
         err instanceof ApiError
-          ? err.problem?.detail ?? 'Couldn’t save these notes. Please try again.'
-          : 'Couldn’t reach the server. Please try again.',
+          ? err.problem?.detail ?? 'Couldn’t save these notes — your draft is still here.'
+          : 'Couldn’t reach the server. Check your connection and try again.',
       );
       setConfirming(false);
     } finally {

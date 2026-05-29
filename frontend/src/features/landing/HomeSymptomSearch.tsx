@@ -22,6 +22,7 @@ const CONCERN_CHIPS = [
 export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center' }) {
   const navigate = useNavigate();
   const [concern, setConcern] = useState('');
+  const [concernError, setConcernError] = useState<string | null>(null);
   const centered = align === 'center';
 
   function addChip(chip: string) {
@@ -33,7 +34,14 @@ export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center
 
   function submit() {
     const trimmed = concern.trim();
-    if (trimmed) navigate('/recommend', { state: { concern: trimmed } });
+    if (trimmed.replace(/\s/g, '').length < 10) {
+      setConcernError(
+        "Tell us a little more about what's going on — even a sentence helps us match the right specialist.",
+      );
+      return;
+    }
+    setConcernError(null);
+    navigate('/recommend', { state: { concern: trimmed } });
   }
 
   return (
@@ -43,13 +51,23 @@ export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center
         rows={3}
         maxLength={1000}
         value={concern}
-        onChange={(e) => setConcern(e.target.value)}
+        onChange={(e) => {
+          setConcern(e.target.value);
+          if (concernError) setConcernError(null);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
         }}
+        aria-invalid={concernError ? true : undefined}
+        aria-describedby={concernError ? 'home-concern-error' : undefined}
         placeholder="Describe what's going on — e.g. 'chest tightness when I climb stairs'."
         className="w-full rounded-lg border border-line bg-surface px-4 py-3 text-base text-ink shadow-sm transition placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
       />
+      {concernError && (
+        <p id="home-concern-error" className="mt-1.5 text-sm text-danger">
+          {concernError}
+        </p>
+      )}
 
       <div className={cn('mt-3 flex flex-wrap gap-2', centered && 'justify-center')}>
         {CONCERN_CHIPS.map((chip) => (

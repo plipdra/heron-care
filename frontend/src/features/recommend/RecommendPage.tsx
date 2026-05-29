@@ -88,10 +88,13 @@ export function RecommendPage() {
   const recommend = useRecommend();
   const location = useLocation();
   const [concern, setConcern] = useState('');
+  const [concernError, setConcernError] = useState<string | null>(null);
   const result = recommend.data;
 
   // Handoff from the homepage hero: if a concern was carried in via navigation
-  // state, prefill it and run the recommendation immediately. Runs once on mount.
+  // state, prefill it and run the recommendation immediately. The homepage already
+  // gates on the 10 non-whitespace character minimum, so any value arriving here
+  // is long enough — no second validation needed on this path. Runs once on mount.
   useEffect(() => {
     const initial = (location.state as { concern?: string } | null)?.concern?.trim();
     if (initial) {
@@ -110,7 +113,14 @@ export function RecommendPage() {
 
   function submit() {
     const trimmed = concern.trim();
-    if (trimmed) recommend.mutate({ concern: trimmed });
+    if (trimmed.replace(/\s/g, '').length < 10) {
+      setConcernError(
+        'Tell us a little more about what\'s going on — even a sentence helps us match the right specialist.',
+      );
+      return;
+    }
+    setConcernError(null);
+    recommend.mutate({ concern: trimmed });
   }
 
   const showIntake = !result && !recommend.isPending;
@@ -154,10 +164,20 @@ export function RecommendPage() {
                       rows={4}
                       maxLength={1000}
                       value={concern}
-                      onChange={(e) => setConcern(e.target.value)}
+                      onChange={(e) => {
+                        setConcern(e.target.value);
+                        if (concernError) setConcernError(null);
+                      }}
+                      aria-invalid={concernError ? true : undefined}
+                      aria-describedby={concernError ? 'concern-error' : undefined}
                       placeholder="A sentence or two is enough — e.g. 'chest tightness when I climb stairs'."
                       className="w-full resize-y rounded-md border border-line bg-surface py-3 pl-10 pr-3.5 text-sm leading-relaxed text-ink shadow-xs transition-all placeholder:text-ink-muted focus-visible:border-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-tint"
                     />
+                    {concernError && (
+                      <p id="concern-error" className="text-sm text-danger">
+                        {concernError}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {CONCERN_CHIPS.map((chip) => (
@@ -177,8 +197,8 @@ export function RecommendPage() {
                   <p className="text-sm text-danger">
                     {recommend.error instanceof ApiError
                       ? recommend.error.problem?.detail ??
-                        'Couldn’t get a recommendation just now. Please try again.'
-                      : 'Couldn’t reach the server. Check your connection — please try again.'}
+                        'Couldn’t get a recommendation just now. Try again in a moment.'
+                      : 'Couldn’t reach the server. Check your connection, then try again.'}
                   </p>
                 )}
 
@@ -294,11 +314,12 @@ export function RecommendPage() {
                     </div>
                   ) : (
                     <p className="text-sm text-ink-muted">
-                      No doctors match these symptoms right now. Try broader terms or{' '}
+                      No doctors match these symptoms right now. Try describing your concern
+                      in broader terms, or{' '}
                       <Link to="/doctors" className="text-primary hover:underline">
                         browse all specialists
-                      </Link>
-                      .
+                      </Link>{' '}
+                      to find someone directly.
                     </p>
                   )}
 

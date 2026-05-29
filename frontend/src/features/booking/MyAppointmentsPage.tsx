@@ -52,8 +52,8 @@ function CancelAppointmentDialog({
     } catch (err) {
       setError(
         err instanceof ApiError
-          ? err.problem?.detail ?? 'Couldn’t cancel your appointment. Please try again.'
-          : 'Couldn’t reach the server. Please try again.',
+          ? err.problem?.detail ?? 'Your appointment wasn’t cancelled — please try once more.'
+          : 'Couldn’t reach the server. Check your connection and try again.',
       );
     }
   }

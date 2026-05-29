@@ -62,7 +62,7 @@ export function ConsultationSummaryDialog({
 
         {isError && (
           <p className="text-sm text-ink-muted">
-            Couldn’t load this consultation summary. Close and try again.
+            Couldn’t load this consultation summary. Check your connection, then close and reopen this panel.
           </p>
         )}
 
