@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight, Search, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
@@ -42,19 +43,36 @@ export function DoctorsListPage() {
         </p>
       </header>
 
-      {/* The one symptom→specialty path: describe it and the AI router suggests a specialist. */}
+      {/* The one symptom→specialty path: describe it and the AI router suggests a
+          specialist. Carries the AI-panel treatment (ai-surface + glow + crescent)
+          so it reads as the page's most-inviting action. */}
       <Link
         to="/recommend"
-        className="group mt-8 flex items-center justify-between gap-4 rounded-lg border border-line bg-surface p-6 transition-colors hover:border-primary"
+        className="group relative mt-8 flex items-center justify-between gap-4 overflow-hidden rounded-lg border border-ai-glow bg-[linear-gradient(180deg,#EEF3FB_0%,#F4F7FB_55%,#FFFFFF_100%)] p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       >
-        <div>
-          <p className="text-lg font-semibold text-ink">Not sure who to see?</p>
-          <p className="mt-1 text-sm text-ink-muted">
-            Describe what's going on and we'll suggest the right specialist.
-          </p>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-6 -top-8 h-36 w-36 opacity-[0.08]"
+          style={{
+            backgroundImage: 'url(/brand/crescent-blue.svg)',
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+        <div className="relative flex items-start gap-3">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xs">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-lg font-semibold text-primary-800">Not sure who to see?</p>
+            <p className="mt-1 text-sm text-ink-muted">
+              Describe what's going on and we'll suggest the right specialist.
+            </p>
+          </div>
         </div>
-        <span className="shrink-0 text-sm font-medium text-primary group-hover:underline">
-          Get a recommendation →
+        <span className="relative inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary">
+          Get a recommendation
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </span>
       </Link>
 
@@ -69,12 +87,19 @@ export function DoctorsListPage() {
           stay calm: quiet at rest, soft primary-tint when active. All visible, no
           "+ more" overflow — hiding a specialty reintroduces "is mine buried?". */}
       <section className="mt-8 flex flex-col gap-4">
-        <Input
-          type="search"
-          placeholder="Search by name or specialty (e.g. Reyes, cardiology)"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
+        <div className="relative">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted"
+          />
+          <Input
+            type="search"
+            placeholder="Search by name or specialty (e.g. Reyes, cardiology)"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-9 shadow-xs"
+          />
+        </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           <button
             type="button"
