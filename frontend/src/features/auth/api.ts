@@ -39,6 +39,9 @@ export function useRegisterDoctor() {
       password: string;
       name: string;
       specialization: string;
+      // Pre-filled in the form; backend generates a fallback if blank.
+      prcLicenseNo?: string;
+      ptrNo?: string;
     }) =>
       apiFetch<AuthResponse>('/api/auth/register/doctor', {
         method: 'POST',

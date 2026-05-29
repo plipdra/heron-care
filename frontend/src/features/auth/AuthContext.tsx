@@ -44,6 +44,8 @@ type AuthContextValue = {
     password: string,
     name: string,
     specialization: string,
+    prcLicenseNo?: string,
+    ptrNo?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
   openAuthModal: (intent?: AuthIntent) => void;
@@ -110,12 +112,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const registerDoctor = useCallback(
-    async (email: string, password: string, name: string, specialization: string) => {
+    async (
+      email: string,
+      password: string,
+      name: string,
+      specialization: string,
+      prcLicenseNo?: string,
+      ptrNo?: string,
+    ) => {
       const response = await registerDoctorMutation.mutateAsync({
         email,
         password,
         name,
         specialization,
+        prcLicenseNo,
+        ptrNo,
       });
       applyAuthResponse(response);
     },

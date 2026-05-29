@@ -1,15 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 
+// Mirrors the backend Sex enum. UNSPECIFIED is the explicit "prefer not to say".
+export type Sex = 'MALE' | 'FEMALE' | 'OTHER' | 'UNSPECIFIED';
+
+export const SEX_OPTIONS: { value: Sex; label: string }[] = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' },
+  { value: 'UNSPECIFIED', label: 'Prefer not to say' },
+];
+
 export type PatientProfile = {
   id: string;
   userId: string;
   name: string | null;
   birthday: string | null;
+  sex: Sex | null;
+  sexLabel: string | null;
   weightKg: number | null;
   heightCm: number | null;
   contactNumber: string | null;
-  medicalHistory: string | null;
+  // Structured care profile. A null list means "not filled in"; an empty list
+  // means "actively none" (e.g. no known allergies).
+  conditions: string[] | null;
+  allergies: string[] | null;
+  medications: string[] | null;
+  notesForDoctor: string | null;
   profilePictureUrl: string;
 };
 
@@ -25,10 +42,14 @@ export function useMyPatientProfile() {
 export type UpdatePatientProfileBody = {
   name?: string | null;
   birthday?: string | null;
+  sex?: Sex | null;
   weightKg?: number | null;
   heightCm?: number | null;
   contactNumber?: string | null;
-  medicalHistory?: string | null;
+  conditions?: string[] | null;
+  allergies?: string[] | null;
+  medications?: string[] | null;
+  notesForDoctor?: string | null;
 };
 
 export function useUpdateMyPatientProfile() {

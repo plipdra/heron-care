@@ -174,10 +174,15 @@ export function useDoctorBookings() {
 export type PatientContext = {
   name: string | null;
   birthday: string | null;
+  sex: 'MALE' | 'FEMALE' | 'OTHER' | 'UNSPECIFIED' | null;
+  sexLabel: string | null;
   weightKg: number | null;
   heightCm: number | null;
   contactNumber: string | null;
-  medicalHistory: string | null;
+  conditions: string[] | null;
+  allergies: string[] | null;
+  medications: string[] | null;
+  notesForDoctor: string | null;
 };
 
 // Lazily fetched: `enabled` is false until the doctor opens a booking's context,

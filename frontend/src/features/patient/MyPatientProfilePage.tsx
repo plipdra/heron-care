@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -20,6 +21,8 @@ import {
 } from '@/lib/validation';
 import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
 import {
+  SEX_OPTIONS,
+  type Sex,
   useDeleteProfilePicture,
   useMyPatientProfile,
   useUpdateMyPatientProfile,
@@ -31,6 +34,92 @@ type PictureAction =
   | { kind: 'upload'; dataUrl: string }
   | { kind: 'remove' };
 
+const MAX_ENTRY = 200;
+
+// A small chip-based list editor for the care fields (conditions, allergies,
+// medications). Enter or comma commits an entry; entries render as removable
+// chips. Tags hold health data, so the chip text is ink (never decoratively
+// coloured) over a barely-there blue tint — per the brand's health-data rule.
+function TagInput({
+  id,
+  label,
+  hint,
+  placeholder,
+  tags,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  placeholder: string;
+  tags: string[];
+  onChange: (next: string[]) => void;
+  disabled?: boolean;
+}) {
+  const [draft, setDraft] = useState('');
+
+  function add() {
+    const v = draft.trim();
+    if (!v || v.length > MAX_ENTRY || tags.includes(v)) {
+      setDraft('');
+      return;
+    }
+    onChange([...tags, v]);
+    setDraft('');
+  }
+
+  function removeAt(i: number) {
+    onChange(tags.filter((_, idx) => idx !== i));
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      add();
+    } else if (e.key === 'Backspace' && !draft && tags.length) {
+      removeAt(tags.length - 1);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-2 shadow-xs focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1">
+        {tags.map((t, i) => (
+          <span
+            key={t}
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-primary-tint-sm px-2.5 py-1 text-xs font-medium text-ink"
+          >
+            {t}
+            <button
+              type="button"
+              aria-label={`Remove ${t}`}
+              onClick={() => removeAt(i)}
+              disabled={disabled}
+              className="rounded-full text-ink-muted transition-colors hover:text-ink"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          id={id}
+          value={draft}
+          disabled={disabled}
+          placeholder={tags.length ? '' : placeholder}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={add}
+          maxLength={MAX_ENTRY}
+          className="min-w-[10ch] flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+        />
+      </div>
+      <p className="text-xs text-ink-muted">Press Enter or comma to add. {hint}</p>
+    </div>
+  );
+}
+
 export function MyPatientProfilePage() {
   const { data, isPending, isError, error } = useMyPatientProfile();
   const updateProfile = useUpdateMyPatientProfile();
@@ -39,10 +128,14 @@ export function MyPatientProfilePage() {
 
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState('');
+  const [sex, setSex] = useState<Sex | ''>('');
   const [weightKg, setWeightKg] = useState('');
   const [heightCm, setHeightCm] = useState('');
   const [contactNumber, setContactNumber] = useState('');
-  const [medicalHistory, setMedicalHistory] = useState('');
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [allergies, setAllergies] = useState<string[]>([]);
+  const [medications, setMedications] = useState<string[]>([]);
+  const [notesForDoctor, setNotesForDoctor] = useState('');
   const [pictureAction, setPictureAction] = useState<PictureAction>({ kind: 'unchanged' });
   const [feedback, setFeedback] = useState<
     { kind: 'success' | 'error'; message: string } | null
@@ -53,7 +146,7 @@ export function MyPatientProfilePage() {
     weightKg?: string;
     heightCm?: string;
     contactNumber?: string;
-    medicalHistory?: string;
+    notesForDoctor?: string;
   }>({});
 
   // Cache-bust the picture URL on each profile refetch so a freshly uploaded
@@ -63,10 +156,14 @@ export function MyPatientProfilePage() {
     if (data) {
       setName(data.name ?? '');
       setBirthday(data.birthday ?? '');
+      setSex(data.sex ?? '');
       setWeightKg(data.weightKg !== null ? String(data.weightKg) : '');
       setHeightCm(data.heightCm !== null ? String(data.heightCm) : '');
       setContactNumber(data.contactNumber ?? '');
-      setMedicalHistory(data.medicalHistory ?? '');
+      setConditions(data.conditions ?? []);
+      setAllergies(data.allergies ?? []);
+      setMedications(data.medications ?? []);
+      setNotesForDoctor(data.notesForDoctor ?? '');
       setPictureAction({ kind: 'unchanged' });
       setPictureVersion((v) => v + 1);
     }
@@ -74,15 +171,16 @@ export function MyPatientProfilePage() {
 
   const completeness = useMemo(() => {
     if (!data) return null;
-    // Count exactly the fields we evaluate, and divide by that same count — so the
-    // ratio can never claim "complete" while fields are blank.
+    // Count exactly the demographic essentials we evaluate, divided by that same
+    // count — so the ratio can never claim "complete" while fields are blank. The
+    // care lists stay optional (an empty allergy list is a valid "none").
     const fields = [
       data.name,
       data.birthday,
+      data.sex,
       data.weightKg,
       data.heightCm,
       data.contactNumber,
-      data.medicalHistory,
     ];
     const filled = fields.filter(
       (v) => v !== null && v !== undefined && v !== '',
@@ -145,15 +243,19 @@ export function MyPatientProfilePage() {
       } else if (pictureAction.kind === 'remove') {
         await deletePicture.mutateAsync();
       }
-      // Full replace: send every field (null when cleared) so emptying a field
-      // actually clears it server-side, instead of being dropped and reverting.
+      // Full replace: send every field (null/empty when cleared) so emptying a
+      // field actually clears it server-side, instead of being dropped and reverting.
       await updateProfile.mutateAsync({
         name: name.trim() || null,
         birthday: birthday || null,
+        sex: sex || null,
         weightKg: weightKg ? Number(weightKg) : null,
         heightCm: heightCm ? Number(heightCm) : null,
         contactNumber: contactNumber.trim() || null,
-        medicalHistory: medicalHistory.trim() || null,
+        conditions,
+        allergies,
+        medications,
+        notesForDoctor: notesForDoctor.trim() || null,
       });
       setFieldErrors({});
       setFeedback({ kind: 'success', message: 'Your profile is up to date.' });
@@ -168,11 +270,23 @@ export function MyPatientProfilePage() {
         weightKg: backend?.weightKg,
         heightCm: backend?.heightCm,
         contactNumber: backend?.contactNumber,
-        medicalHistory: backend?.medicalHistory,
+        notesForDoctor: backend?.notesForDoctor,
       };
-      if (Object.values(mapped).some(Boolean)) {
+      // List-element errors arrive on paths like "conditions[0].<list element>";
+      // surface those at form level since they can't attach to a single input.
+      const listError = backend
+        ? Object.keys(backend).find((k) =>
+            /^(conditions|allergies|medications)/.test(k),
+          )
+        : undefined;
+      if (Object.values(mapped).some(Boolean) || listError) {
         setFieldErrors(mapped);
-        setFeedback({ kind: 'error', message: 'Please fix the highlighted fields.' });
+        setFeedback({
+          kind: 'error',
+          message: listError
+            ? backend![listError]
+            : 'Please fix the highlighted fields.',
+        });
       } else {
         setFeedback({
           kind: 'error',
@@ -248,7 +362,7 @@ export function MyPatientProfilePage() {
                 <p className="text-sm text-danger">{fieldErrors.name}</p>
               )}
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="profile-birthday">Birthday</Label>
                 <Input
@@ -264,6 +378,22 @@ export function MyPatientProfilePage() {
                 {fieldErrors.birthday && (
                   <p className="text-sm text-danger">{fieldErrors.birthday}</p>
                 )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="profile-sex">Sex</Label>
+                <select
+                  id="profile-sex"
+                  value={sex}
+                  onChange={(e) => setSex(e.target.value as Sex | '')}
+                  className="flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                >
+                  <option value="">Prefer not to say</option>
+                  {SEX_OPTIONS.filter((o) => o.value !== 'UNSPECIFIED').map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="profile-weight">Weight (kg)</Label>
@@ -322,26 +452,61 @@ export function MyPatientProfilePage() {
                 <p className="text-sm text-danger">{fieldErrors.contactNumber}</p>
               )}
             </div>
+
+            <div className="border-t border-line pt-5">
+              <h2 className="text-sm font-semibold text-ink">Care profile</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                What your doctor should know before the visit. Leave a list empty if
+                there's nothing to add.
+              </p>
+            </div>
+            <TagInput
+              id="profile-conditions"
+              label="Conditions"
+              hint="e.g. Hypertension, Mild asthma"
+              placeholder="Add a condition…"
+              tags={conditions}
+              onChange={setConditions}
+              disabled={saving}
+            />
+            <TagInput
+              id="profile-allergies"
+              label="Allergies"
+              hint="e.g. Penicillin, Peanuts"
+              placeholder="Add an allergy…"
+              tags={allergies}
+              onChange={setAllergies}
+              disabled={saving}
+            />
+            <TagInput
+              id="profile-medications"
+              label="Current medications"
+              hint="e.g. Losartan 50mg daily"
+              placeholder="Add a medication…"
+              tags={medications}
+              onChange={setMedications}
+              disabled={saving}
+            />
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="profile-history">Basic medical history</Label>
+              <Label htmlFor="profile-notes">Notes for your doctor</Label>
               <textarea
-                id="profile-history"
-                rows={5}
-                maxLength={5000}
-                value={medicalHistory}
-                aria-invalid={fieldErrors.medicalHistory ? true : undefined}
+                id="profile-notes"
+                rows={4}
+                maxLength={2000}
+                value={notesForDoctor}
+                aria-invalid={fieldErrors.notesForDoctor ? true : undefined}
                 onChange={(e) => {
-                  setMedicalHistory(e.target.value);
-                  clearFieldError('medicalHistory');
+                  setNotesForDoctor(e.target.value);
+                  clearFieldError('notesForDoctor');
                 }}
-                className="flex w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
-                placeholder="Conditions, allergies, medications, prior surgeries — anything your doctor should know."
+                className="flex w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink shadow-xs placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                placeholder="Anything else your doctor should know — family history, lifestyle, prior surgeries."
               />
-              {fieldErrors.medicalHistory && (
-                <p className="text-sm text-danger">{fieldErrors.medicalHistory}</p>
+              {fieldErrors.notesForDoctor && (
+                <p className="text-sm text-danger">{fieldErrors.notesForDoctor}</p>
               )}
               <p className="text-xs text-ink-muted">
-                Shared with the doctors you book with. Up to 5,000 characters.
+                Shared with the doctors you book with. Up to 2,000 characters.
               </p>
             </div>
 

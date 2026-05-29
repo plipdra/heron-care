@@ -43,6 +43,39 @@ function CtxField({ label, value }: { label: string; value: string | null }) {
   );
 }
 
+// One care list (conditions / allergies / medications). Entries are health data,
+// so the chip text is ink over a barely-there blue tint — never colour-coded. A
+// null or empty list shows the calm empty line, so a blank section still reads.
+function CareList({
+  label,
+  items,
+  empty,
+}: {
+  label: string;
+  items: string[] | null;
+  empty: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-ink-muted">{label}</p>
+      {items && items.length > 0 ? (
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {items.map((it) => (
+            <span
+              key={it}
+              className="inline-flex items-center rounded-full border border-line bg-primary-tint-sm px-2.5 py-0.5 text-xs font-medium text-ink"
+            >
+              {it}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-1 text-sm text-ink-muted">{empty}</p>
+      )}
+    </div>
+  );
+}
+
 // Doctor's write surface, side-by-side: the patient's context to read from on the
 // left, the SOAP + prescription form on the right. "Save draft" keeps editing
 // privately; "Finalise consultation" is the deliberate, confirmed action that
@@ -174,23 +207,35 @@ export function WriteConsultationNotesDialog({
 
             {context && (
               <>
-                <div>
-                  <p className="text-xs font-medium text-ink-muted">Medical history</p>
-                  {context.medicalHistory ? (
+                <CareList
+                  label="Conditions"
+                  items={context.conditions}
+                  empty="No conditions shared."
+                />
+                <CareList
+                  label="Allergies"
+                  items={context.allergies}
+                  empty="No known allergies shared."
+                />
+                <CareList
+                  label="Current medications"
+                  items={context.medications}
+                  empty="No current medications shared."
+                />
+                {context.notesForDoctor && (
+                  <div>
+                    <p className="text-xs font-medium text-ink-muted">Notes for you</p>
                     <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink">
-                      {context.medicalHistory}
+                      {context.notesForDoctor}
                     </p>
-                  ) : (
-                    <p className="mt-1 text-sm text-ink-muted">
-                      The patient hasn’t shared any medical history.
-                    </p>
-                  )}
-                </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <CtxField
                     label="Age"
                     value={context.birthday ? `${deriveAge(context.birthday)} years` : null}
                   />
+                  <CtxField label="Sex" value={context.sexLabel} />
                   <CtxField label="Born" value={context.birthday ? formatDate(context.birthday) : null} />
                   <CtxField
                     label="Weight"

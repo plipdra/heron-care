@@ -38,6 +38,39 @@ function Field({ label, value }: { label: string; value: string | null }) {
   );
 }
 
+// One care list (conditions / allergies / medications). Health-data entries, so
+// chip text is ink over a faint blue tint — never colour-coded. Null/empty shows
+// the calm empty line so a blank section still reads as deliberate.
+function CareList({
+  label,
+  items,
+  empty,
+}: {
+  label: string;
+  items: string[] | null;
+  empty: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-ink-muted">{label}</p>
+      {items && items.length > 0 ? (
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {items.map((it) => (
+            <span
+              key={it}
+              className="inline-flex items-center rounded-full border border-line bg-primary-tint-sm px-2.5 py-0.5 text-xs font-medium text-ink"
+            >
+              {it}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-1 text-sm text-ink-muted">{empty}</p>
+      )}
+    </div>
+  );
+}
+
 // The doctor's pre-consult read of one patient. The booking fields (name, time,
 // concern, join link) come from the already-loaded list row; the medical context
 // (vitals, history) is fetched only now, on open.
@@ -103,22 +136,36 @@ function PatientContextDialog({
 
         {context && (
           <>
-            <div>
-              <p className="text-xs font-medium text-ink-muted">Medical history</p>
-              {context.medicalHistory ? (
-                <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink">
-                  {context.medicalHistory}
-                </p>
-              ) : (
-                <p className="mt-1 text-sm text-ink-muted">
-                  The patient hasn’t shared any medical history.
-                </p>
+            <div className="flex flex-col gap-4">
+              <CareList
+                label="Conditions"
+                items={context.conditions}
+                empty="No conditions shared."
+              />
+              <CareList
+                label="Allergies"
+                items={context.allergies}
+                empty="No known allergies shared."
+              />
+              <CareList
+                label="Current medications"
+                items={context.medications}
+                empty="No current medications shared."
+              />
+              {context.notesForDoctor && (
+                <div>
+                  <p className="text-xs font-medium text-ink-muted">Notes for you</p>
+                  <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink">
+                    {context.notesForDoctor}
+                  </p>
+                </div>
               )}
             </div>
 
             <div>
               <p className="text-xs font-medium text-ink-muted">Patient details</p>
               <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <Field label="Sex" value={context.sexLabel} />
                 <Field
                   label="Age"
                   value={context.birthday ? `${deriveAge(context.birthday)} years` : null}

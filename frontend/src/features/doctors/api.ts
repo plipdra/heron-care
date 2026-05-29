@@ -26,6 +26,10 @@ export type Availability = {
 
 export type DoctorProfile = PublicDoctor & {
   defaultMeetingLink: string | null;
+  // PRC / PTR license numbers — own-profile only (not on PublicDoctor), shown on
+  // the printable clinical documents. Captured at registration.
+  prcLicenseNo: string | null;
+  ptrNo: string | null;
   availability: Availability | null;
 };
 

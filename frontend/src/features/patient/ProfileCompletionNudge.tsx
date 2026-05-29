@@ -17,13 +17,16 @@ export function ProfileCompletionNudge() {
 
   if (!data || dismissed) return null;
 
+  // The demographic essentials that help a doctor place the patient. The care
+  // lists (conditions/allergies/medications) and notes stay optional — an empty
+  // allergy list is a valid "none", so nagging on it would never clear.
   const fields = [
     data.name,
     data.birthday,
+    data.sex,
     data.weightKg,
     data.heightCm,
     data.contactNumber,
-    data.medicalHistory,
   ];
   const filled = fields.filter((v) => v !== null && v !== undefined && v !== '').length;
   if (filled >= fields.length) return null;

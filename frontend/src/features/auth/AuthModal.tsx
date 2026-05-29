@@ -21,6 +21,13 @@ import { useAuth, type AuthIntent } from './AuthContext';
 type Mode = 'login' | 'register';
 type Role = 'PATIENT' | 'DOCTOR';
 
+// A plausible n-digit license number for the demo pre-fill (MVP flavor only).
+function randomDigits(n: number): string {
+  let s = '';
+  for (let i = 0; i < n; i++) s += Math.floor(Math.random() * 10);
+  return s;
+}
+
 const INTENT_COPY: Record<AuthIntent, { title: string; description: string }> = {
   general: {
     title: 'Sign in to Heron',
@@ -178,6 +185,8 @@ function RegisterForm({
     password: string,
     name: string,
     specialization: string,
+    prcLicenseNo?: string,
+    ptrNo?: string,
   ) => Promise<void>;
 }) {
   const [role, setRole] = useState<Role>('PATIENT');
@@ -185,6 +194,12 @@ function RegisterForm({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [specialization, setSpecialization] = useState<string>('GENERAL_PRACTICE');
+  // PRC/PTR are pre-filled with plausible numbers for the demo (MVP flavor — not
+  // a verified credential). The doctor can edit them; the backend also generates
+  // a fallback if either is cleared. Generated once so they stay stable while the
+  // form is open.
+  const [prcLicenseNo, setPrcLicenseNo] = useState(() => randomDigits(7));
+  const [ptrNo, setPtrNo] = useState(() => randomDigits(7));
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
@@ -214,7 +229,14 @@ function RegisterForm({
       if (role === 'PATIENT') {
         await onRegisterPatient(email, password, name);
       } else {
-        await onRegisterDoctor(email, password, name, specialization);
+        await onRegisterDoctor(
+          email,
+          password,
+          name,
+          specialization,
+          prcLicenseNo.trim() || undefined,
+          ptrNo.trim() || undefined,
+        );
       }
     } catch (err) {
       setError(
@@ -329,6 +351,31 @@ function RegisterForm({
               </option>
             ))}
           </select>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="register-prc">PRC license no.</Label>
+              <Input
+                id="register-prc"
+                inputMode="numeric"
+                maxLength={40}
+                value={prcLicenseNo}
+                onChange={(e) => setPrcLicenseNo(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="register-ptr">PTR no.</Label>
+              <Input
+                id="register-ptr"
+                inputMode="numeric"
+                maxLength={40}
+                value={ptrNo}
+                onChange={(e) => setPtrNo(e.target.value)}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-ink-muted">
+            Pre-filled for the demo — edit if needed.
+          </p>
         </div>
       )}
 
