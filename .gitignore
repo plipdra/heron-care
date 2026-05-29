@@ -32,6 +32,13 @@ memory/
 docs/research/
 notes/
 scratch/
+claudeDesign/
+
+# === Local visual-verification tooling (never committed) ===
+.screenshots/
+playwright-report/
+test-results/
+.playwright/
 
 # === Brand source assets at root (publishable copies live in frontend/public/brand/) ===
 /*.svg
