@@ -106,10 +106,6 @@ HTTP → Controller (DTO) → Service (business logic) → Repository (MongoRepo
 - **Append-only audit log** for clinical record access (compliance).
 - **Google Calendar API integration** for auto-generated Meet links.
 
-## Decisions log
-
-_Curated by Day 4 — the 5–10 architecture decisions the pair-programming session is most likely to probe._
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
