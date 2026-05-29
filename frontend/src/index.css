@@ -22,6 +22,25 @@
   --radius-lg: 12px;
   --radius-md: 8px;
   --radius-sm: 6px;
+
+  /* Derived ramp — tints/shades of the locked palette, no new hues (BRAND.md §5).
+     Added to give this round's surfaces hierarchy + "kick" (contrast, not saturation). */
+  --primary-600: #034490;     /* mid button-on-white */
+  --primary-800: #012050;     /* deepest blue — the authoritative AI answer line */
+  --primary-tint-md: #CDD9ED; /* denser tint for halos / shimmer / badge borders */
+  --primary-tint-sm: #F0F4FA; /* barely-there wash */
+  --accent-tint: #FAF2E8;     /* warm-sand chip/badge fill */
+  --accent-deep: #B87A45;     /* darker sand for hover */
+  --ai-surface: #EEF3FB;      /* the AI panel surface — perceptibly bluer than the wash */
+  --ai-glow: #BFCFE8;         /* AI panel border / card hover halo */
+  --surface-raised: #F4F7FB;  /* one step above bg for section bands */
+
+  /* Elevation — blue-tinted, low-opacity only (never gray-black, never blanket-applied).
+     Cards: xs at rest, sm on hover. Banners: sm. Floating: md. The AI panel: ai. */
+  --shadow-xs: 0 1px 3px rgba(2, 58, 120, 0.06), 0 1px 2px rgba(2, 58, 120, 0.04);
+  --shadow-sm: 0 2px 8px rgba(2, 58, 120, 0.08), 0 1px 3px rgba(2, 58, 120, 0.05);
+  --shadow-md: 0 4px 16px rgba(2, 58, 120, 0.1), 0 2px 6px rgba(2, 58, 120, 0.06);
+  --shadow-ai: 0 8px 32px rgba(2, 58, 120, 0.14), 0 2px 8px rgba(2, 58, 120, 0.08);
 }
 
 @layer base {
@@ -37,6 +56,20 @@
   /* Tabular numerals for vitals, dosages, dates — BRAND.md §6. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Stillness beats motion (BRAND.md §8.3): honor the OS "reduce motion"
+     preference — anyone who asks for less motion gets near-instant transitions
+     and no decorative animation. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 

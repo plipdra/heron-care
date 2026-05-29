@@ -30,4 +30,8 @@ public interface DoctorProfileRepository
 
     Page<DoctorProfile> findByPublishedTrueAndSpecializationIn(
             Collection<Specialization> specializations, Pageable pageable);
+
+    // Published-gated single lookup — for the fully public avatar byte endpoint,
+    // which must never serve an unpublished / incomplete doctor's face.
+    Optional<DoctorProfile> findByIdAndPublishedTrue(String id);
 }

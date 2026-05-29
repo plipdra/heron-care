@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 type AvatarProps = {
@@ -20,12 +21,19 @@ function getInitials(name: string): string {
 
 export function Avatar({ name, photoUrl, size = 48, className }: AvatarProps) {
   const dimension = { width: size, height: size };
-  if (photoUrl) {
+  // Fall back to initials if the image fails to load — e.g. a doctor with no
+  // uploaded photo, whose public avatar route returns 404. Reset on URL change so
+  // a recycled component (list re-render) re-attempts the new doctor's photo.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [photoUrl]);
+
+  if (photoUrl && !failed) {
     return (
       <img
         src={photoUrl}
         alt=""
         style={dimension}
+        onError={() => setFailed(true)}
         className={cn('rounded-full object-cover', className)}
       />
     );

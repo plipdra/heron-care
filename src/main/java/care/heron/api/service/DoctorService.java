@@ -117,6 +117,14 @@ public class DoctorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor", id));
     }
 
+    // Published-gated single lookup for fully public byte surfaces (the avatar
+    // endpoint). An unpublished / incomplete doctor — and any non-doctor id — is a
+    // 404, so a public route built on this can never reveal a not-yet-public face.
+    public DoctorProfile getPublishedProfile(String id) {
+        return doctorProfileRepository.findByIdAndPublishedTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor", id));
+    }
+
     // Read-time enrichment: resolve the public display shape for a set of doctor
     // userIds in one batch query, keyed by userId. Doctors absent from the map
     // (e.g. a since-deleted profile) must be handled gracefully by the caller —

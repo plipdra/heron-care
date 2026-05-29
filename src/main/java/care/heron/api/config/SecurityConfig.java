@@ -56,7 +56,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/doctors", "/api/doctors/*", "/api/doctors/*/slots").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/doctors", "/api/doctors/*", "/api/doctors/*/slots", "/api/doctors/*/picture").permitAll()
                         // AI doctor recommendation is part of guest discovery (the
                         // recommendation is the marketing surface). Concern-only, no PII.
                         .requestMatchers(HttpMethod.POST, "/api/recommendations").permitAll()

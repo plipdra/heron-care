@@ -124,3 +124,33 @@ export function useUpdateMyAvailability() {
     },
   });
 }
+
+// Profile-picture bytes live on the role-agnostic /api/profile-pictures/me
+// endpoint (keyed off the JWT principal), shared with the patient side. The
+// doctor variant just invalidates ['doctors','me'] so the editor's preview
+// re-resolves after a save. The picture now also feeds the public doctor card
+// via /api/doctors/{id}/picture, so a fresh upload shows up in discovery too.
+export function useUploadMyDoctorPicture() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dataUrl: string) =>
+      apiFetch<void>('/api/profile-pictures/me', {
+        method: 'PUT',
+        body: JSON.stringify({ dataUrl }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctors', 'me'] });
+    },
+  });
+}
+
+export function useDeleteMyDoctorPicture() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<void>('/api/profile-pictures/me', { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctors', 'me'] });
+    },
+  });
+}

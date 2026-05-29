@@ -10,17 +10,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
+import { ImageUploadField } from '@/components/shared/ImageUploadField';
 import { ApiError } from '@/lib/api';
 import {
   validateHttpUrl,
   validateNumberInRange,
   validateOptionalName,
 } from '@/lib/validation';
+import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
 import { useAuth } from '@/features/auth/AuthContext';
 import { MyPatientProfilePage } from '@/features/patient/MyPatientProfilePage';
 import { SPECIALIZATIONS } from './specializations';
 import { AvailabilityEditor } from './AvailabilityEditor';
-import { useMyDoctorProfile, useUpdateMyDoctorProfile } from './api';
+import {
+  useDeleteMyDoctorPicture,
+  useMyDoctorProfile,
+  useUpdateMyDoctorProfile,
+  useUploadMyDoctorPicture,
+} from './api';
+
+type PictureAction =
+  | { kind: 'unchanged' }
+  | { kind: 'upload'; dataUrl: string }
+  | { kind: 'remove' };
 
 // Acts as the role router for /profile. Doctors see the editor below;
 // patients see MyPatientProfilePage. Renaming this file to MyProfilePage
@@ -39,12 +51,15 @@ export function MyDoctorProfilePage() {
 function DoctorProfileEditor() {
   const { data, isPending, error, isError } = useMyDoctorProfile();
   const updateMutation = useUpdateMyDoctorProfile();
+  const uploadPicture = useUploadMyDoctorPicture();
+  const deletePicture = useDeleteMyDoctorPicture();
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [defaultMeetingLink, setDefaultMeetingLink] = useState('');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
+  const [pictureAction, setPictureAction] = useState<PictureAction>({ kind: 'unchanged' });
   const [feedback, setFeedback] = useState<
     { kind: 'success' | 'error'; message: string } | null
   >(null);
@@ -55,6 +70,9 @@ function DoctorProfileEditor() {
     defaultMeetingLink?: string;
   }>({});
 
+  // Cache-bust the picture URL on each profile refetch so a freshly uploaded
+  // photo loads instead of the browser's 5-min cached copy.
+  const [pictureVersion, setPictureVersion] = useState(0);
   useEffect(() => {
     if (data) {
       setName(data.name ?? '');
@@ -66,8 +84,19 @@ function DoctorProfileEditor() {
           ? String(data.yearsOfExperience)
           : '',
       );
+      setPictureAction({ kind: 'unchanged' });
+      setPictureVersion((v) => v + 1);
     }
   }, [data]);
+
+  // The doctor's own picture URL is the auth-gated route (own bytes, logged-in
+  // context), so resolve it through the authed fetch like the patient editor.
+  // ?v bumps on every refetch so a freshly saved picture isn't the cached one.
+  const pictureServerUrl =
+    data && pictureAction.kind !== 'remove'
+      ? `${data.profilePictureUrl}?v=${pictureVersion}`
+      : null;
+  const resolvedPictureUrl = useAuthedImageUrl(pictureServerUrl);
 
   if (isPending) {
     return (
@@ -106,6 +135,11 @@ function DoctorProfileEditor() {
       return;
     }
     try {
+      if (pictureAction.kind === 'upload') {
+        await uploadPicture.mutateAsync(pictureAction.dataUrl);
+      } else if (pictureAction.kind === 'remove') {
+        await deletePicture.mutateAsync();
+      }
       // Full replace: send every field (null when cleared) so emptying a field
       // actually clears it server-side, instead of being dropped and reverting.
       await updateMutation.mutateAsync({
@@ -145,6 +179,9 @@ function DoctorProfileEditor() {
     setFieldErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   }
 
+  const saving =
+    updateMutation.isPending || uploadPicture.isPending || deletePicture.isPending;
+
   return (
     <main className="container mx-auto max-w-2xl px-4 py-10">
       <header>
@@ -161,6 +198,18 @@ function DoctorProfileEditor() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <ImageUploadField
+              label="Profile photo"
+              description="JPEG or PNG, up to 1MB. We resize to a 400px square. Patients see this on your card."
+              currentUrl={resolvedPictureUrl}
+              pendingDataUrl={pictureAction.kind === 'upload' ? pictureAction.dataUrl : null}
+              onChange={(dataUrl) => {
+                setPictureAction(
+                  dataUrl === null ? { kind: 'remove' } : { kind: 'upload', dataUrl },
+                );
+              }}
+              disabled={saving}
+            />
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="profile-name">Full name</Label>
               <Input
@@ -262,8 +311,8 @@ function DoctorProfileEditor() {
               </p>
             )}
 
-            <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save changes'}
             </Button>
           </form>
         </CardContent>

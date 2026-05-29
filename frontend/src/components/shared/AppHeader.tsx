@@ -32,7 +32,7 @@ export function AppHeader({ children }: AppHeaderProps) {
           aria-label="Heron — home"
           className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <Logo size={32} variant="mono" />
+          <Logo size={40} variant="mono" />
           <span className="text-lg font-semibold tracking-tight text-ink">Heron</span>
         </Link>
         {children}

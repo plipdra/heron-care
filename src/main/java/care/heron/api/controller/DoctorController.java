@@ -2,6 +2,7 @@ package care.heron.api.controller;
 
 import care.heron.api.document.Availability;
 import care.heron.api.document.DoctorProfile;
+import care.heron.api.document.ProfilePicture;
 import care.heron.api.document.enums.Specialization;
 import care.heron.api.dto.common.PageResponse;
 import care.heron.api.dto.doctor.DoctorProfileResponse;
@@ -9,11 +10,15 @@ import care.heron.api.dto.doctor.PublicDoctorResponse;
 import care.heron.api.dto.doctor.UpdateAvailabilityRequest;
 import care.heron.api.dto.doctor.UpdateDoctorProfileRequest;
 import care.heron.api.service.DoctorService;
+import care.heron.api.service.ProfilePictureService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +37,7 @@ import java.util.List;
 public class DoctorController {
 
     private final DoctorService doctorService;
+    private final ProfilePictureService profilePictureService;
 
     // PUBLIC — guest browsing surface for the marketplace-auth flow.
     @GetMapping
@@ -47,6 +53,30 @@ public class DoctorController {
     @GetMapping("/{id}")
     public PublicDoctorResponse get(@PathVariable String id) {
         return PublicDoctorResponse.from(doctorService.getPublic(id));
+    }
+
+    // PUBLIC — a published doctor's avatar bytes. Scoped by doctor *profile id* (not
+    // userId), so this route structurally cannot address a patient: a patient has no
+    // doctor_profiles row, and an unpublished / incomplete doctor 404s. A doctor's
+    // headshot is part of their public marketplace listing, so unlike the patient
+    // avatar route (auth-gated, Cache-Control: private) this one is public. It's
+    // marked no-cache (revalidate every request, keyed on the ETag) so a re-uploaded
+    // photo shows to guests immediately; the ETag still lets an unchanged fetch 304.
+    @GetMapping("/{id}/picture")
+    public ResponseEntity<byte[]> picture(@PathVariable String id) {
+        DoctorProfile doctor = doctorService.getPublishedProfile(id);
+        return profilePictureService.get(doctor.getUserId())
+                .map(this::toPublicResponse)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    private ResponseEntity<byte[]> toPublicResponse(ProfilePicture picture) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(picture.getContentType()))
+                .cacheControl(CacheControl.noCache().cachePublic())
+                .eTag("\"" + picture.getUpdatedAt().toEpochMilli() + "\"")
+                .lastModified(picture.getUpdatedAt())
+                .body(picture.getData());
     }
 
     // Doctor's own profile — IDOR-safe by route shape: no {id} param, userId comes

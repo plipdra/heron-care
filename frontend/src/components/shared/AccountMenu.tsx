@@ -34,7 +34,15 @@ export function AccountMenu() {
     enabled: !!user,
   });
 
-  const photoUrl = useAuthedImageUrl(user ? `/api/profile-pictures/${user.id}` : null);
+  // The avatar URL is otherwise static, so a re-uploaded or removed picture
+  // wouldn't refresh until a full reload. Key it on the profile query's
+  // last-updated timestamp: that query shares the ['…','me'] key the profile-edit
+  // and picture upload/delete mutations invalidate, so any profile change
+  // re-fetches it, bumps dataUpdatedAt, and busts the avatar here too — a removed
+  // picture then 404s and Avatar falls back to initials.
+  const photoUrl = useAuthedImageUrl(
+    user ? `/api/profile-pictures/${user.id}?v=${profile.dataUpdatedAt}` : null,
+  );
 
   if (!user) return null;
 
