@@ -214,9 +214,9 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
 
   return (
     <>
-      <Card className="mt-6">
+      <Card className="mt-6 shadow-sm">
         <CardHeader>
-          <CardTitle>Consultation hours</CardTitle>
+          <CardTitle className="text-primary-800">Consultation hours</CardTitle>
           <CardDescription>
             The days and times you see patients. Slots are offered in 30-minute steps within
             these hours. Hours are in your practice timezone ({tzLabel}).
@@ -261,9 +261,9 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
         </CardContent>
       </Card>
 
-      <Card className="mt-6">
+      <Card className="mt-6 shadow-sm">
         <CardHeader>
-          <CardTitle>Time off</CardTitle>
+          <CardTitle className="text-primary-800">Time off</CardTitle>
           <CardDescription>
             Block whole days you're away. Patients won't be offered any slots on these dates.
           </CardDescription>
