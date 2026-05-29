@@ -20,6 +20,45 @@ import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
 import { useNow } from '@/lib/useNow';
 import { ProfileCompletionNudge } from '@/features/patient/ProfileCompletionNudge';
 import { useCancelBooking, useMyBookings, type PatientBooking } from './api';
+import { BookingsCalendar, type CalendarEvent } from './BookingsCalendar';
+import { CalendarDays, LayoutList } from 'lucide-react';
+
+const TONE_FOR: Record<string, CalendarEvent['tone']> = {
+  upcoming: 'confirmed',
+  completed: 'completed',
+  ended: 'ended',
+  cancelled: 'cancelled',
+};
+
+// List ↔ Calendar segmented control. The list is the default (it carries the
+// actions); the calendar is a read-only month orientation.
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: 'list' | 'calendar';
+  onChange: (v: 'list' | 'calendar') => void;
+}) {
+  const opt = (v: 'list' | 'calendar', label: string, icon: React.ReactNode) => (
+    <button
+      type="button"
+      aria-pressed={view === v}
+      onClick={() => onChange(v)}
+      className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+        view === v ? 'bg-surface text-ink shadow-xs' : 'text-ink-muted hover:text-ink'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+  return (
+    <div className="inline-flex gap-1 rounded-lg border border-line bg-surface-raised p-1">
+      {opt('list', 'List', <LayoutList className="h-4 w-4" />)}
+      {opt('calendar', 'Calendar', <CalendarDays className="h-4 w-4" />)}
+    </div>
+  );
+}
 import { StatusPill, displayStatus } from './status';
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
 import { RescheduleDialog } from './RescheduleDialog';
@@ -193,6 +232,7 @@ export function MyAppointmentsPage() {
   const [viewingSummary, setViewingSummary] = useState<PatientBooking | null>(null);
   const [rescheduling, setRescheduling] = useState<PatientBooking | null>(null);
   const [cancelling, setCancelling] = useState<PatientBooking | null>(null);
+  const [view, setView] = useState<'list' | 'calendar'>('list');
   // Explicit confirmation after a cancel/reschedule. The mutation closes its
   // dialog and the list re-renders, but a cancelled card slips into Past out of
   // view, so a silent close reads as "did it work?" — this banner answers that.
@@ -264,6 +304,18 @@ export function MyAppointmentsPage() {
   const past = items.filter((b) => displayStatus(b, now) !== 'upcoming');
   const truncated = data.totalElements > items.length;
 
+  // Calendar events from the same list — completed visits open their summary.
+  const events: CalendarEvent[] = items.map((b) => {
+    const s = displayStatus(b, now);
+    return {
+      id: b.id,
+      startsAt: b.startsAt,
+      title: b.doctorName ?? 'Doctor',
+      tone: TONE_FOR[s],
+      onClick: s === 'completed' ? () => setViewingSummary(b) : undefined,
+    };
+  });
+
   return (
     <main className="container mx-auto max-w-3xl px-4 py-10">
       {header}
@@ -280,7 +332,17 @@ export function MyAppointmentsPage() {
         </div>
       )}
 
-      <section className="mt-10">
+      <div className="mt-8 flex justify-end">
+        <ViewToggle view={view} onChange={setView} />
+      </div>
+
+      {view === 'calendar' ? (
+        <div className="mt-4">
+          <BookingsCalendar events={events} />
+        </div>
+      ) : (
+        <>
+      <section className="mt-6">
         <h2 className="text-lg font-semibold">Upcoming</h2>
         {upcoming.length > 0 ? (
           <div className="mt-4 flex flex-col gap-4">
@@ -332,6 +394,8 @@ export function MyAppointmentsPage() {
           </p>
         )}
       </section>
+        </>
+      )}
 
       {viewingSummary && (
         <ConsultationSummaryDialog
