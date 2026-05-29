@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { Menu } from 'lucide-react';
@@ -8,6 +8,7 @@ import { AccountMenu } from '@/components/shared/AccountMenu';
 import { AppFooter } from '@/components/shared/AppFooter';
 import { AppHeader } from '@/components/shared/AppHeader';
 import { BackToTop } from '@/components/shared/BackToTop';
+import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { ScrollToTop } from '@/components/shared/ScrollToTop';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,12 +21,26 @@ import { AuthModal } from '@/features/auth/AuthModal';
 import { AuthProvider, useAuth } from '@/features/auth/AuthContext';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
-import { DoctorProfilePage } from '@/features/doctors/DoctorProfilePage';
-import { DoctorsListPage } from '@/features/doctors/DoctorsListPage';
-import { RecommendPage } from '@/features/recommend/RecommendPage';
-import { MyDoctorProfilePage } from '@/features/doctors/MyDoctorProfilePage';
-import { AppointmentsPage } from '@/features/booking/AppointmentsPage';
 import { LandingPage } from '@/features/landing/LandingPage';
+
+// Route pages are code-split: only the landing page (the common first paint)
+// ships in the initial bundle; the rest load on navigation behind the Suspense
+// fallback below. These are named exports, so map each onto a default for lazy().
+const DoctorsListPage = lazy(() =>
+  import('@/features/doctors/DoctorsListPage').then((m) => ({ default: m.DoctorsListPage })),
+);
+const DoctorProfilePage = lazy(() =>
+  import('@/features/doctors/DoctorProfilePage').then((m) => ({ default: m.DoctorProfilePage })),
+);
+const RecommendPage = lazy(() =>
+  import('@/features/recommend/RecommendPage').then((m) => ({ default: m.RecommendPage })),
+);
+const MyDoctorProfilePage = lazy(() =>
+  import('@/features/doctors/MyDoctorProfilePage').then((m) => ({ default: m.MyDoctorProfilePage })),
+);
+const AppointmentsPage = lazy(() =>
+  import('@/features/booking/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })),
+);
 
 export default function App() {
   return (
@@ -44,7 +59,8 @@ export default function App() {
               <HeaderNav />
             </AppHeader>
             <div id="main-content" tabIndex={-1} className="flex-1 outline-none">
-              <Routes>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route
                   path="/doctors"
@@ -87,7 +103,8 @@ export default function App() {
                   }
                 />
                 <Route path="*" element={<NotFoundPage />} />
-              </Routes>
+                </Routes>
+              </Suspense>
             </div>
             <AppFooter />
           </div>
@@ -205,6 +222,16 @@ function MobilePrimaryNav({ links }: { links: NavDest[] }) {
         </DropdownMenuContent>
       </DropdownMenu>
     </nav>
+  );
+}
+
+// Shown while a code-split route chunk loads. Centered brand spinner, sized to
+// fill the content area so the header/footer stay put during the swap.
+function RouteFallback() {
+  return (
+    <main className="container mx-auto flex justify-center px-4 py-20">
+      <CrescentSpinner size={64} />
+    </main>
   );
 }
 

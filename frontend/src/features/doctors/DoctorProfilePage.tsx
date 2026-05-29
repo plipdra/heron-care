@@ -39,7 +39,7 @@ export function DoctorProfilePage() {
       </Link>
 
       <header className="mt-6 flex items-start gap-5">
-        <Avatar name={data.name} size={80} />
+        <Avatar name={data.name} photoUrl={data.profilePictureUrl} size={80} />
         <div className="flex-1">
           <h1 className="text-4xl font-semibold tracking-tight">{data.name}</h1>
           {data.specializationLabel && (
