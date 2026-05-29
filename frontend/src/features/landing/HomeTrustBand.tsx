@@ -13,18 +13,21 @@ export function HomeTrustBand() {
         <h2 className="text-center text-sm font-semibold uppercase tracking-wide text-ink-muted">
           How it works
         </h2>
-        <ol className="mx-auto mt-8 grid max-w-4xl gap-8 sm:grid-cols-3">
+        <ol className="mx-auto mt-8 grid max-w-4xl gap-5 sm:grid-cols-3">
           <Step
+            step={1}
             icon={<MessageSquare className="h-5 w-5" />}
             title="Describe it"
             body="Tell us what's going on, in your own words."
           />
           <Step
+            step={2}
             icon={<Stethoscope className="h-5 w-5" />}
             title="We match you"
             body="We suggest the right type of specialist — not a diagnosis."
           />
           <Step
+            step={3}
             icon={<CalendarCheck className="h-5 w-5" />}
             title="Book a video visit"
             body="Pick a time. You only sign in when you're ready to book."
@@ -49,9 +52,22 @@ export function HomeTrustBand() {
   );
 }
 
-function Step({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
+function Step({
+  step,
+  icon,
+  title,
+  body,
+}: {
+  step: number;
+  icon: ReactNode;
+  title: string;
+  body: string;
+}) {
   return (
-    <li className="flex flex-col items-center text-center">
+    <li className="relative flex flex-col items-start rounded-lg border border-line bg-surface p-6 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-ai-glow hover:shadow-sm">
+      <span className="absolute right-4 top-4 tabular text-2xl font-bold text-primary-tint-md">
+        {step}
+      </span>
       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-tint text-primary">
         {icon}
       </div>

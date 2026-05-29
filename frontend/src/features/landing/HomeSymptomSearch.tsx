@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -46,23 +47,29 @@ export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center
 
   return (
     <div className={cn('flex w-full max-w-xl flex-col', centered && 'mx-auto items-center text-center')}>
-      <textarea
-        aria-label="Describe what's going on"
-        rows={3}
-        maxLength={1000}
-        value={concern}
-        onChange={(e) => {
-          setConcern(e.target.value);
-          if (concernError) setConcernError(null);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
-        }}
-        aria-invalid={concernError ? true : undefined}
-        aria-describedby={concernError ? 'home-concern-error' : undefined}
-        placeholder="Describe what's going on — e.g. 'chest tightness when I climb stairs'."
-        className="w-full rounded-lg border border-line bg-surface px-4 py-3 text-base text-ink shadow-sm transition placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
-      />
+      <div className="relative w-full">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-ink-muted"
+        />
+        <textarea
+          aria-label="Describe what's going on"
+          rows={3}
+          maxLength={1000}
+          value={concern}
+          onChange={(e) => {
+            setConcern(e.target.value);
+            if (concernError) setConcernError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
+          }}
+          aria-invalid={concernError ? true : undefined}
+          aria-describedby={concernError ? 'home-concern-error' : undefined}
+          placeholder="Describe what's going on — e.g. 'chest tightness when I climb stairs'."
+          className="w-full rounded-lg border border-ai-glow bg-surface py-3 pl-12 pr-4 text-base text-ink shadow-md transition placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-tint focus-visible:border-primary"
+        />
+      </div>
       {concernError && (
         <p id="home-concern-error" className="mt-1.5 text-sm text-danger">
           {concernError}
