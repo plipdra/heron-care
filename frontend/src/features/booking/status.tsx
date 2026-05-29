@@ -18,17 +18,38 @@ export function displayStatus(
   return new Date(booking.endsAt).getTime() > now ? 'upcoming' : 'ended';
 }
 
-const STATUS_META: Record<DisplayStatus, { label: string; dot: string }> = {
-  upcoming: { label: 'Confirmed', dot: 'bg-primary' },
-  completed: { label: 'Completed', dot: 'bg-success' },
-  ended: { label: 'Ended', dot: 'bg-ink-muted' },
-  cancelled: { label: 'Cancelled', dot: 'bg-ink-muted' },
+// Calm, state-only chips. Confirmed leans on the primary tint; completed uses a
+// derived shade of the sanctioned sage success; ended/cancelled stay neutral —
+// no alarm colour, since neither is an error (cancelling is a normal action).
+const STATUS_META: Record<DisplayStatus, { label: string; chip: string; dot: string }> = {
+  upcoming: {
+    label: 'Confirmed',
+    chip: 'border-primary-tint-md bg-primary-tint-sm text-primary',
+    dot: 'bg-primary',
+  },
+  completed: {
+    label: 'Completed',
+    chip: 'border-[rgba(123,155,126,0.35)] bg-[rgba(123,155,126,0.14)] text-[#4F6B52]',
+    dot: 'bg-success',
+  },
+  ended: {
+    label: 'Ended',
+    chip: 'border-line bg-surface-raised text-ink-muted',
+    dot: 'bg-ink-muted',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    chip: 'border-line bg-surface-raised text-ink-muted',
+    dot: 'bg-ink-muted',
+  },
 };
 
 export function StatusPill({ status }: { status: DisplayStatus }) {
   const meta = STATUS_META[status];
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-ink-muted">
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.chip}`}
+    >
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
       {meta.label}
     </span>
