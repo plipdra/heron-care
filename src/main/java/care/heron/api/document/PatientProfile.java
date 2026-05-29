@@ -11,8 +11,11 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import care.heron.api.document.enums.Sex;
+
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 @Document("patient_profiles")
 @Getter
@@ -35,10 +38,20 @@ public class PatientProfile {
     // bytes. "Contact Details" per spec is a single phone number — address
     // is out of scope for a telehealth MVP.
     private LocalDate birthday;
+    private Sex sex;
     private Double weightKg;
     private Double heightCm;
     private String contactNumber;
-    private String medicalHistory;
+
+    // Structured care profile — replaces the former free-text medicalHistory.
+    // Each list holds short entries the patient manages as removable tags in
+    // the editor (e.g. "Hypertension", "Penicillin", "Losartan 50mg daily");
+    // notesForDoctor is a free-text note surfaced to the clinician before a
+    // consult. All optional — a blank list/null renders as "Not provided".
+    private List<String> conditions;
+    private List<String> allergies;
+    private List<String> medications;
+    private String notesForDoctor;
 
     @CreatedDate
     private Instant createdAt;

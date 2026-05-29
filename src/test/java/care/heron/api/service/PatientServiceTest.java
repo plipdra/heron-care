@@ -1,6 +1,7 @@
 package care.heron.api.service;
 
 import care.heron.api.document.PatientProfile;
+import care.heron.api.document.enums.Sex;
 import care.heron.api.repository.PatientProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,7 +49,8 @@ class PatientServiceTest {
         // The form is submitted with the contact number cleared (null).
         PatientProfile result = service.updateMine(USER_ID,
                 new PatientService.UpdatePatientProfileCommand(
-                        "Demo Patient", null, null, null, null, null));
+                        "Demo Patient", null, null, null, null, null,
+                        null, null, null, null));
 
         assertThat(result.getContactNumber()).isNull(); // cleared, not retained
         assertThat(result.getName()).isEqualTo("Demo Patient");
@@ -62,11 +65,20 @@ class PatientServiceTest {
 
         PatientProfile result = service.updateMine(USER_ID,
                 new PatientService.UpdatePatientProfileCommand(
-                        "Ana", LocalDate.of(1990, 1, 1), 60.0, 165.0,
-                        "+63 917 555 1234", "No known allergies."));
+                        "Ana", LocalDate.of(1990, 1, 1), Sex.FEMALE, 60.0, 165.0,
+                        "+63 917 555 1234",
+                        List.of("Mild persistent asthma"),
+                        List.of("Penicillin"),
+                        List.of("Salbutamol inhaler PRN"),
+                        "Prefers afternoon consults."));
 
         assertThat(result.getName()).isEqualTo("Ana");
         assertThat(result.getContactNumber()).isEqualTo("+63 917 555 1234");
         assertThat(result.getWeightKg()).isEqualTo(60.0);
+        assertThat(result.getSex()).isEqualTo(Sex.FEMALE);
+        assertThat(result.getConditions()).containsExactly("Mild persistent asthma");
+        assertThat(result.getAllergies()).containsExactly("Penicillin");
+        assertThat(result.getMedications()).containsExactly("Salbutamol inhaler PRN");
+        assertThat(result.getNotesForDoctor()).isEqualTo("Prefers afternoon consults.");
     }
 }

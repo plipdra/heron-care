@@ -46,7 +46,8 @@ class AuthRequestValidationTest {
     }
 
     private RegisterDoctorRequest doctor(String email, String password, String name) {
-        return new RegisterDoctorRequest(email, password, name, Specialization.GENERAL_PRACTICE);
+        // licenses optional at the DTO (generated server-side if blank) — pass null
+        return new RegisterDoctorRequest(email, password, name, Specialization.GENERAL_PRACTICE, null, null);
     }
 
     private boolean fieldHasError(Set<? extends ConstraintViolation<?>> violations, String field) {
@@ -156,7 +157,7 @@ class AuthRequestValidationTest {
 
     @Test
     void doctor_register_requires_specialization() {
-        var req = new RegisterDoctorRequest("a@b.co", "Demo123!", "Dr A", null);
+        var req = new RegisterDoctorRequest("a@b.co", "Demo123!", "Dr A", null, null, null);
         assertThat(fieldHasError(validator.validate(req), "specialization")).isTrue();
     }
 

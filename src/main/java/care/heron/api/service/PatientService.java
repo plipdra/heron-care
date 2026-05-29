@@ -1,6 +1,7 @@
 package care.heron.api.service;
 
 import care.heron.api.document.PatientProfile;
+import care.heron.api.document.enums.Sex;
 import care.heron.api.exception.ResourceNotFoundException;
 import care.heron.api.repository.PatientProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -47,18 +49,26 @@ public class PatientService {
         PatientProfile profile = getMine(userId);
         profile.setName(command.name());
         profile.setBirthday(command.birthday());
+        profile.setSex(command.sex());
         profile.setWeightKg(command.weightKg());
         profile.setHeightCm(command.heightCm());
         profile.setContactNumber(command.contactNumber());
-        profile.setMedicalHistory(command.medicalHistory());
+        profile.setConditions(command.conditions());
+        profile.setAllergies(command.allergies());
+        profile.setMedications(command.medications());
+        profile.setNotesForDoctor(command.notesForDoctor());
         return patientProfileRepository.save(profile);
     }
 
     public record UpdatePatientProfileCommand(
             String name,
             LocalDate birthday,
+            Sex sex,
             Double weightKg,
             Double heightCm,
             String contactNumber,
-            String medicalHistory) {}
+            List<String> conditions,
+            List<String> allergies,
+            List<String> medications,
+            String notesForDoctor) {}
 }

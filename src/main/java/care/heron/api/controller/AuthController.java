@@ -39,7 +39,9 @@ public class AuthController {
                 request.email(),
                 request.password(),
                 request.name(),
-                request.specialization()));
+                request.specialization(),
+                request.prcLicenseNo(),
+                request.ptrNo()));
     }
 
     @PostMapping("/login")

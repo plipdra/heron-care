@@ -17,12 +17,14 @@ import java.lang.annotation.Target;
  * rejected: that is junk masquerading as text, the class of input that slips past
  * a bare {@code @Size} cap.
  *
- * <p>Use this on bio / medicalHistory / concernNote / a patch-style name where the
+ * <p>Use this on bio / concernNote / notesForDoctor / a patch-style name where the
  * field is optional. For a required text field, use {@code @NotBlank} instead.
+ * TYPE_USE is included so it can also constrain the elements of a collection,
+ * e.g. {@code List<@MeaningfulText String>} (the structured care lists).
  */
 @Documented
 @Constraint(validatedBy = MeaningfulTextValidator.class)
-@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MeaningfulText {
 

@@ -15,6 +15,8 @@ public record DoctorProfileResponse(
         String profilePictureUrl,
         String defaultMeetingLink,
         Integer yearsOfExperience,
+        String prcLicenseNo,
+        String ptrNo,
         AvailabilityResponse availability
 ) {
     public static DoctorProfileResponse from(DoctorProfile profile) {
@@ -30,6 +32,8 @@ public record DoctorProfileResponse(
                 "/api/profile-pictures/" + profile.getUserId(),
                 profile.getDefaultMeetingLink(),
                 profile.getYearsOfExperience(),
+                profile.getPrcLicenseNo(),
+                profile.getPtrNo(),
                 AvailabilityResponse.from(profile.getAvailability()));
     }
 }

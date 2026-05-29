@@ -29,5 +29,15 @@ public record RegisterDoctorRequest(
         String name,
 
         @NotNull(message = "specialization is required")
-        Specialization specialization
+        Specialization specialization,
+
+        // Optional at the API — the signup form pre-fills generated values for the
+        // demo, and AuthService generates a fallback if either arrives blank, so a
+        // doctor always has license numbers for the printable documents. Real PRC
+        // verification is Future Work (see AuthController).
+        @Size(max = 40, message = "prcLicenseNo must not exceed 40 characters")
+        String prcLicenseNo,
+
+        @Size(max = 40, message = "ptrNo must not exceed 40 characters")
+        String ptrNo
 ) {}

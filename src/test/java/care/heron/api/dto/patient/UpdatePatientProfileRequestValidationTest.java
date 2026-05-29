@@ -11,6 +11,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,17 +40,31 @@ class UpdatePatientProfileRequestValidationTest {
         factory.close();
     }
 
+    // Maps the trailing `notes` arg onto notesForDoctor and leaves sex + the three
+    // care lists null, so the existing phone/birthday/range/name cases are unchanged.
     private UpdatePatientProfileRequest req(String name, LocalDate birthday, Double weight,
-                                            Double height, String phone, String history) {
-        return new UpdatePatientProfileRequest(name, birthday, weight, height, phone, history);
+                                            Double height, String phone, String notes) {
+        return new UpdatePatientProfileRequest(
+                name, birthday, null, weight, height, phone, null, null, null, notes);
     }
 
     private UpdatePatientProfileRequest withPhone(String phone) {
         return req(null, null, null, null, phone, null);
     }
 
+    private UpdatePatientProfileRequest withConditions(List<String> conditions) {
+        return new UpdatePatientProfileRequest(
+                null, null, null, null, null, null, conditions, null, null, null);
+    }
+
     private boolean fieldHasError(Set<? extends ConstraintViolation<?>> violations, String field) {
         return violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals(field));
+    }
+
+    // Container-element violations carry a path like "conditions[0].<list element>",
+    // so an exact match misses them — match on the leading property name instead.
+    private boolean fieldPathStartsWith(Set<? extends ConstraintViolation<?>> violations, String prefix) {
+        return violations.stream().anyMatch(v -> v.getPropertyPath().toString().startsWith(prefix));
     }
 
     @Test
@@ -166,7 +182,7 @@ class UpdatePatientProfileRequestValidationTest {
         assertThat(fieldHasError(violations, "heightCm")).isFalse();
     }
 
-    // ---- name / medicalHistory: optional but, if present, meaningful + capped ----
+    // ---- name / notesForDoctor: optional but, if present, meaningful + capped ----
 
     @Test
     void rejects_whitespace_only_name() {
@@ -174,22 +190,69 @@ class UpdatePatientProfileRequestValidationTest {
     }
 
     @Test
-    void rejects_whitespace_only_medical_history() {
+    void rejects_whitespace_only_notes_for_doctor() {
         assertThat(fieldHasError(
-                validator.validate(req(null, null, null, null, null, " \t ")), "medicalHistory")).isTrue();
+                validator.validate(req(null, null, null, null, null, " \t ")), "notesForDoctor")).isTrue();
     }
 
     @Test
-    void accepts_real_medical_history() {
+    void accepts_real_notes_for_doctor() {
         var violations = validator.validate(
-                req(null, null, null, null, null, "Asthma; penicillin allergy."));
-        assertThat(fieldHasError(violations, "medicalHistory")).isFalse();
+                req(null, null, null, null, null, "Prefers afternoon consults."));
+        assertThat(fieldHasError(violations, "notesForDoctor")).isFalse();
     }
 
     @Test
-    void rejects_medical_history_over_5000_chars() {
+    void rejects_notes_for_doctor_over_2000_chars() {
         var violations = validator.validate(
-                req(null, null, null, null, null, "x".repeat(5001)));
-        assertThat(fieldHasError(violations, "medicalHistory")).isTrue();
+                req(null, null, null, null, null, "x".repeat(2001)));
+        assertThat(fieldHasError(violations, "notesForDoctor")).isTrue();
+    }
+
+    // ---- care lists (conditions/allergies/medications): each entry meaningful +
+    // capped, and a bounded number of entries. Same constraints across all three;
+    // conditions stands in for the matrix, with a smoke check that the others apply. ----
+
+    @Test
+    void accepts_a_real_conditions_list() {
+        var violations = validator.validate(withConditions(List.of("Hypertension", "Mild asthma")));
+        assertThat(fieldPathStartsWith(violations, "conditions")).isFalse();
+    }
+
+    @Test
+    void empty_conditions_list_is_valid() {
+        assertThat(fieldPathStartsWith(validator.validate(withConditions(List.of())), "conditions")).isFalse();
+    }
+
+    @Test
+    void rejects_a_whitespace_only_condition_entry() {
+        // Arrays.asList allows the junk string List.of would still permit; the
+        // element-level @MeaningfulText must reject a tag that is only whitespace.
+        var violations = validator.validate(withConditions(Arrays.asList("Hypertension", "   ")));
+        assertThat(fieldPathStartsWith(violations, "conditions")).isTrue();
+    }
+
+    @Test
+    void rejects_an_overlong_condition_entry() {
+        var violations = validator.validate(withConditions(List.of("x".repeat(201))));
+        assertThat(fieldPathStartsWith(violations, "conditions")).isTrue();
+    }
+
+    @Test
+    void rejects_too_many_condition_entries() {
+        List<String> tooMany = java.util.stream.IntStream.range(0, 51)
+                .mapToObj(i -> "Condition " + i).toList();
+        assertThat(fieldHasError(validator.validate(withConditions(tooMany)), "conditions")).isTrue();
+    }
+
+    @Test
+    void allergies_and_medications_apply_the_same_element_rule() {
+        var allergyViolations = validator.validate(new UpdatePatientProfileRequest(
+                null, null, null, null, null, null, null, Arrays.asList("  "), null, null));
+        assertThat(fieldPathStartsWith(allergyViolations, "allergies")).isTrue();
+
+        var medViolations = validator.validate(new UpdatePatientProfileRequest(
+                null, null, null, null, null, null, null, null, Arrays.asList("\t"), null));
+        assertThat(fieldPathStartsWith(medViolations, "medications")).isTrue();
     }
 }

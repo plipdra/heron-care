@@ -45,7 +45,8 @@ public class AuthService {
     }
 
     public AuthResult registerDoctor(
-            String email, String password, String name, Specialization specialization) {
+            String email, String password, String name, Specialization specialization,
+            String prcLicenseNo, String ptrNo) {
         if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException(email);
         }
@@ -58,8 +59,26 @@ public class AuthService {
                 .userId(user.getId())
                 .name(name)
                 .specialization(specialization)
+                // The signup form pre-fills these; generate a fallback if either is
+                // blank so a doctor always has numbers for the printable documents.
+                .prcLicenseNo(orGenerated(prcLicenseNo, 7))
+                .ptrNo(orGenerated(ptrNo, 7))
                 .build());
         return issueTokens(user);
+    }
+
+    // Returns the supplied value, or a random numeric string of the given length
+    // when blank. MVP flavor only — not a verified credential.
+    private static String orGenerated(String supplied, int digits) {
+        if (supplied != null && !supplied.isBlank()) {
+            return supplied.trim();
+        }
+        StringBuilder sb = new StringBuilder();
+        java.util.concurrent.ThreadLocalRandom rnd = java.util.concurrent.ThreadLocalRandom.current();
+        for (int i = 0; i < digits; i++) {
+            sb.append(rnd.nextInt(10));
+        }
+        return sb.toString();
     }
 
     public AuthResult login(String email, String password) {

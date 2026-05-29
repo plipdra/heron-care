@@ -6,7 +6,7 @@ import care.heron.api.document.enums.BookingStatus;
 import java.time.Instant;
 
 // Read-time enriched view for a DOCTOR's appointment list. Deliberately carries
-// the patient's NAME only — never medicalHistory or demographics. Full patient
+// the patient's NAME only — never the care profile or demographics. Full patient
 // context is fetched separately, per booking, when the doctor opens a consult
 // (info-minimization: a list payload must not ship every patient's medical PII).
 //

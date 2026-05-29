@@ -37,6 +37,13 @@ public class DoctorProfile {
 
     private Integer yearsOfExperience;
 
+    // PRC (Professional Regulation Commission) license + PTR (Professional Tax
+    // Receipt) numbers. Captured at doctor registration (auto-generated for the
+    // demo) and rendered as real stored values on the printable prescription
+    // and visit summary, which name the prescribing clinician's credentials.
+    private String prcLicenseNo;
+    private String ptrNo;
+
     // Embedded — schedule rules and blocked ranges live with the doctor
     // because they don't have independent lifecycle. Slot listing reads
     // this and derives available 30-min slots on the fly.

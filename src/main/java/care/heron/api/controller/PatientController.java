@@ -36,10 +36,14 @@ public class PatientController {
         PatientService.UpdatePatientProfileCommand command = new PatientService.UpdatePatientProfileCommand(
                 request.name(),
                 request.birthday(),
+                request.sex(),
                 request.weightKg(),
                 request.heightCm(),
                 request.contactNumber(),
-                request.medicalHistory());
+                request.conditions(),
+                request.allergies(),
+                request.medications(),
+                request.notesForDoctor());
         return PatientProfileResponse.from(patientService.updateMine(userId, command));
     }
 }
