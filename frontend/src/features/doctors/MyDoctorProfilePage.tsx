@@ -22,6 +22,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { MyPatientProfilePage } from '@/features/patient/MyPatientProfilePage';
 import { SPECIALIZATIONS } from './specializations';
 import { AvailabilityEditor } from './AvailabilityEditor';
+import { DoctorProfileView } from './DoctorProfileView';
 import {
   useDeleteMyDoctorPicture,
   useMyDoctorProfile,
@@ -45,10 +46,21 @@ export function MyDoctorProfilePage() {
     return <MyPatientProfilePage />;
   }
 
-  return <DoctorProfileEditor />;
+  return <DoctorProfile />;
 }
 
-function DoctorProfileEditor() {
+// /profile defaults to the read-only view; "Edit" swaps in the editor and saving
+// (or Cancel) returns here.
+function DoctorProfile() {
+  const [mode, setMode] = useState<'view' | 'edit'>('view');
+  return mode === 'edit' ? (
+    <DoctorProfileEditor onDone={() => setMode('view')} />
+  ) : (
+    <DoctorProfileView onEdit={() => setMode('edit')} />
+  );
+}
+
+function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
   const { data, isPending, error, isError } = useMyDoctorProfile();
   const updateMutation = useUpdateMyDoctorProfile();
   const uploadPicture = useUploadMyDoctorPicture();
@@ -150,7 +162,7 @@ function DoctorProfileEditor() {
         yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : null,
       });
       setFieldErrors({});
-      setFeedback({ kind: 'success', message: 'Your profile is up to date.' });
+      onDone(); // back to the read-only view, which shows the saved data
     } catch (err) {
       // Land the backend's per-field errors on the fields themselves.
       const backend = err instanceof ApiError ? err.problem?.errors : undefined;
@@ -185,7 +197,7 @@ function DoctorProfileEditor() {
   return (
     <main className="container mx-auto max-w-2xl px-4 py-10">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight text-primary-800">Your profile</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-primary-800">Edit profile</h1>
         <p className="mt-2 text-ink-muted">
           How patients see you on Heron. Save changes and they're live.
         </p>
@@ -332,9 +344,14 @@ function DoctorProfileEditor() {
               </p>
             )}
 
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Saving…' : 'Save changes'}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" onClick={onDone} disabled={saving}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -20,6 +20,7 @@ import {
   validatePhone,
 } from '@/lib/validation';
 import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
+import { PatientProfileView } from './PatientProfileView';
 import {
   SEX_OPTIONS,
   type Sex,
@@ -28,6 +29,17 @@ import {
   useUpdateMyPatientProfile,
   useUploadProfilePicture,
 } from './api';
+
+// /profile defaults to a calm read-only VIEW; "Edit profile" swaps in the editor,
+// and saving (or Cancel) returns here. Mirrors the design's view-first profile.
+export function MyPatientProfilePage() {
+  const [mode, setMode] = useState<'view' | 'edit'>('view');
+  return mode === 'edit' ? (
+    <PatientProfileEditor onDone={() => setMode('view')} />
+  ) : (
+    <PatientProfileView onEdit={() => setMode('edit')} />
+  );
+}
 
 type PictureAction =
   | { kind: 'unchanged' }
@@ -120,7 +132,7 @@ function TagInput({
   );
 }
 
-export function MyPatientProfilePage() {
+function PatientProfileEditor({ onDone }: { onDone: () => void }) {
   const { data, isPending, isError, error } = useMyPatientProfile();
   const updateProfile = useUpdateMyPatientProfile();
   const uploadPicture = useUploadProfilePicture();
@@ -258,7 +270,7 @@ export function MyPatientProfilePage() {
         notesForDoctor: notesForDoctor.trim() || null,
       });
       setFieldErrors({});
-      setFeedback({ kind: 'success', message: 'Your profile is up to date.' });
+      onDone(); // return to the read-only view, which shows the saved data
     } catch (err) {
       // Place the backend's per-field errors on the fields themselves, so the
       // patient never has to guess which input the server rejected (e.g. a phone
@@ -311,7 +323,7 @@ export function MyPatientProfilePage() {
     <main className="container mx-auto max-w-2xl px-4 py-10">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Your profile</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-primary-800">Edit profile</h1>
           <p className="mt-2 text-ink-muted">
             What your doctor sees when you book a consultation.
           </p>
@@ -520,9 +532,14 @@ export function MyPatientProfilePage() {
               </p>
             )}
 
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Saving…' : 'Save changes'}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" onClick={onDone} disabled={saving}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
