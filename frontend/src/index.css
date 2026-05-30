@@ -31,6 +31,9 @@
   --primary-tint-sm: #F0F4FA; /* barely-there wash */
   --accent-tint: #FAF2E8;     /* warm-sand chip/badge fill */
   --accent-deep: #B87A45;     /* darker sand for hover */
+  --care: #4F7E5C;            /* sage 'care' accent — specialty/availability cues (NOT sand) */
+  --care-tint: #EAF2EB;       /* sage tint fill */
+  --care-line: rgba(79, 126, 92, 0.3);
   --ai-surface: #EEF3FB;      /* the AI panel surface — perceptibly bluer than the wash */
   --ai-glow: #BFCFE8;         /* AI panel border / card hover halo */
   --surface-raised: #F4F7FB;  /* one step above bg for section bands */

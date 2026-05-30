@@ -29,6 +29,12 @@ export default {
           tint: 'var(--accent-tint)',
           deep: 'var(--accent-deep)',
         },
+        // Sage 'care' accent — specialty/availability cues (handoff: never sand).
+        care: {
+          DEFAULT: 'var(--care)',
+          tint: 'var(--care-tint)',
+          line: 'var(--care-line)',
+        },
         // The AI moment's own surface + halo (derived from primary, no new hue).
         ai: {
           surface: 'var(--ai-surface)',
