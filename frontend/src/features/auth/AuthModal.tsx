@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
 import {
@@ -186,9 +187,8 @@ function LoginForm({
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="login-password">Password</Label>
-        <Input
+        <PasswordInput
           id="login-password"
-          type="password"
           autoComplete="current-password"
           required
           value={password}
@@ -343,9 +343,8 @@ function RegisterForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="register-password">Password</Label>
-        <Input
+        <PasswordInput
           id="register-password"
-          type="password"
           autoComplete="new-password"
           required
           minLength={8}
