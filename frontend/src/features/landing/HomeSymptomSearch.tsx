@@ -16,10 +16,8 @@ export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center
 
   function submit() {
     const trimmed = concern.trim();
-    if (trimmed.replace(/\s/g, '').length < 10) {
-      setConcernError(
-        "Tell us a little more about what's going on — even a sentence helps us match the right specialist.",
-      );
+    if (!trimmed) {
+      setConcernError('Type a word or two about what is going on.');
       return;
     }
     setConcernError(null);
