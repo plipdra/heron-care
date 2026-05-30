@@ -37,6 +37,31 @@ type View = 'confirm' | 'conflict' | 'success';
 
 const MAX_NOTE = 1000;
 
+// An .ics calendar event for the booked visit, downloaded on demand — works with
+// any calendar app, no third-party account. UTC stamps (…Z) avoid tz ambiguity.
+function downloadIcs(startsAt: string, endsAt: string, doctorName: string) {
+  const stamp = (iso: string) =>
+    new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Heron Care//EN',
+    'BEGIN:VEVENT',
+    `DTSTART:${stamp(startsAt)}`,
+    `DTEND:${stamp(endsAt)}`,
+    `SUMMARY:Heron video consult with ${doctorName}`,
+    'DESCRIPTION:Your Heron telehealth visit. The video link is in your appointments.',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'heron-visit.ics';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Warm-sand specialty chip — accent activation on a non-health label, matching
 // the doctor profile and card.
 function SpecBadge({ label }: { label: string }) {
@@ -261,17 +286,17 @@ export function BookingDialog({
               </p>
             )}
 
-            <p className="text-xs text-ink-muted">
-              Find this appointment anytime under{' '}
-              <Link to="/appointments" className="text-primary hover:underline">
-                Appointments
-              </Link>
-              .
-            </p>
-
-            <DialogFooter>
-              <Button variant="secondary" onClick={() => onOpenChange(false)}>
-                Done
+            <DialogFooter className="gap-2">
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  downloadIcs(booking.startsAt, booking.endsAt, doctorName)
+                }
+              >
+                Add to calendar
+              </Button>
+              <Button asChild onClick={() => onOpenChange(false)}>
+                <Link to="/appointments">View my appointments</Link>
               </Button>
             </DialogFooter>
           </>
