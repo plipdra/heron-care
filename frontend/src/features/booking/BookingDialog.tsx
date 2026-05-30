@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { CheckCircle2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -10,7 +11,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/shared/Avatar';
 import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
 import { ApiError } from '@/lib/api';
@@ -36,6 +36,16 @@ type BookingDialogProps = {
 type View = 'confirm' | 'conflict' | 'success';
 
 const MAX_NOTE = 1000;
+
+// Warm-sand specialty chip — accent activation on a non-health label, matching
+// the doctor profile and card.
+function SpecBadge({ label }: { label: string }) {
+  return (
+    <span className="mt-1.5 inline-flex items-center rounded-full border border-accent/40 bg-accent-tint px-2.5 py-0.5 text-xs font-semibold text-accent-deep">
+      {label}
+    </span>
+  );
+}
 
 // Owns the booking commitment: confirm -> (success | conflict). All three views
 // render inside one Dialog so the patient's attention never scatters (no toast).
@@ -121,21 +131,19 @@ export function BookingDialog({
               <DialogDescription>Review the details before you book.</DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center gap-3 rounded-md border border-line p-3">
+            <div className="flex items-center gap-3 rounded-md border border-line bg-surface-raised p-3">
               <Avatar name={doctorName} size={48} />
               <div>
-                <p className="font-semibold leading-tight">{doctorName}</p>
-                {specializationLabel && (
-                  <Badge className="mt-1.5">{specializationLabel}</Badge>
-                )}
+                <p className="font-semibold leading-tight text-ink">{doctorName}</p>
+                {specializationLabel && <SpecBadge label={specializationLabel} />}
               </div>
             </div>
 
-            <div>
-              <p className="tabular font-medium text-ink">
+            <div className="rounded-md border border-ai-glow bg-ai-surface px-4 py-3">
+              <p className="tabular font-semibold text-primary-800">
                 {formatFullDateTime(targetSlot.startsAt)}
               </p>
-              <p className="text-xs text-ink-muted">
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Times shown in your local time ({tzLabel}).
               </p>
             </div>
@@ -216,24 +224,27 @@ export function BookingDialog({
         {view === 'success' && booking && (
           <>
             <DialogHeader>
-              <DialogTitle>You’re booked.</DialogTitle>
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgba(123,155,126,0.14)] text-success">
+                  <CheckCircle2 className="h-6 w-6" />
+                </span>
+                <DialogTitle>You're booked.</DialogTitle>
+              </div>
             </DialogHeader>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 rounded-md border border-line bg-surface-raised p-3">
               <Avatar name={doctorName} size={48} />
               <div>
-                <p className="font-semibold leading-tight">{doctorName}</p>
-                {specializationLabel && (
-                  <Badge className="mt-1.5">{specializationLabel}</Badge>
-                )}
+                <p className="font-semibold leading-tight text-ink">{doctorName}</p>
+                {specializationLabel && <SpecBadge label={specializationLabel} />}
               </div>
             </div>
 
-            <div>
-              <p className="tabular font-medium text-ink">
+            <div className="rounded-md border border-ai-glow bg-ai-surface px-4 py-3">
+              <p className="tabular font-semibold text-primary-800">
                 {formatFullDateTime(booking.startsAt)}
               </p>
-              <p className="text-sm text-ink-muted">A reminder will arrive an hour before.</p>
+              <p className="mt-0.5 text-sm text-ink-muted">A reminder will arrive an hour before.</p>
             </div>
 
             {booking.meetingLink ? (
