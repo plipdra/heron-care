@@ -50,11 +50,12 @@ export function LandingPage() {
             <HomeSymptomSearch align="left" />
           </div>
 
-          {/* Inline trust band — why an anxious first-timer can rely on this. */}
-          <dl className="mt-10 grid max-w-xl gap-x-6 gap-y-5 sm:grid-cols-3">
+          {/* Inline trust band — why an anxious first-timer can rely on this.
+              One bordered, soft-elevated card row, divided into three. */}
+          <dl className="mt-10 grid max-w-2xl divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {HERO_TRUST.map((t) => (
-              <div key={t.h} className="flex flex-col gap-1.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-tint text-primary">
+              <div key={t.h} className="flex flex-col gap-1.5 p-4">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-tint text-primary">
                   <t.icon className="h-4 w-4" />
                 </span>
                 <dt className="text-sm font-semibold text-ink">{t.h}</dt>
