@@ -4,6 +4,31 @@
 >
 > **Care, watched closely.**
 
+## Why Heron
+
+Most telehealth apps are either feature-stuffed booking tools or "AI doctor"
+chatbots that overreach. Heron's thesis is **anxiety-subtraction** — a sick person
+is already stressed, so every decision removes noise and earns trust:
+
+- **Calm, trust-first UX.** Three rules break every tie: calm beats clever,
+  specificity beats generality, stillness beats motion.
+- **AI that routes, never diagnoses.** The symptom router suggests a *type of
+  doctor* with a red-flag pre-screen and a deterministic rules fallback —
+  safety-bounded, never a diagnosis.
+- **Honesty as a feature.** Patient-reported vitals are flagged, prescriptions
+  note generic dispensing, and an "ended" visit tells the patient their summary is
+  being finalised — Heron never pretends to be more than it is.
+- **Guest-first marketplace.** Explore, search, and get a recommendation with no
+  signup wall; auth is asked only at the booking commitment.
+- **Calm real-time.** An SSE bell that informs without nagging, and schedule-change
+  alerts that reach *only* the patients actually affected.
+
+The journey is built to compound trust into retention. Patients go from an anxious
+"what's wrong?" to the right specialist, keepable visit summaries, and a
+medical-record history that's theirs; doctors get a dashboard that shows the day's
+shape at a glance, with patient context at the point of care. In healthcare, trust
+— not gamification — is the retention lever.
+
 ## Quickstart
 
 Requires Docker + Docker Compose v2.
@@ -77,7 +102,8 @@ A layered Spring Boot monolith behind a single deployable artifact:
 HTTP → Controller (DTO in/out) → Service (business rules) → Repository (Spring Data Mongo)
 ```
 
-The key decisions, and why:
+See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the data model, indexes, and the
+full reasoning. The key decisions, in short:
 
 - **Document database (MongoDB).** The core domain is an aggregate, not a web of
   joins: a booking *embeds* its consultation record (SOAP notes + prescription)
