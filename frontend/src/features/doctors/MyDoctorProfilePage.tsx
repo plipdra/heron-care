@@ -185,15 +185,15 @@ function DoctorProfileEditor() {
   return (
     <main className="container mx-auto max-w-2xl px-4 py-10">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Your profile</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-primary-800">Your profile</h1>
         <p className="mt-2 text-ink-muted">
           How patients see you on Heron. Save changes and they're live.
         </p>
       </header>
 
-      <Card className="mt-8">
+      <Card className="mt-8 shadow-sm">
         <CardHeader>
-          <CardTitle>Public details</CardTitle>
+          <CardTitle className="text-primary-800">Public details</CardTitle>
           <CardDescription>Visible to anyone browsing doctors.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -298,6 +298,27 @@ function DoctorProfileEditor() {
               <p className="text-xs text-ink-muted">
                 Patients see this link when they join your consultation. Use a
                 Google Meet, Zoom, or Teams link you control.
+              </p>
+            </div>
+
+            {/* Read-only credentials — captured at registration, printed on the
+                clinical documents. Editing licenses is Future Work. */}
+            <div className="rounded-md border border-line bg-surface-raised px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                License — shown on your documents
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                <span className="tabular text-ink">
+                  <span className="text-ink-muted">PRC No. </span>
+                  {data.prcLicenseNo ?? '—'}
+                </span>
+                <span className="tabular text-ink">
+                  <span className="text-ink-muted">PTR No. </span>
+                  {data.ptrNo ?? '—'}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-ink-muted">
+                Printed on your prescriptions and visit summaries.
               </p>
             </div>
 
