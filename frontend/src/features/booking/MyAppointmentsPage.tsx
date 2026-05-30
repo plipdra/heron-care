@@ -23,6 +23,7 @@ import { useCancelBooking, useMyBookings, type PatientBooking } from './api';
 import { BookingsCalendar, type CalendarEvent } from './BookingsCalendar';
 import { BookingsWeek } from './BookingsWeek';
 import { AppointmentViewToggle, type ApptView } from './AppointmentViewToggle';
+import { BookingEventDialog } from './BookingEventDialog';
 
 const TONE_FOR: Record<string, CalendarEvent['tone']> = {
   upcoming: 'confirmed',
@@ -205,6 +206,7 @@ export function MyAppointmentsPage() {
   const [rescheduling, setRescheduling] = useState<PatientBooking | null>(null);
   const [cancelling, setCancelling] = useState<PatientBooking | null>(null);
   const [view, setView] = useState<ApptView>('list');
+  const [eventBooking, setEventBooking] = useState<PatientBooking | null>(null);
   // Explicit confirmation after a cancel/reschedule. The mutation closes its
   // dialog and the list re-renders, but a cancelled card slips into Past out of
   // view, so a silent close reads as "did it work?" — this banner answers that.
@@ -277,16 +279,13 @@ export function MyAppointmentsPage() {
   const truncated = data.totalElements > items.length;
 
   // Calendar events from the same list — completed visits open their summary.
-  const events: CalendarEvent[] = items.map((b) => {
-    const s = displayStatus(b, now);
-    return {
-      id: b.id,
-      startsAt: b.startsAt,
-      title: b.doctorName ?? 'Doctor',
-      tone: TONE_FOR[s],
-      onClick: s === 'completed' ? () => setViewingSummary(b) : undefined,
-    };
-  });
+  const events: CalendarEvent[] = items.map((b) => ({
+    id: b.id,
+    startsAt: b.startsAt,
+    title: b.doctorName ?? 'Doctor',
+    tone: TONE_FOR[displayStatus(b, now)],
+    onClick: () => setEventBooking(b),
+  }));
 
   return (
     <main className="container mx-auto max-w-3xl px-4 py-10">
@@ -371,6 +370,66 @@ export function MyAppointmentsPage() {
         )}
       </section>
         </>
+      )}
+
+      {eventBooking && (
+        <BookingEventDialog
+          name={eventBooking.doctorName ?? 'Your doctor'}
+          badge={
+            eventBooking.doctorSpecializationLabel ? (
+              <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent-tint px-2.5 py-0.5 text-xs font-semibold text-accent-deep">
+                {eventBooking.doctorSpecializationLabel}
+              </span>
+            ) : undefined
+          }
+          startsAt={eventBooking.startsAt}
+          status={displayStatus(eventBooking, now)}
+          concern={eventBooking.concernNote}
+          concernLabel="What you told your doctor"
+          joinable={eventBooking.joinable}
+          meetingLink={eventBooking.meetingLink}
+          onClose={() => setEventBooking(null)}
+          actions={
+            <>
+              {displayStatus(eventBooking, now) === 'upcoming' && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setRescheduling(eventBooking);
+                      setEventBooking(null);
+                    }}
+                  >
+                    Reschedule
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setCancelling(eventBooking);
+                      setEventBooking(null);
+                    }}
+                  >
+                    Cancel appointment
+                  </Button>
+                </>
+              )}
+              {displayStatus(eventBooking, now) === 'completed' && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setViewingSummary(eventBooking);
+                    setEventBooking(null);
+                  }}
+                >
+                  View summary
+                </Button>
+              )}
+            </>
+          }
+        />
       )}
 
       {viewingSummary && (

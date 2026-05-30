@@ -23,6 +23,7 @@ import { StatusPill, displayStatus } from './status';
 import { BookingsCalendar, type CalendarEvent } from './BookingsCalendar';
 import { BookingsWeek } from './BookingsWeek';
 import { AppointmentViewToggle, type ApptView } from './AppointmentViewToggle';
+import { BookingEventDialog } from './BookingEventDialog';
 
 const TONE_FOR: Record<string, CalendarEvent['tone']> = {
   upcoming: 'confirmed',
@@ -309,6 +310,7 @@ export function DoctorAppointmentsPage() {
   const [writingNotes, setWritingNotes] = useState<DoctorBooking | null>(null);
   const [viewingNotes, setViewingNotes] = useState<DoctorBooking | null>(null);
   const [view, setView] = useState<ApptView>('list');
+  const [eventBooking, setEventBooking] = useState<DoctorBooking | null>(null);
 
   const header = (
     <header>
@@ -370,21 +372,13 @@ export function DoctorAppointmentsPage() {
   const truncated = data.totalElements > items.length;
 
   // Calendar events: clicking opens the right surface for the consult's state.
-  const events: CalendarEvent[] = items.map((b) => {
-    const s = displayStatus(b, now);
-    return {
-      id: b.id,
-      startsAt: b.startsAt,
-      title: b.patientName ?? 'Patient',
-      tone: TONE_FOR[s],
-      onClick:
-        s === 'completed'
-          ? () => setViewingNotes(b)
-          : s === 'ended'
-            ? () => setWritingNotes(b)
-            : () => setSelected(b),
-    };
-  });
+  const events: CalendarEvent[] = items.map((b) => ({
+    id: b.id,
+    startsAt: b.startsAt,
+    title: b.patientName ?? 'Patient',
+    tone: TONE_FOR[displayStatus(b, now)],
+    onClick: () => setEventBooking(b),
+  }));
 
   return (
     <main className="container mx-auto max-w-3xl px-4 py-10">
@@ -467,6 +461,56 @@ export function DoctorAppointmentsPage() {
           bookingId={viewingNotes.id}
           heading={viewingNotes.patientName ?? 'Patient'}
           onClose={() => setViewingNotes(null)}
+        />
+      )}
+      {eventBooking && (
+        <BookingEventDialog
+          name={eventBooking.patientName ?? 'Patient'}
+          startsAt={eventBooking.startsAt}
+          status={displayStatus(eventBooking, now)}
+          concern={eventBooking.concernNote}
+          concernLabel="What the patient told you"
+          joinable={eventBooking.joinable}
+          meetingLink={eventBooking.meetingLink}
+          onClose={() => setEventBooking(null)}
+          actions={
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setSelected(eventBooking);
+                  setEventBooking(null);
+                }}
+              >
+                View patient details
+              </Button>
+              {displayStatus(eventBooking, now) === 'completed' ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setViewingNotes(eventBooking);
+                    setEventBooking(null);
+                  }}
+                >
+                  View notes
+                </Button>
+              ) : (
+                displayStatus(eventBooking, now) === 'ended' && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setWritingNotes(eventBooking);
+                      setEventBooking(null);
+                    }}
+                  >
+                    Write notes
+                  </Button>
+                )
+              )}
+            </>
+          }
         />
       )}
     </main>
