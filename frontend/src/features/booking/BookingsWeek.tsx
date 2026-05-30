@@ -9,8 +9,9 @@ const HOUR_PX = 52;
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const TONE: Record<CalendarEvent['tone'], string> = {
+  live: 'border-care-line bg-care-tint text-care',
   confirmed: 'border-primary-tint-md bg-primary-tint-sm text-primary',
-  completed: 'border-[rgba(123,155,126,0.35)] bg-[rgba(123,155,126,0.16)] text-[#4F6B52]',
+  completed: 'border-line bg-primary-tint-sm text-ink-muted',
   ended: 'border-line bg-surface-raised text-ink-muted',
   cancelled: 'border-line bg-surface-raised text-ink-muted line-through',
 };

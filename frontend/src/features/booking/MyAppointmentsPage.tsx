@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check } from 'lucide-react';
+import { Check, Info } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,14 @@ import { RescheduleDialog } from './RescheduleDialog';
 // failure. The buttons avoid the "Cancel" verb collision (which would mean both
 // "abort this dialog" and "cancel the booking"): the dismiss action reads "Keep
 // appointment", the destructive one "Cancel appointment".
+const CANCEL_REASONS = [
+  'Feeling better — no longer needed',
+  'Schedule conflict',
+  'Booked with another doctor',
+  'Cost',
+  'Other',
+];
+
 function CancelAppointmentDialog({
   booking,
   onClose,
@@ -51,6 +59,8 @@ function CancelAppointmentDialog({
 }) {
   const cancel = useCancelBooking();
   const [error, setError] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
+  const [done, setDone] = useState(false);
 
   async function confirm() {
     setError(null);
@@ -59,7 +69,7 @@ function CancelAppointmentDialog({
         bookingId: booking.id,
         doctorProfileId: booking.doctorProfileId,
       });
-      onCancelled();
+      setDone(true);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -70,6 +80,47 @@ function CancelAppointmentDialog({
   }
 
   const submitting = cancel.isPending;
+  const firstName = booking.doctorName?.split(' ').slice(-1)[0] ?? 'your doctor';
+  const initials = (booking.doctorName ?? 'Dr')
+    .split(' ')
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  // In-dialog success — the cancelled card slips into Past, so confirm the action
+  // here rather than relying on the list re-render alone.
+  if (done) {
+    return (
+      <Dialog open onOpenChange={(open) => !open && onCancelled()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Appointment cancelled</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center py-2 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-tint text-primary">
+              <Check className="h-7 w-7" strokeWidth={2.4} />
+            </span>
+            <h2 className="mt-4 text-lg font-semibold text-ink">Appointment cancelled</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+              Your visit with <span className="font-medium text-ink">{booking.doctorName ?? 'your doctor'}</span> on{' '}
+              <span className="tabular font-medium text-ink">{formatFullDateTime(booking.startsAt)}</span> has been
+              cancelled, and the time is freed for other patients. We’ve let {firstName} know.
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <Button variant="secondary" onClick={onCancelled}>
+                Done
+              </Button>
+              <Button asChild>
+                <Link to={`/doctors/${booking.doctorProfileId}`}>Find another time</Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
@@ -77,12 +128,58 @@ function CancelAppointmentDialog({
         <DialogHeader>
           <DialogTitle>Cancel this appointment?</DialogTitle>
           <DialogDescription>
-            Your{' '}
-            <span className="tabular text-ink">{formatFullDateTime(booking.startsAt)}</span>
-            {booking.doctorName ? ` visit with ${booking.doctorName}` : ' visit'} will be
-            cancelled and the time freed up. You can book again whenever you’re ready.
+            This frees the time for other patients. You can book again anytime.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Booking summary — the visit being cancelled, restated. */}
+        <div className="flex items-center gap-3 rounded-md border border-ai-glow bg-ai-surface p-3.5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-tint text-[15px] font-bold text-primary">
+            {initials}
+          </span>
+          <div className="min-w-0">
+            <p className="text-[14.5px] font-semibold text-ink">
+              {booking.doctorName ?? 'Your doctor'}
+              {booking.doctorSpecializationLabel ? ` · ${booking.doctorSpecializationLabel}` : ''}
+            </p>
+            <p className="tabular mt-0.5 text-[13px] font-semibold text-primary-800">
+              {formatFullDateTime(booking.startsAt)}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="cancel-reason" className="text-sm font-medium text-ink">
+            Reason <span className="font-normal text-ink-muted">(optional)</span>
+          </label>
+          <select
+            id="cancel-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="mt-1.5 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition focus:border-primary focus:ring-[3px] focus:ring-primary-tint"
+          >
+            <option value="" disabled>
+              Select a reason…
+            </option>
+            {CANCEL_REASONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-ink-muted">
+            Helps your doctor and the clinic. Never shared beyond your care team.
+          </p>
+        </div>
+
+        {/* Late-cancel policy — warning-tinted, not danger; this is informational. */}
+        <div className="flex items-start gap-2 rounded-md border border-[rgba(199,125,82,0.22)] bg-[rgba(199,125,82,0.07)] px-3 py-2.5 text-[12.5px] leading-normal text-warning">
+          <Info className="mt-px h-4 w-4 shrink-0" />
+          <span>
+            Cancelling is free up to 2 hours before your visit. After that, late cancellations may
+            affect future booking.
+          </span>
+        </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
@@ -301,7 +398,7 @@ export function MyAppointmentsPage() {
     id: b.id,
     startsAt: b.startsAt,
     title: b.doctorName ?? 'Doctor',
-    tone: TONE_FOR[displayStatus(b, now)],
+    tone: b.joinable ? 'live' : TONE_FOR[displayStatus(b, now)],
     onClick: () => setEventBooking(b),
   }));
 

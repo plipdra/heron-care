@@ -87,8 +87,9 @@ export default {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
         'fade-out': { from: { opacity: '1' }, to: { opacity: '0' } },
         // State-change motion only (BRAND.md §8.3) — each communicates something.
+        // Travel distances per source heron.css (slide-up 16px, stagger 14px).
         'slide-up': {
-          from: { opacity: '0', transform: 'translateY(10px)' },
+          from: { opacity: '0', transform: 'translateY(16px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'slide-up-sm': {
@@ -96,7 +97,7 @@ export default {
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'stagger-in': {
-          from: { opacity: '0', transform: 'translateY(6px)' },
+          from: { opacity: '0', transform: 'translateY(14px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         // Brand-tinted shimmer for the AI "thinking" skeleton — never gray.
@@ -104,10 +105,11 @@ export default {
           '0%': { 'background-position': '-400px 0' },
           '100%': { 'background-position': '400px 0' },
         },
-        // Gentle breath on the AI loader — signals work in progress.
+        // Gentle breath on the AI loader — a swell outward (source heron.css):
+        // idle slightly dimmer, swelling to full size + opacity at mid.
         'ai-pulse': {
-          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-          '50%': { opacity: '0.55', transform: 'scale(0.94)' },
+          '0%, 100%': { opacity: '0.92', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.08)' },
         },
         'banner-in': {
           from: { opacity: '0', transform: 'translateY(-6px)' },

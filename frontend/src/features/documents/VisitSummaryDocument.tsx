@@ -39,6 +39,8 @@ const SHEET_CSS = `
 .vs-vital .vv { font-size:16px; font-weight:700; color:#1A1A1A; margin-top:2px; }
 .vs-vital .vu { font-size:10px; font-weight:500; color:#6B7280; }
 .vs-vital .vsrc { font-size:9px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:#6B7280; margin-top:5px; padding-top:5px; border-top:1px dotted #D9DEE6; }
+.vs-obj-note { display:inline-flex; align-items:center; gap:7px; font-size:10.5px; font-weight:600; color:#3A4250; background:#F6F8FB; border:1px solid #D9DEE6; border-radius:999px; padding:4px 11px; margin-bottom:12px; }
+.vs-obj-note .dot { width:6px; height:6px; border-radius:50%; background:#023A78; display:inline-block; }
 .vs-rx { margin-top:22px; }
 .vs-rx-head { display:flex; align-items:center; gap:9px; margin-bottom:11px; }
 .vs-rx-head .t { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#023A78; }
@@ -209,6 +211,10 @@ export function VisitSummaryDocument() {
                       Objective
                     </div>
                     <div>
+                      <span className="vs-obj-note">
+                        <span className="dot" />
+                        Patient-reported
+                      </span>
                       {bmi && (
                         <div className="vs-vitals">
                           <div className="vs-vital">
@@ -219,15 +225,18 @@ export function VisitSummaryDocument() {
                           </div>
                         </div>
                       )}
-                      {record?.objective ? (
-                        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.66, color: '#3A4250' }}>
+                      {record?.objective && (
+                        <p style={{ margin: '0 0 8px', fontSize: 13.5, lineHeight: 1.66, color: '#3A4250' }}>
                           {record.objective}
                         </p>
-                      ) : (
-                        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.66, color: '#6B7280' }}>
-                          Not recorded at this visit.
-                        </p>
                       )}
+                      {/* Locked rule: a teleconsult records only patient-reported data;
+                          no clinician-measured vitals over video. Always stated. */}
+                      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: '#6B7280' }}>
+                        Measurements above are patient-reported. Vital signs and physical
+                        examination cannot be obtained over a video consult; in-person
+                        assessment is advised where clinically indicated.
+                      </p>
                     </div>
                   </div>
                   <Soap letter="A" label="Assessment" text={record?.assessment ?? null} />

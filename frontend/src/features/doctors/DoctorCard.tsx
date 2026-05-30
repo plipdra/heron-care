@@ -42,8 +42,8 @@ export function DoctorCard({ doctor, reason }: { doctor: PublicDoctor; reason?: 
           {/* Non-clinical availability cue — the only place sage-green appears on the
               card (green = open, never the warning-adjacent sand). Listed doctors are
               published and bookable, so the cue is always truthful here. */}
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[rgba(123,155,126,0.35)] bg-[rgba(123,155,126,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#4F6B52]">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-care-line bg-care-tint px-2.5 py-0.5 text-xs font-medium text-care">
+            <span className="h-1.5 w-1.5 rounded-full bg-care" aria-hidden="true" />
             Accepting new patients
           </span>
 

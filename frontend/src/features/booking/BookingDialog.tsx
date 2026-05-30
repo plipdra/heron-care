@@ -250,7 +250,7 @@ export function BookingDialog({
           <>
             <DialogHeader>
               <div className="flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgba(123,155,126,0.14)] text-success">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-care-tint text-care">
                   <CheckCircle2 className="h-6 w-6" />
                 </span>
                 <DialogTitle>You're booked.</DialogTitle>

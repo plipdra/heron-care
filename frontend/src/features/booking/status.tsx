@@ -21,16 +21,18 @@ export function displayStatus(
 // Calm, state-only chips. Confirmed leans on the primary tint; completed uses a
 // derived shade of the sanctioned sage success; ended/cancelled stay neutral —
 // no alarm colour, since neither is an error (cancelling is a normal action).
+// Per source suite.css: confirmed = sage care-tint/care; completed = navy
+// primary-tint/primary; ended + cancelled stay neutral (cancelled is not an error).
 const STATUS_META: Record<DisplayStatus, { label: string; chip: string; dot: string }> = {
   upcoming: {
     label: 'Confirmed',
-    chip: 'border-primary-tint-md bg-primary-tint-sm text-primary',
-    dot: 'bg-primary',
+    chip: 'border-care-line bg-care-tint text-care',
+    dot: 'bg-care',
   },
   completed: {
     label: 'Completed',
-    chip: 'border-[rgba(123,155,126,0.35)] bg-[rgba(123,155,126,0.14)] text-[#4F6B52]',
-    dot: 'bg-success',
+    chip: 'border-primary-tint-md bg-primary-tint text-primary',
+    dot: 'bg-primary',
   },
   ended: {
     label: 'Ended',

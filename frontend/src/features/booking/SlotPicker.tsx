@@ -117,7 +117,7 @@ export function SlotPicker({ slots, selectedStartsAt, onSelect }: SlotPickerProp
               aria-pressed={selected}
               className={`tabular rounded-md border px-3 py-2 text-sm transition-colors ${
                 selected
-                  ? 'border-primary bg-primary-tint text-primary'
+                  ? 'border-primary bg-primary text-primary-foreground'
                   : 'border-line text-ink hover:border-primary'
               }`}
             >

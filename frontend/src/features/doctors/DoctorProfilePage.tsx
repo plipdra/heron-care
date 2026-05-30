@@ -37,16 +37,17 @@ export function DoctorProfilePage() {
 
   return (
     <main className="min-h-full bg-[linear-gradient(180deg,#F0F4FA_0%,#F7F9FC_30%,#FFFFFF_100%)]">
-      <div className="container mx-auto max-w-3xl px-4 py-10">
+      <div className="container mx-auto max-w-5xl px-4 py-10">
         <Link
           to="/doctors"
           className="inline-flex items-center gap-1 text-sm text-ink-muted transition-colors hover:text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to all doctors
+          Browse doctors
         </Link>
 
-        <section className="mt-6 rounded-lg border border-line bg-surface p-6 shadow-xs sm:p-8">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-start">
+        <section className="rounded-lg border border-line bg-surface p-6 shadow-xs sm:p-8">
           <header className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
             <Avatar name={data.name} photoUrl={data.profilePictureUrl} size={84} />
             <div className="flex-1">
@@ -72,8 +73,9 @@ export function DoctorProfilePage() {
             <p className="mt-6 leading-relaxed text-ink">{data.bio}</p>
           )}
 
-          {/* At-a-glance facts — the consult model, honestly stated. */}
-          <div className="mt-6 grid grid-cols-1 gap-3 border-t border-line pt-6 sm:grid-cols-3">
+          {/* At-a-glance facts — the consult model, honestly stated. Stacked, as
+              the profile now sits in the narrower left rail of the two-column view. */}
+          <div className="mt-6 grid grid-cols-1 gap-3 border-t border-line pt-6">
             <Fact
               icon={<Stethoscope className="h-4 w-4" />}
               label="Focus"
@@ -84,12 +86,15 @@ export function DoctorProfilePage() {
           </div>
         </section>
 
-        <AvailabilityCard
-          doctorProfileId={data.id}
-          doctorUserId={data.userId}
-          doctorName={data.name}
-          specializationLabel={data.specializationLabel}
-        />
+        <div className="lg:sticky lg:top-6">
+          <AvailabilityCard
+            doctorProfileId={data.id}
+            doctorUserId={data.userId}
+            doctorName={data.name}
+            specializationLabel={data.specializationLabel}
+          />
+        </div>
+        </div>
       </div>
     </main>
   );

@@ -220,34 +220,63 @@ export function DoctorsListPage() {
         )}
 
         {data && data.content.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data.content.map((doctor) => (
-              <DoctorCard key={doctor.id} doctor={doctor} />
-            ))}
-          </div>
+          <>
+            <p className="mb-4 text-sm text-ink-muted">
+              <span className="tabular font-semibold text-ink">{data.totalElements}</span>{' '}
+              {data.totalElements === 1 ? 'doctor' : 'doctors'}
+              {specialization
+                ? ` in ${SPECIALIZATIONS.find((s) => s.value === specialization)?.label}`
+                : ''}
+              {search ? ` matching “${search}”` : ''} · sorted by name
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {data.content.map((doctor) => (
+                <DoctorCard key={doctor.id} doctor={doctor} />
+              ))}
+            </div>
+          </>
         )}
 
         {data && data.totalPages > 1 && (
-          <nav className="mt-8 flex items-center justify-center gap-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-ink-muted tabular">
-              Page {data.page + 1} of {data.totalPages}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(data.totalPages - 1, p + 1))}
-              disabled={page >= data.totalPages - 1}
-            >
-              Next
-            </Button>
+          <nav className="mt-8 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+              >
+                Prev
+              </Button>
+              {Array.from({ length: data.totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-current={i === page ? 'page' : undefined}
+                  onClick={() => setPage(i)}
+                  className={cn(
+                    'tabular flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm transition-colors',
+                    i === page
+                      ? 'border-primary bg-primary font-semibold text-primary-foreground'
+                      : 'border-line text-ink hover:border-primary',
+                  )}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(data.totalPages - 1, p + 1))}
+                disabled={page >= data.totalPages - 1}
+              >
+                Next
+              </Button>
+            </div>
+            <p className="tabular text-xs text-ink-muted">
+              Showing {data.page * data.size + 1}–{data.page * data.size + data.content.length} of{' '}
+              {data.totalElements}
+            </p>
           </nav>
         )}
       </section>

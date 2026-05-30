@@ -31,7 +31,7 @@ export function LandingPage() {
         }}
       />
       <section className="container relative mx-auto flex flex-col items-center px-4 py-20 text-center md:py-24">
-        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] font-semibold tracking-wide text-primary-600 shadow-xs">
+        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] font-semibold tracking-[0.04em] text-primary-600 shadow-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
           Care, watched closely
         </span>

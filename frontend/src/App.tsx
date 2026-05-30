@@ -278,30 +278,18 @@ function RouteFallback() {
 
 function NotFoundPage() {
   return (
-    <main className="relative overflow-hidden bg-[linear-gradient(180deg,#EEF3FB_0%,#F7F9FC_45%,#FFFFFF_100%)]">
-      <div className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 py-20 text-center">
-        <img
-          src="/brand/heron-404.svg"
-          alt=""
-          aria-hidden="true"
-          className="h-40 w-auto opacity-90 sm:h-52"
-        />
-        <h1 className="mt-8 text-3xl font-semibold tracking-tight text-primary-800">
-          This page flew off.
-        </h1>
-        <p className="mt-3 max-w-md text-ink-muted">
-          The page you're after doesn't exist on Heron — it may have moved, or the
-          link was mistyped. Nothing's wrong with your care.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Button asChild size="lg" className="shadow-sm">
-            <Link to="/">Back home</Link>
-          </Button>
-          <Button asChild variant="secondary" size="lg">
-            <Link to="/doctors">Browse doctors</Link>
-          </Button>
-        </div>
-      </div>
+    <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 py-20 text-center">
+      <img src="/brand/heron-404.svg" alt="" aria-hidden="true" className="w-[280px] max-w-full" />
+      <h1 className="mt-8 text-3xl font-bold tracking-tight text-ink md:text-[38px]">
+        Page not found
+      </h1>
+      <p className="mt-3 max-w-md text-ink-muted">
+        The path you tried doesn't exist on Heron. It may have moved, or the link was
+        mistyped.
+      </p>
+      <Button asChild size="lg" className="mt-8">
+        <Link to="/">Back home</Link>
+      </Button>
     </main>
   );
 }

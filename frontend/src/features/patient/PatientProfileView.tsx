@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import { FileText, LogOut, Pencil } from 'lucide-react';
+import { ChevronRight, FileText, LogOut, Pencil } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/shared/Avatar';
@@ -50,6 +50,24 @@ function CareChips({
         <p className="mt-1 text-sm text-ink-muted">{empty}</p>
       )}
     </div>
+  );
+}
+
+// A chevron row in the Account & privacy rail. Non-Sign-out rows are MVP-flavor
+// placeholders (the handoff shows them as static rows), matching the design.
+function AcctRow({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {}}
+      className="flex items-center justify-between gap-2 border-b border-line py-2.5 text-left last:border-0"
+    >
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-ink">{label}</span>
+        {value && <span className="block truncate text-xs text-ink-muted">{value}</span>}
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted" />
+    </button>
   );
 }
 
@@ -106,7 +124,7 @@ export function PatientProfileView({ onEdit }: { onEdit: () => void }) {
         </header>
 
         <div className="mt-8 grid gap-5 lg:grid-cols-3">
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 lg:sticky lg:top-6 lg:self-start">
             <Card className="shadow-xs">
               <CardContent className="flex flex-col items-center p-6 text-center">
                 <Avatar name={data.name ?? 'You'} photoUrl={pictureUrl} size={72} />
@@ -119,22 +137,24 @@ export function PatientProfileView({ onEdit }: { onEdit: () => void }) {
               </CardContent>
             </Card>
             <Card className="shadow-xs">
-              <CardContent className="p-6">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Account</h2>
-                <div className="mt-3">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
-                    Email
-                  </p>
-                  <p className="truncate text-sm font-medium text-ink">{user?.email}</p>
+              <CardContent className="p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">
+                  Account &amp; privacy
+                </h2>
+                <div className="mt-2 flex flex-col">
+                  <AcctRow label="Email" value={user?.email} />
+                  <AcctRow label="Password" value="Updated recently" />
+                  <AcctRow label="Download my data" value="Details, history & summaries" />
+                  <AcctRow label="Active sessions" value="1 device" />
+                  <button
+                    type="button"
+                    onClick={() => logout()}
+                    className="flex items-center gap-2 py-2.5 text-sm font-medium text-danger hover:underline"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => logout()}
-                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-danger hover:underline"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign out
-                </button>
               </CardContent>
             </Card>
           </div>

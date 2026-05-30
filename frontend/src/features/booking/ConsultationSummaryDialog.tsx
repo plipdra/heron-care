@@ -78,22 +78,52 @@ export function ConsultationSummaryDialog({
             <Section label="Plan" text={data.plan} />
 
             <div>
-              <p className="text-xs font-medium text-ink-muted">Prescription</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                Medications prescribed
+                <span className="ml-2 font-normal normal-case text-ink-muted">for your records</span>
+              </p>
               {data.prescription.length > 0 ? (
-                <div className="mt-2 flex flex-col gap-2">
-                  {data.prescription.map((item, i) => (
-                    <div key={i} className="rounded-md border border-line p-3">
-                      <p className="text-sm font-medium text-ink">{item.medication}</p>
-                      {item.dosage && <p className="tabular text-sm text-ink">{item.dosage}</p>}
-                      {item.instructions && (
-                        <p className="mt-0.5 text-sm text-ink-muted">{item.instructions}</p>
-                      )}
-                    </div>
-                  ))}
+                <div className="mt-2 overflow-hidden rounded-md border border-line">
+                  <table className="w-full border-collapse text-left">
+                    <thead>
+                      <tr className="bg-surface-raised">
+                        <th className="border-b border-line px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                          Medication
+                        </th>
+                        <th className="border-b border-line px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                          Dosage
+                        </th>
+                        <th className="border-b border-line px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                          Instructions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.prescription.map((item, i) => (
+                        <tr key={i} className="align-top">
+                          <td className="border-b border-line px-3 py-2 text-sm font-medium text-ink last:border-0">
+                            {item.medication}
+                          </td>
+                          <td className="tabular border-b border-line px-3 py-2 text-sm text-ink last:border-0">
+                            {item.dosage ?? '—'}
+                          </td>
+                          <td className="border-b border-line px-3 py-2 text-sm text-ink-muted last:border-0">
+                            {item.instructions ?? '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <p className="mt-1 text-sm text-ink-muted">
                   No medication was prescribed at this visit.
+                </p>
+              )}
+              {data.prescription.length > 0 && (
+                <p className="mt-2 text-xs text-ink-muted">
+                  This is a record of what was prescribed. To have it dispensed, download your
+                  prescription and present it at any licensed pharmacy.
                 </p>
               )}
             </div>

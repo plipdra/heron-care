@@ -6,14 +6,16 @@ export type CalendarEvent = {
   id: string;
   startsAt: string;
   title: string;
-  // Visual tone, mapped to the calm state palette (never alarm colour).
-  tone: 'confirmed' | 'completed' | 'ended' | 'cancelled';
+  // Visual tone, mapped to the calm state palette. live = sage 'care' (in-progress
+  // now); done/ended muted navy; cancelled neutral. Never alarm colour.
+  tone: 'live' | 'confirmed' | 'completed' | 'ended' | 'cancelled';
   onClick?: () => void;
 };
 
 const TONE: Record<CalendarEvent['tone'], string> = {
+  live: 'border-care-line bg-care-tint text-care',
   confirmed: 'border-primary-tint-md bg-primary-tint-sm text-primary',
-  completed: 'border-[rgba(123,155,126,0.35)] bg-[rgba(123,155,126,0.14)] text-[#4F6B52]',
+  completed: 'border-line bg-primary-tint-sm text-ink-muted',
   ended: 'border-line bg-surface-raised text-ink-muted',
   cancelled: 'border-line bg-surface-raised text-ink-muted line-through',
 };

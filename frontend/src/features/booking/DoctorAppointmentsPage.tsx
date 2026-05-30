@@ -389,7 +389,7 @@ export function DoctorAppointmentsPage() {
     id: b.id,
     startsAt: b.startsAt,
     title: b.patientName ?? 'Patient',
-    tone: TONE_FOR[displayStatus(b, now)],
+    tone: b.joinable ? 'live' : TONE_FOR[displayStatus(b, now)],
     onClick: () => setEventBooking(b),
   }));
 

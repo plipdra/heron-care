@@ -42,7 +42,7 @@ export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center
           aria-invalid={concernError ? true : undefined}
           aria-describedby={concernError ? 'home-concern-error' : undefined}
           placeholder="e.g. 'chest tightness when I climb stairs'"
-          className="min-w-0 flex-1 bg-transparent py-2.5 text-base text-ink outline-none placeholder:text-ink-muted"
+          className="min-w-0 flex-1 bg-transparent py-2.5 text-[16.5px] text-ink outline-none placeholder:text-ink-muted"
         />
         <Button size="lg" onClick={submit} disabled={!concern.trim()} className="shrink-0 gap-1.5">
           Find a doctor
@@ -57,7 +57,7 @@ export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center
       )}
 
       <div className={cn('mt-3', centered && 'text-center')}>
-        <Link to="/doctors" className="text-sm text-ink-muted transition-colors hover:text-ink">
+        <Link to="/doctors" className="text-[13.5px] text-ink-muted transition-colors hover:text-ink">
           Know who you need?{' '}
           <span className="font-medium text-primary hover:underline">Browse all doctors →</span>
         </Link>

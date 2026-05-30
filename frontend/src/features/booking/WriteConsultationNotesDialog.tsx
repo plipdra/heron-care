@@ -31,11 +31,15 @@ const SOAP: { key: 'subjective' | 'objective' | 'assessment' | 'plan'; label: st
   { key: 'plan', label: 'Plan', placeholder: 'Next steps — treatment, follow-up, referrals.' },
 ];
 
+// Section label for a patient-context block in the left pane.
+const NP_LBL = 'text-[10.5px] font-bold uppercase tracking-[0.05em] text-ink-muted';
+const NP_BLOCK = 'border-t border-line pt-3.5';
+
 // A labelled patient-context value in the left pane.
 function CtxField({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <p className="text-xs font-medium text-ink-muted">{label}</p>
+      <p className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-ink-muted">{label}</p>
       <p className={value ? 'tabular text-sm text-ink' : 'text-sm text-ink-muted'}>
         {value ?? 'Not provided'}
       </p>
@@ -43,34 +47,41 @@ function CtxField({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-// One care list (conditions / allergies / medications). Entries are health data,
-// so the chip text is ink over a barely-there blue tint — never colour-coded. A
+// One care list (conditions / allergies / medications). Entries are health data:
+// conditions and medications carry a calm navy tint, allergies a warning tint so
+// they catch the eye while writing — the one place warm colour earns its keep. A
 // null or empty list shows the calm empty line, so a blank section still reads.
 function CareList({
   label,
   items,
   empty,
+  tone = 'care',
 }: {
   label: string;
   items: string[] | null;
   empty: string;
+  tone?: 'care' | 'allergy';
 }) {
   return (
-    <div>
-      <p className="text-xs font-medium text-ink-muted">{label}</p>
+    <div className={NP_BLOCK}>
+      <p className={`${NP_LBL} mb-1.5`}>{label}</p>
       {items && items.length > 0 ? (
-        <div className="mt-1 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {items.map((it) => (
             <span
               key={it}
-              className="inline-flex items-center rounded-full border border-line bg-primary-tint-sm px-2.5 py-0.5 text-xs font-medium text-ink"
+              className={
+                tone === 'allergy'
+                  ? 'inline-flex items-center rounded-full border border-[rgba(199,125,82,0.22)] bg-[rgba(199,125,82,0.07)] px-2.5 py-0.5 text-[11.5px] font-semibold text-warning'
+                  : 'inline-flex items-center rounded-full border border-primary-tint-md bg-primary-tint px-2.5 py-0.5 text-[11.5px] font-semibold text-primary-800'
+              }
             >
               {it}
             </span>
           ))}
         </div>
       ) : (
-        <p className="mt-1 text-sm text-ink-muted">{empty}</p>
+        <p className="text-sm text-ink-muted">{empty}</p>
       )}
     </div>
   );
@@ -185,17 +196,41 @@ export function WriteConsultationNotesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Left: patient context to read while writing. */}
-          <div className="flex flex-col gap-4 md:border-r md:border-line md:pr-6">
-            <p className="text-sm font-semibold text-ink">Patient context</p>
-
-            <div>
-              <p className="text-xs font-medium text-ink-muted">What the patient told you</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
-                {booking.concernNote ?? (
-                  <span className="text-ink-muted">No note added.</span>
+        <div className="grid gap-6 md:grid-cols-[300px_1fr]">
+          {/* Left: patient context to read while writing — a calm surface-raised
+              band, kept in view alongside the form. */}
+          <aside className="flex flex-col gap-4 rounded-lg border border-line bg-surface-raised p-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-primary-tint text-[15px] font-bold text-primary">
+                {(booking.patientName ?? 'P')
+                  .split(' ')
+                  .map((p) => p[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="text-base font-bold tracking-[-0.01em] text-ink">
+                  {booking.patientName ?? 'Patient'}
+                </p>
+                {context && (
+                  <p className="text-[12.5px] font-medium text-ink-muted">
+                    {[
+                      context.birthday ? `${deriveAge(context.birthday)}` : null,
+                      context.sexLabel,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'Details on file'}
+                  </p>
                 )}
+              </div>
+            </div>
+
+            <div className={NP_BLOCK}>
+              <p className={`${NP_LBL} mb-1`}>Reason for visit</p>
+              <p className="text-[13px] leading-relaxed text-ink">
+                {booking.concernNote ?? <span className="text-ink-muted">No note added.</span>}
               </p>
             </div>
 
@@ -216,6 +251,7 @@ export function WriteConsultationNotesDialog({
                   label="Allergies"
                   items={context.allergies}
                   empty="No known allergies shared."
+                  tone="allergy"
                 />
                 <CareList
                   label="Current medications"
@@ -223,33 +259,32 @@ export function WriteConsultationNotesDialog({
                   empty="No current medications shared."
                 />
                 {context.notesForDoctor && (
-                  <div>
-                    <p className="text-xs font-medium text-ink-muted">Notes for you</p>
-                    <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink">
+                  <div className={NP_BLOCK}>
+                    <p className={`${NP_LBL} mb-1`}>Notes for you</p>
+                    <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">
                       {context.notesForDoctor}
                     </p>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
-                  <CtxField
-                    label="Age"
-                    value={context.birthday ? `${deriveAge(context.birthday)} years` : null}
-                  />
-                  <CtxField label="Sex" value={context.sexLabel} />
+                <div className={NP_BLOCK}>
+                  <p className={`${NP_LBL} mb-1`}>Vitals (patient-reported)</p>
+                  <p className="tabular text-[13px] text-ink">
+                    {context.weightKg != null && context.heightCm != null
+                      ? `BMI ${(context.weightKg / (context.heightCm / 100) ** 2).toFixed(1)} · ${context.weightKg} kg · ${context.heightCm} cm`
+                      : context.weightKg != null
+                        ? `${context.weightKg} kg`
+                        : context.heightCm != null
+                          ? `${context.heightCm} cm`
+                          : 'Not provided · no in-person exam over video'}
+                  </p>
+                </div>
+                <div className={`${NP_BLOCK} grid grid-cols-2 gap-3`}>
                   <CtxField label="Born" value={context.birthday ? formatDate(context.birthday) : null} />
-                  <CtxField
-                    label="Weight"
-                    value={context.weightKg != null ? `${context.weightKg} kg` : null}
-                  />
-                  <CtxField
-                    label="Height"
-                    value={context.heightCm != null ? `${context.heightCm} cm` : null}
-                  />
                   <CtxField label="Contact" value={context.contactNumber} />
                 </div>
               </>
             )}
-          </div>
+          </aside>
 
           {/* Right: the note form. */}
           <div className="flex flex-col gap-4">

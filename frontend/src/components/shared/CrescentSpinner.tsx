@@ -21,7 +21,13 @@ export function CrescentSpinner({ className, size = 48, variant = 'blue', pulse 
       aria-label="Loading"
       width={size}
       height={size}
-      className={cn('animate-spin [animation-duration:1.6s]', className)}
+      className={cn(
+        'animate-spin',
+        // The AI loading moment (pulse) rotates at the calmer 2.4s per source;
+        // the plain spinner stays at 1.6s.
+        pulse ? '[animation-duration:2.4s]' : '[animation-duration:1.6s]',
+        className,
+      )}
     />
   );
   // Spin lives on the image; the pulse breathes on a wrapper so the two

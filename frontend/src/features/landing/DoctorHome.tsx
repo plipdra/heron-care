@@ -73,11 +73,18 @@ export function DoctorHome() {
         label,
         date: day.getDate(),
         count,
+        dow: day.toLocaleDateString(undefined, { weekday: 'long' }).toUpperCase(),
         isToday: day.toDateString() === new Date(now).toDateString(),
       };
     });
     return { upcoming, today, week, pending, nextUp: upcoming[0] ?? null, live, strip };
   }, [data, now]);
+
+  // Working weekdays from the doctor's schedule — off-days show "Off" in the strip.
+  const workingDays = useMemo(
+    () => new Set((profile?.availability?.weeklySchedule ?? []).map((e) => e.dayOfWeek)),
+    [profile],
+  );
 
   const hour = new Date(now).getHours();
   const dateLabel = new Date(now).toLocaleDateString(undefined, {
@@ -124,9 +131,21 @@ export function DoctorHome() {
           <>
             {/* Stat tiles */}
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Stat value={stats.today.length} label="Consults today" />
-              <Stat value={stats.week.length} label="This week" />
-              <Stat value={stats.pending.length} label="Pending notes" />
+              <Stat
+                value={stats.today.length}
+                label="Today's consults"
+                meta={stats.live ? '1 in progress' : undefined}
+              />
+              <Stat value={stats.week.length} label="This week" meta="next 7 days" />
+              <Stat
+                value={stats.pending.length}
+                label="Pending notes"
+                meta={
+                  stats.pending.length > 0
+                    ? `oldest ${relativeDay(stats.pending[stats.pending.length - 1].startsAt, now)}`
+                    : 'all caught up'
+                }
+              />
             </div>
 
             <div className="mt-6 grid gap-5 lg:grid-cols-3">
@@ -146,8 +165,11 @@ export function DoctorHome() {
                   <ul className="mt-4 divide-y divide-line">
                     {stats.today.map((b) => (
                       <li key={b.id} className="flex items-center gap-3 py-3">
-                        <span className="tabular w-16 shrink-0 text-sm font-bold text-primary-800">
-                          {formatTime(b.startsAt)}
+                        <span className="w-16 shrink-0">
+                          <span className="tabular block text-sm font-bold text-primary-800">
+                            {formatTime(b.startsAt)}
+                          </span>
+                          <span className="block text-[11px] text-ink-muted">30 min</span>
                         </span>
                         <Avatar name={b.patientName ?? 'Patient'} size={36} />
                         <div className="min-w-0 flex-1">
@@ -179,9 +201,7 @@ export function DoctorHome() {
               {/* Waiting on notes + meeting room */}
               <div className="flex flex-col gap-5">
                 <section className="rounded-lg border border-line bg-surface p-6 shadow-xs">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">
-                    Waiting on notes
-                  </h2>
+                  <h2 className="text-base font-semibold text-ink">Waiting on notes</h2>
                   {stats.pending.length > 0 ? (
                     <ul className="mt-3 flex flex-col gap-3">
                       {stats.pending.slice(0, 4).map((b) => (
@@ -251,9 +271,7 @@ export function DoctorHome() {
             {/* Week strip */}
             <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-xs">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">
-                  This week
-                </h2>
+                <h2 className="text-base font-semibold text-ink">This week</h2>
                 <Link
                   to="/appointments"
                   className="text-sm font-semibold text-primary hover:underline"
@@ -262,20 +280,35 @@ export function DoctorHome() {
                 </Link>
               </div>
               <div className="mt-4 grid grid-cols-7 gap-2">
-                {stats.strip.map((d) => (
-                  <div
-                    key={d.label}
-                    className={`flex flex-col items-center rounded-md border py-2 ${
-                      d.isToday ? 'border-primary bg-primary-tint' : 'border-line bg-surface-raised'
-                    }`}
-                  >
-                    <span className="text-[11px] font-medium uppercase text-ink-muted">{d.label}</span>
-                    <span className="tabular text-base font-semibold text-ink">{d.date}</span>
-                    <span className="text-[11px] text-ink-muted">
-                      {d.count > 0 ? `${d.count}` : '—'}
-                    </span>
-                  </div>
-                ))}
+                {stats.strip.map((d) => {
+                  const off = workingDays.size > 0 && !workingDays.has(d.dow);
+                  return (
+                    <div
+                      key={d.label}
+                      className={`flex flex-col items-center rounded-md border py-2 ${
+                        d.isToday
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-line bg-surface'
+                      }`}
+                    >
+                      <span
+                        className={`text-[11px] font-medium uppercase ${d.isToday ? 'text-primary-foreground/80' : 'text-ink-muted'}`}
+                      >
+                        {d.label}
+                      </span>
+                      <span
+                        className={`tabular text-base font-semibold ${d.isToday ? 'text-primary-foreground' : 'text-ink'}`}
+                      >
+                        {d.date}
+                      </span>
+                      <span
+                        className={`text-[11px] ${d.isToday ? 'text-primary-foreground/80' : 'text-ink-muted'}`}
+                      >
+                        {off ? 'Off' : d.count > 0 ? `${d.count} consult${d.count > 1 ? 's' : ''}` : '—'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           </>
@@ -286,6 +319,8 @@ export function DoctorHome() {
 }
 
 function HeroNextUp({ booking }: { booking: DoctorBooking }) {
+  const mins = Math.round((new Date(booking.startsAt).getTime() - Date.now()) / 60_000);
+  const rel = mins <= 0 ? 'Now' : mins < 60 ? `In ${mins} min` : `In ${Math.round(mins / 60)} h`;
   return (
     <div className="mt-6 flex flex-col gap-4 rounded-lg border border-white/15 bg-white/10 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
@@ -293,7 +328,9 @@ function HeroNextUp({ booking }: { booking: DoctorBooking }) {
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-white/60">Next up</p>
           <p className="font-semibold text-white">{booking.patientName ?? 'Patient'}</p>
-          <p className="tabular text-sm text-white/70">{formatTime(booking.startsAt)}</p>
+          <p className="tabular text-sm text-white/70">
+            {rel} · {formatTime(booking.startsAt)}
+          </p>
         </div>
       </div>
       {booking.joinable && booking.meetingLink ? (
@@ -320,11 +357,12 @@ function HeroNextUp({ booking }: { booking: DoctorBooking }) {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, meta }: { value: number; label: string; meta?: string }) {
   return (
     <div className="rounded-lg border border-line bg-surface p-5 shadow-xs">
-      <p className="tabular text-3xl font-bold text-primary-800">{value}</p>
-      <p className="mt-0.5 text-sm text-ink-muted">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{label}</p>
+      <p className="tabular mt-1 text-[26px] font-bold leading-none text-ink">{value}</p>
+      <p className="mt-1.5 text-xs text-ink-muted">{meta ?? ' '}</p>
     </div>
   );
 }

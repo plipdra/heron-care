@@ -26,6 +26,7 @@ const SHEET_CSS = `
 .rx-item .qty { font-size:15px; font-weight:700; color:#1A1A1A; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .rx-item .sig { font-size:14px; color:#3A4250; margin-top:5px; line-height:1.5; }
 .rx-item .sig .sig-k { font-weight:700; color:#023A78; font-style:italic; margin-right:6px; }
+.rx-item .gen-note { font-size:11px; color:#6B7280; margin-top:4px; }
 .rx-item-sep { height:1px; background:#EAEDF2; }
 .rx-empty { font-size:14px; color:#6B7280; padding-top:6px; }
 .rx-sign { display:flex; justify-content:flex-end; margin-top:30px; }
@@ -131,6 +132,9 @@ export function PrescriptionDocument() {
                                 {[item.dosage, item.instructions].filter(Boolean).join(' — ')}
                               </div>
                             )}
+                            <div className="gen-note">
+                              Generic name dispensed unless a brand is specified by the patient.
+                            </div>
                           </div>
                           {i < record!.prescription.length - 1 && <div className="rx-item-sep" />}
                         </div>
