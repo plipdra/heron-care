@@ -53,29 +53,11 @@ function CareChips({
   );
 }
 
-function SectionCard({
-  title,
-  onEdit,
-  children,
-}: {
-  title: string;
-  onEdit: () => void;
-  children: ReactNode;
-}) {
+function SectionCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card className="shadow-xs">
       <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">{title}</h2>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </button>
-        </div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">{title}</h2>
         <div className="mt-4">{children}</div>
       </CardContent>
     </Card>
@@ -158,7 +140,7 @@ export function PatientProfileView({ onEdit }: { onEdit: () => void }) {
           </div>
 
           <div className="flex flex-col gap-5 lg:col-span-2">
-            <SectionCard title="Personal details" onEdit={onEdit}>
+            <SectionCard title="Personal details">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <ViewField label="Full name" value={data.name} />
                 <ViewField label="Date of birth" value={dob} />
@@ -169,7 +151,7 @@ export function PatientProfileView({ onEdit }: { onEdit: () => void }) {
               </div>
             </SectionCard>
 
-            <SectionCard title="Care" onEdit={onEdit}>
+            <SectionCard title="Care">
               <div className="flex flex-col gap-4">
                 <CareChips label="Conditions" items={data.conditions} empty="None recorded." />
                 <CareChips label="Allergies" items={data.allergies} empty="No known allergies." />

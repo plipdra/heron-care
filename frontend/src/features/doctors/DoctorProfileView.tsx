@@ -41,29 +41,11 @@ function ViewField({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function SectionCard({
-  title,
-  onEdit,
-  children,
-}: {
-  title: string;
-  onEdit: () => void;
-  children: ReactNode;
-}) {
+function SectionCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card className="shadow-xs">
       <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">{title}</h2>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </button>
-        </div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">{title}</h2>
         <div className="mt-4">{children}</div>
       </CardContent>
     </Card>
@@ -172,7 +154,7 @@ export function DoctorProfileView({ onEdit }: { onEdit: () => void }) {
           </div>
 
           <div className="flex flex-col gap-5 lg:col-span-2">
-            <SectionCard title="Practice details" onEdit={onEdit}>
+            <SectionCard title="Practice details">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <ViewField label="Specialisation" value={data.specializationLabel} />
                 <ViewField
@@ -180,7 +162,6 @@ export function DoctorProfileView({ onEdit }: { onEdit: () => void }) {
                   value={data.yearsOfExperience != null ? `${data.yearsOfExperience} years` : null}
                 />
                 <ViewField label="Default meeting link" value={data.defaultMeetingLink} />
-                <ViewField label="Typical visit" value="~30 minutes" />
                 <ViewField label="PRC No." value={data.prcLicenseNo} />
                 <ViewField label="PTR No." value={data.ptrNo} />
               </div>
@@ -192,7 +173,7 @@ export function DoctorProfileView({ onEdit }: { onEdit: () => void }) {
               </div>
             </SectionCard>
 
-            <SectionCard title="Consultation hours" onEdit={onEdit}>
+            <SectionCard title="Consultation hours">
               <div>
                 {DAY_ORDER.map((d) => (
                   <HoursRow key={d} day={d} av={data.availability} />
@@ -200,7 +181,7 @@ export function DoctorProfileView({ onEdit }: { onEdit: () => void }) {
               </div>
             </SectionCard>
 
-            <SectionCard title="Time off" onEdit={onEdit}>
+            <SectionCard title="Time off">
               {blocked.length > 0 ? (
                 <ul className="flex flex-col gap-2">
                   {blocked.map((b, i) => (
