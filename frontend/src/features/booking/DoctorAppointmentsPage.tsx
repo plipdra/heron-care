@@ -15,6 +15,7 @@ import {
   deriveAge,
   formatDate,
   formatFullDateTime,
+  formatTime,
   localTimeZoneLabel,
 } from '@/lib/datetime';
 import { useNow } from '@/lib/useNow';
@@ -231,72 +232,84 @@ function DoctorAppointmentCard({
   onViewNotes: () => void;
 }) {
   const status = displayStatus(booking, now);
-  const isPast = status !== 'upcoming';
   const patientPhoto = useAuthedImageUrl(`/api/profile-pictures/${booking.patientUserId}`);
+  const d = new Date(booking.startsAt);
+  const dow = d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
+  const mon = d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <Avatar name={booking.patientName ?? '?'} photoUrl={patientPhoto} size={48} />
-            <div>
-              <h3 className="text-lg font-semibold leading-tight">
-                {booking.patientName ?? 'Patient'}
-              </h3>
-              <p className="mt-1 tabular text-sm text-ink-muted">
-                {formatFullDateTime(booking.startsAt, isPast)}
-              </p>
-              {booking.rescheduledFrom && (
-                <p className="mt-0.5 text-xs text-ink-muted">
-                  Rescheduled from{' '}
-                  <span className="tabular">{formatFullDateTime(booking.rescheduledFrom)}</span>
-                </p>
-              )}
-            </div>
-          </div>
-          <StatusPill status={status} />
+      <CardContent className="flex gap-4 p-5">
+        {/* Left date block (appt-when). */}
+        <div className="flex w-[80px] shrink-0 flex-col items-center border-r border-line pr-4 text-center">
+          <span className="text-xs font-semibold tracking-wide text-ink-muted">{dow}</span>
+          <span className="tabular text-2xl font-bold leading-tight text-primary-800">
+            {d.getDate()}
+          </span>
+          <span className="text-xs font-semibold tracking-wide text-ink-muted">{mon}</span>
+          <span className="tabular mt-1 text-[13px] font-semibold text-ink">
+            {formatTime(booking.startsAt)}
+          </span>
         </div>
 
-        {booking.concernNote && (
-          <div className="mt-4">
-            <p className="text-xs font-medium text-ink-muted">What the patient told you</p>
-            <p className="mt-1 line-clamp-2 text-sm text-ink">{booking.concernNote}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Avatar name={booking.patientName ?? '?'} photoUrl={patientPhoto} size={44} />
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-semibold leading-tight">
+                  {booking.patientName ?? 'Patient'}
+                </h3>
+                {booking.rescheduledFrom && (
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    Rescheduled from{' '}
+                    <span className="tabular">{formatFullDateTime(booking.rescheduledFrom)}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+            <StatusPill status={status} />
           </div>
-        )}
 
-        {status === 'cancelled' ? (
-          // A cancelled consult intentionally stops exposing the patient's
-          // medical context (the context endpoint returns 404 for it), so we
-          // don't offer a "View patient details" button that's guaranteed to
-          // fail — just a calm note that the patient called it off.
-          <p className="mt-4 text-sm text-ink-muted">
-            The patient cancelled this consultation.
-          </p>
-        ) : (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={onViewContext}>
-              View patient details
-            </Button>
-            {status === 'upcoming' && booking.meetingLink && (
-              <Button asChild>
-                <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer">
-                  Join the consult
-                </a>
+          {booking.concernNote && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-ink-muted">What the patient told you</p>
+              <p className="mt-1 line-clamp-2 text-sm text-ink">{booking.concernNote}</p>
+            </div>
+          )}
+
+          {status === 'cancelled' ? (
+            // A cancelled consult intentionally stops exposing the patient's medical
+            // context (the endpoint 404s for it), so we don't offer a button that's
+            // guaranteed to fail — just a calm note that the patient called it off.
+            <p className="mt-4 text-sm text-ink-muted">
+              The patient cancelled this consultation.
+            </p>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={onViewContext}>
+                View patient details
               </Button>
-            )}
-            {status === 'ended' && (
-              <Button onClick={onWriteNotes}>
-                {booking.hasDraft ? 'Continue notes' : 'Write consultation notes'}
-              </Button>
-            )}
-            {status === 'completed' && (
-              <Button variant="secondary" onClick={onViewNotes}>
-                View notes
-              </Button>
-            )}
-          </div>
-        )}
+              {status === 'upcoming' && booking.meetingLink && (
+                <Button size="sm" asChild>
+                  <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer">
+                    Join the consult
+                  </a>
+                </Button>
+              )}
+              {status === 'ended' && (
+                <Button size="sm" onClick={onWriteNotes}>
+                  {booking.hasDraft ? 'Continue notes' : 'Write consultation notes'}
+                </Button>
+              )}
+              {status === 'completed' && (
+                <Button variant="secondary" size="sm" onClick={onViewNotes}>
+                  View notes
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

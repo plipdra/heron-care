@@ -10,13 +10,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/shared/Avatar';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
 import { MeetingLinkActions } from '@/components/shared/MeetingLinkActions';
 import { ApiError } from '@/lib/api';
-import { formatFullDateTime, localTimeZoneLabel } from '@/lib/datetime';
+import { formatFullDateTime, formatTime, localTimeZoneLabel } from '@/lib/datetime';
 import { useNow } from '@/lib/useNow';
 import { ProfileCompletionNudge } from '@/features/patient/ProfileCompletionNudge';
 import { useCancelBooking, useMyBookings, type PatientBooking } from './api';
@@ -114,85 +113,104 @@ function AppointmentCard({
   onCancel: () => void;
 }) {
   const status = displayStatus(booking, now);
-  const isPast = status !== 'upcoming';
+  const d = new Date(booking.startsAt);
+  const dow = d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
+  const mon = d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <Avatar name={booking.doctorName ?? '?'} size={48} />
-            <div>
-              <h3 className="text-lg font-semibold leading-tight">
-                {booking.doctorProfileId && booking.doctorName ? (
-                  <Link to={`/doctors/${booking.doctorProfileId}`} className="hover:text-primary">
-                    {booking.doctorName}
-                  </Link>
-                ) : (
-                  booking.doctorName ?? 'Doctor unavailable'
-                )}
-              </h3>
-              {booking.doctorSpecializationLabel && (
-                <Badge className="mt-1.5">{booking.doctorSpecializationLabel}</Badge>
-              )}
-            </div>
-          </div>
-          <StatusPill status={status} />
+      <CardContent className="flex gap-4 p-5">
+        {/* Left date block (appt-when). */}
+        <div className="flex w-[80px] shrink-0 flex-col items-center border-r border-line pr-4 text-center">
+          <span className="text-xs font-semibold tracking-wide text-ink-muted">{dow}</span>
+          <span className="tabular text-2xl font-bold leading-tight text-primary-800">
+            {d.getDate()}
+          </span>
+          <span className="text-xs font-semibold tracking-wide text-ink-muted">{mon}</span>
+          <span className="tabular mt-1 text-[13px] font-semibold text-ink">
+            {formatTime(booking.startsAt)}
+          </span>
         </div>
 
-        <p className="mt-4 tabular font-medium text-ink">
-          {formatFullDateTime(booking.startsAt, isPast)}
-        </p>
-        {booking.rescheduledFrom && (
-          <p className="mt-1 text-xs text-ink-muted">
-            Rescheduled from{' '}
-            <span className="tabular">{formatFullDateTime(booking.rescheduledFrom)}</span>
-          </p>
-        )}
-
-        {booking.concernNote && (
-          <div className="mt-4">
-            <p className="text-xs font-medium text-ink-muted">What you told your doctor</p>
-            <p className="mt-1 line-clamp-3 text-sm text-ink">{booking.concernNote}</p>
-          </div>
-        )}
-
-        {status === 'upcoming' && (
-          <>
-            {booking.meetingLink ? (
-              <div className="mt-4 flex flex-col gap-2">
-                <MeetingLinkActions link={booking.meetingLink} />
-                <p className="text-xs text-ink-muted">This link opens your video room.</p>
+        {/* Main + actions. */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Avatar name={booking.doctorName ?? '?'} size={44} />
+              <div className="min-w-0">
+                <h3 className="truncate text-base font-semibold leading-tight">
+                  {booking.doctorProfileId && booking.doctorName ? (
+                    <Link to={`/doctors/${booking.doctorProfileId}`} className="hover:text-primary">
+                      {booking.doctorName}
+                    </Link>
+                  ) : (
+                    booking.doctorName ?? 'Doctor unavailable'
+                  )}
+                </h3>
+                {booking.doctorSpecializationLabel && (
+                  <span className="mt-1 inline-flex items-center rounded-full border border-primary-tint-md bg-primary-tint px-2.5 py-0.5 text-xs font-semibold text-primary">
+                    {booking.doctorSpecializationLabel}
+                  </span>
+                )}
               </div>
-            ) : (
-              <p className="mt-4 text-sm text-ink-muted">
-                Your doctor will share the video link before your appointment.
-              </p>
-            )}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {booking.doctorProfileId && (
-                <Button variant="secondary" size="sm" onClick={onReschedule}>
-                  Reschedule
-                </Button>
+            </div>
+            <StatusPill status={status} />
+          </div>
+
+          {booking.rescheduledFrom && (
+            <p className="mt-3 text-xs text-ink-muted">
+              Rescheduled from{' '}
+              <span className="tabular">{formatFullDateTime(booking.rescheduledFrom)}</span>
+            </p>
+          )}
+
+          {booking.concernNote && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-ink-muted">What you told your doctor</p>
+              <p className="mt-1 line-clamp-2 text-sm text-ink">{booking.concernNote}</p>
+            </div>
+          )}
+
+          {status === 'upcoming' && (
+            <>
+              {booking.meetingLink ? (
+                <div className="mt-4 flex flex-col gap-2">
+                  <MeetingLinkActions link={booking.meetingLink} />
+                  <p className="text-xs text-ink-muted">This link opens your video room.</p>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-ink-muted">
+                  Your doctor will share the video link before your appointment.
+                </p>
               )}
-              <Button variant="ghost" size="sm" onClick={onCancel}>
-                Cancel appointment
+              <div className="mt-4 flex flex-wrap gap-2">
+                {booking.doctorProfileId && (
+                  <Button variant="secondary" size="sm" onClick={onReschedule}>
+                    Reschedule
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={onCancel}>
+                  Cancel appointment
+                </Button>
+              </div>
+            </>
+          )}
+
+          {status === 'ended' && (
+            <p className="mt-4 text-sm text-ink-muted">
+              Your visit has ended. Your doctor is finalising the summary — it'll appear
+              here when it's ready.
+            </p>
+          )}
+
+          {status === 'completed' && (
+            <div className="mt-4">
+              <Button variant="secondary" onClick={onViewSummary}>
+                View consultation summary
               </Button>
             </div>
-          </>
-        )}
-
-        {status === 'ended' && (
-          <p className="mt-4 text-sm text-ink-muted">This appointment has ended.</p>
-        )}
-
-        {status === 'completed' && (
-          <div className="mt-4">
-            <Button variant="secondary" onClick={onViewSummary}>
-              View consultation summary
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -377,7 +395,7 @@ export function MyAppointmentsPage() {
           name={eventBooking.doctorName ?? 'Your doctor'}
           badge={
             eventBooking.doctorSpecializationLabel ? (
-              <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent-tint px-2.5 py-0.5 text-xs font-semibold text-accent-deep">
+              <span className="inline-flex items-center rounded-full border border-primary-tint-md bg-primary-tint px-2.5 py-0.5 text-xs font-semibold text-primary">
                 {eventBooking.doctorSpecializationLabel}
               </span>
             ) : undefined
