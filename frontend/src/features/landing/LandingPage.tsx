@@ -19,50 +19,49 @@ export function LandingPage() {
 
   return (
     <main className="relative overflow-hidden bg-[linear-gradient(180deg,#EEF3FB_0%,#F7F9FC_40%,#FFFFFF_100%)]">
-      {/* Crescent motif behind the hero — the brand's richness vehicle, drifting
-          top-right at low opacity. Decorative, aria-hidden. */}
+      {/* Crescent motif CENTERED behind the hero (screens.css .hero-crescent),
+          low opacity. Decorative, aria-hidden. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-40 -top-24 hidden h-[880px] w-[880px] opacity-[0.12] md:block"
+        className="pointer-events-none absolute left-1/2 top-[-150px] h-[560px] w-[560px] -translate-x-[52%] opacity-[0.06]"
         style={{
           backgroundImage: 'url(/brand/crescent-blue.svg)',
           backgroundSize: 'contain',
           backgroundRepeat: 'no-repeat',
         }}
       />
-      <section className="container mx-auto px-4 py-20 md:py-28">
-        <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-ai-glow bg-ai-surface px-3 py-1 text-xs font-semibold tracking-wide text-primary-800">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
-            Care, watched closely
-          </span>
-          <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-primary-800 md:text-5xl">
-            Tell us what's wrong.
-            <br />
-            We'll find the <span className="text-accent-deep">right doctor</span>.
-          </h1>
-          <p className="mt-4 max-w-xl text-lg text-ink-muted">
-            Describe your symptoms in a sentence. Heron points you to the specialist
-            most likely to help — then shows who's available.
-          </p>
-          <div className="mt-8">
-            <HomeSymptomSearch align="left" />
-          </div>
-
-          {/* Inline trust band — why an anxious first-timer can rely on this.
-              One bordered, soft-elevated card row, divided into three. */}
-          <dl className="mt-10 grid max-w-2xl divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            {HERO_TRUST.map((t) => (
-              <div key={t.h} className="flex flex-col gap-1.5 p-4">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-tint text-primary">
-                  <t.icon className="h-4 w-4" />
-                </span>
-                <dt className="text-sm font-semibold text-ink">{t.h}</dt>
-                <dd className="text-xs leading-relaxed text-ink-muted">{t.p}</dd>
-              </div>
-            ))}
-          </dl>
+      <section className="container relative mx-auto flex flex-col items-center px-4 py-20 text-center md:py-24">
+        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] font-semibold tracking-wide text-primary-600 shadow-xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          Care, watched closely
+        </span>
+        <h1 className="mt-6 max-w-[16ch] text-balance text-4xl font-bold leading-[1.05] tracking-tight text-ink md:text-[52px]">
+          Tell us what's wrong. We'll find the{' '}
+          <span className="text-primary">right doctor</span>.
+        </h1>
+        <p className="mt-5 max-w-[52ch] text-lg leading-relaxed text-ink-muted">
+          Describe your symptoms in a sentence. Heron points you to the specialist
+          most likely to help — then shows who's available.
+        </p>
+        <div className="mt-8 w-full max-w-[620px]">
+          <HomeSymptomSearch align="center" />
         </div>
+
+        {/* Trust band — one bordered card row, divided into three. The sage 'care'
+            accent (non-clinical) lives here on the icon tiles. */}
+        <dl className="mt-10 grid w-full max-w-3xl gap-px overflow-hidden rounded-lg border border-line bg-line text-left shadow-sm sm:grid-cols-3">
+          {HERO_TRUST.map((t) => (
+            <div key={t.h} className="flex items-start gap-3 bg-surface p-5">
+              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] bg-care-tint text-care">
+                <t.icon className="h-5 w-5" />
+              </span>
+              <div>
+                <dt className="text-[15px] font-semibold text-ink">{t.h}</dt>
+                <dd className="mt-0.5 text-[13.5px] leading-snug text-ink-muted">{t.p}</dd>
+              </div>
+            </div>
+          ))}
+        </dl>
       </section>
     </main>
   );

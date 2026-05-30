@@ -26,7 +26,7 @@ export function HomeSymptomSearch({ align = 'left' }: { align?: 'left' | 'center
 
   return (
     <div className={cn('flex w-full max-w-2xl flex-col', centered && 'mx-auto items-center text-center')}>
-      <div className="flex w-full items-center gap-2 rounded-xl border border-ai-glow bg-surface p-1.5 shadow-md transition focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary-tint">
+      <div className="flex w-full items-center gap-2 rounded-[14px] border border-ai-glow bg-surface p-1.5 shadow-ai transition focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary-tint">
         <Search aria-hidden="true" className="ml-2.5 h-5 w-5 shrink-0 text-ink-muted" />
         <input
           aria-label="Describe what's going on"
