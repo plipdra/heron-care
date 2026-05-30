@@ -186,15 +186,28 @@ export function DoctorHome() {
                 </section>
 
                 {profile?.defaultMeetingLink && (
-                  <section className="rounded-lg border border-ai-glow bg-[linear-gradient(180deg,#EEF3FB_0%,#FFFFFF_100%)] p-6 shadow-xs">
-                    <h2 className="text-sm font-semibold text-primary-800">Your meeting room</h2>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      Patients get this link an hour before each visit.
+                  <section className="relative overflow-hidden rounded-lg border border-line bg-primary-tint-sm p-6 shadow-xs">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 opacity-[0.07]"
+                      style={{
+                        backgroundImage: 'url(/brand/crescent-blue.svg)',
+                        backgroundSize: 'contain',
+                        backgroundRepeat: 'no-repeat',
+                      }}
+                    />
+                    <p className="relative text-[11px] font-bold uppercase tracking-wide text-primary">
+                      Your meeting room
                     </p>
-                    <div className="mt-3 flex items-center gap-2 rounded-md border border-line bg-surface px-3 py-2">
-                      <span className="tabular truncate text-xs text-ink">
-                        {profile.defaultMeetingLink}
-                      </span>
+                    <h3 className="relative mt-1.5 text-base font-bold tracking-tight text-ink">
+                      One room for every visit
+                    </h3>
+                    <p className="relative mt-1.5 text-sm leading-relaxed text-ink-muted">
+                      Patients get this link automatically an hour before each booked visit.
+                    </p>
+                    <div className="relative mt-3 flex items-center gap-2 rounded-md border border-line bg-surface px-3 py-2.5">
+                      <Video className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="truncate text-sm text-ink">{profile.defaultMeetingLink}</span>
                       <button
                         type="button"
                         aria-label="Copy meeting link"
@@ -206,7 +219,7 @@ export function DoctorHome() {
                     </div>
                     <Link
                       to="/profile"
-                      className="mt-2 inline-block text-xs font-medium text-primary hover:underline"
+                      className="relative mt-3 inline-block rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-primary hover:text-primary"
                     >
                       Change in profile
                     </Link>

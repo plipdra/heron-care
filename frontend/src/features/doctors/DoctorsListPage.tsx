@@ -96,7 +96,8 @@ export function DoctorsListPage() {
   }, [specialization, search]);
 
   return (
-    <main className="container mx-auto px-4 py-10">
+    <main className="min-h-full bg-[linear-gradient(180deg,#F0F4FA_0%,#F7F9FC_30%,#FFFFFF_100%)]">
+      <div className="container mx-auto px-4 py-10">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Find a doctor</h1>
         <p className="mt-2 text-ink-muted">
@@ -250,6 +251,7 @@ export function DoctorsListPage() {
           </nav>
         )}
       </section>
+      </div>
     </main>
   );
 }

@@ -2,12 +2,11 @@ import { Clock, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { DoctorHome } from './DoctorHome';
 import { HomeSymptomSearch } from './HomeSymptomSearch';
-import { HomeTrustBand } from './HomeTrustBand';
 
 const HERO_TRUST = [
   { icon: ShieldCheck, h: 'Board-certified doctors', p: 'Every specialist is verified and licensed.' },
-  { icon: Clock, h: 'Real-time availability', p: 'You see live open times before you commit.' },
-  { icon: Lock, h: 'Private by design', p: 'Your description is only used to match you.' },
+  { icon: Clock, h: 'Same-week availability', p: 'Most specialties have openings within days.' },
+  { icon: Lock, h: 'Private & secure', p: 'Your description is encrypted and never sold.' },
 ];
 
 // Homepage: the AI symptom-router is the hero (left-aligned, with the crescent
@@ -65,8 +64,6 @@ export function LandingPage() {
           </dl>
         </div>
       </section>
-
-      <HomeTrustBand />
     </main>
   );
 }
