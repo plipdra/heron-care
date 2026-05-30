@@ -144,7 +144,11 @@ function ChromeLayout() {
         <AppHeader>
           <HeaderNav />
         </AppHeader>
-        <div id="main-content" tabIndex={-1} className="flex-1 outline-none">
+        {/* bg-surface (white) so any space below a short page — and the footer
+            that follows — reads as one continuous surface instead of a gray
+            filler band between the content and the white footer. Pages with their
+            own background paint over this; only the leftover area shows it. */}
+        <div id="main-content" tabIndex={-1} className="flex-1 bg-surface outline-none">
           <Suspense fallback={<RouteFallback />}>
             <Outlet />
           </Suspense>

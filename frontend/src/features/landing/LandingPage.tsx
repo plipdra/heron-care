@@ -18,7 +18,7 @@ export function LandingPage() {
   if (user?.role === 'DOCTOR') return <DoctorHome />;
 
   return (
-    <main className="relative overflow-hidden bg-[linear-gradient(180deg,#EEF3FB_0%,#F7F9FC_40%,#FFFFFF_100%)]">
+    <main className="relative min-h-full overflow-hidden bg-[linear-gradient(180deg,#EEF3FB_0%,#F7F9FC_40%,#FFFFFF_100%)]">
       {/* Crescent motif CENTERED behind the hero (screens.css .hero-crescent),
           low opacity. Decorative, aria-hidden. */}
       <div
