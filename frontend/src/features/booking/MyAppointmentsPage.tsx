@@ -499,6 +499,11 @@ export function MyAppointmentsPage() {
           }
           startsAt={eventBooking.startsAt}
           status={displayStatus(eventBooking, now)}
+          statusNote={
+            displayStatus(eventBooking, now) === 'ended'
+              ? 'Your visit has ended. Your doctor is finalising the summary and any prescription — you’ll be notified when it’s ready to view.'
+              : undefined
+          }
           concern={eventBooking.concernNote}
           concernLabel="What you told your doctor"
           joinable={eventBooking.joinable}

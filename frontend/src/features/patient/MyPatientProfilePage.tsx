@@ -329,8 +329,11 @@ function PatientProfileEditor({ onDone }: { onDone: () => void }) {
           </p>
         </div>
         {completeness && (
-          <span className="rounded-full bg-primary-tint px-3 py-1 text-xs font-medium text-primary tabular">
-            {completeness.filled} of {completeness.total} fields filled
+          <span
+            title="Counts the six personal details below. The care lists are optional and not counted."
+            className="rounded-full bg-primary-tint px-3 py-1 text-xs font-medium text-primary tabular"
+          >
+            {completeness.filled} of {completeness.total} personal details
           </span>
         )}
       </header>
@@ -466,10 +469,15 @@ function PatientProfileEditor({ onDone }: { onDone: () => void }) {
             </div>
 
             <div className="border-t border-line pt-5">
-              <h2 className="text-sm font-semibold text-ink">Care profile</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-ink">Care profile</h2>
+                <span className="rounded-full border border-line bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                  Optional
+                </span>
+              </div>
               <p className="mt-0.5 text-xs text-ink-muted">
-                What your doctor should know before the visit. Leave a list empty if
-                there's nothing to add.
+                What your doctor should know before the visit — all optional, and not part of the
+                count above. Leave a list empty if there's nothing to add.
               </p>
             </div>
             <TagInput

@@ -90,8 +90,14 @@ function HoursRow({ day, av }: { day: string; av: Availability | null }) {
 // details, consultation hours, time off, a public-card preview, and account.
 export function DoctorProfileView({ onEdit }: { onEdit: () => void }) {
   const { user, logout } = useAuth();
-  const { data, isPending, isError, error } = useMyDoctorProfile();
-  const pictureUrl = useAuthedImageUrl(data ? data.profilePictureUrl : null);
+  const { data, isPending, isError, error, dataUpdatedAt } = useMyDoctorProfile();
+  // Version-stamp with the query's last-fetch time so a changed or removed picture
+  // busts the browser's private max-age cache (otherwise the same URL serves stale
+  // bytes — or a removed picture's bytes — until it expires). A removed picture then
+  // 404s and the Avatar falls back to initials.
+  const pictureUrl = useAuthedImageUrl(
+    data ? `${data.profilePictureUrl}?v=${dataUpdatedAt}` : null,
+  );
 
   if (isPending) {
     return (
@@ -166,7 +172,7 @@ export function DoctorProfileView({ onEdit }: { onEdit: () => void }) {
                 </h2>
                 <p className="mt-1 text-xs text-ink-muted">What patients see in search.</p>
                 <div className="mt-4">
-                  <DoctorCard doctor={data} />
+                  <DoctorCard doctor={data} photoUrl={pictureUrl} />
                 </div>
               </CardContent>
             </Card>

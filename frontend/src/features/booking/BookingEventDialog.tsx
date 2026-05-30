@@ -19,6 +19,7 @@ export function BookingEventDialog({
   badge,
   startsAt,
   status,
+  statusNote,
   concern,
   concernLabel,
   joinable,
@@ -30,6 +31,7 @@ export function BookingEventDialog({
   badge?: ReactNode;
   startsAt: string;
   status: DisplayStatus;
+  statusNote?: ReactNode;
   concern: string | null;
   concernLabel: string;
   joinable: boolean;
@@ -55,6 +57,7 @@ export function BookingEventDialog({
           <div className="mt-1.5">
             <StatusPill status={status} />
           </div>
+          {statusNote && <p className="mt-2 text-xs leading-relaxed text-ink-muted">{statusNote}</p>}
         </div>
 
         <div>

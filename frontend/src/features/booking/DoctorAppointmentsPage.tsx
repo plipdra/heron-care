@@ -481,6 +481,11 @@ export function DoctorAppointmentsPage() {
           name={eventBooking.patientName ?? 'Patient'}
           startsAt={eventBooking.startsAt}
           status={displayStatus(eventBooking, now)}
+          statusNote={
+            displayStatus(eventBooking, now) === 'ended'
+              ? 'This visit has ended. Add your consultation notes to finalise the summary and complete it.'
+              : undefined
+          }
           concern={eventBooking.concernNote}
           concernLabel="What the patient told you"
           joinable={eventBooking.joinable}

@@ -46,10 +46,21 @@ const STATUS_META: Record<DisplayStatus, { label: string; chip: string; dot: str
   },
 };
 
+// Plain-language meaning per state — "Ended" in particular is non-obvious, so it
+// rides along as a hover title wherever the pill appears (list, calendar, modal).
+// Kept role-neutral: true for both the patient and the doctor reading it.
+export const STATUS_DESCRIPTION: Record<DisplayStatus, string> = {
+  upcoming: 'This appointment is confirmed.',
+  completed: 'The visit is done and its summary has been finalised.',
+  ended: 'The visit time has passed, but the consultation summary has not been finalised yet.',
+  cancelled: 'This appointment was cancelled.',
+};
+
 export function StatusPill({ status }: { status: DisplayStatus }) {
   const meta = STATUS_META[status];
   return (
     <span
+      title={STATUS_DESCRIPTION[status]}
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.chip}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />

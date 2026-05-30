@@ -111,6 +111,36 @@ public class SlotService {
         return map;
     }
 
+    // True when a booking's time still sits inside the doctor's availability — a
+    // scheduled working day, within that day's hours, and not inside a blocked
+    // range. Lets a caller tell whether an availability edit actually disrupts an
+    // existing booking (so an unaffected patient isn't notified). Mirrors the
+    // boundary rules slot generation uses: same-day, half-open at the end.
+    public boolean isWithinAvailability(Availability availability, Instant startsAt, Instant endsAt) {
+        if (availability == null || availability.getWeeklySchedule() == null
+                || availability.getTimeZone() == null) {
+            return false;
+        }
+        ZoneId zone = ZoneId.of(availability.getTimeZone());
+        LocalDateTime localStart = LocalDateTime.ofInstant(startsAt, zone);
+        LocalDateTime localEnd = LocalDateTime.ofInstant(endsAt, zone);
+
+        WeeklyScheduleEntry entry = indexByDay(availability.getWeeklySchedule())
+                .get(localStart.getDayOfWeek());
+        if (entry == null) return false;
+
+        // Must start no earlier than the window opens and end no later than it
+        // closes, on the same local day.
+        if (localStart.toLocalTime().isBefore(entry.getStartTime())) return false;
+        if (!localEnd.toLocalDate().isEqual(localStart.toLocalDate())) return false;
+        if (localEnd.toLocalTime().isAfter(entry.getEndTime())) return false;
+
+        List<BlockedRange> blocked = availability.getBlockedRanges() != null
+                ? availability.getBlockedRanges()
+                : List.of();
+        return !isBlocked(startsAt, endsAt, blocked);
+    }
+
     private boolean isBlocked(Instant startsAt, Instant endsAt, List<BlockedRange> ranges) {
         for (BlockedRange range : ranges) {
             if (range.getStartsAt() == null || range.getEndsAt() == null) continue;

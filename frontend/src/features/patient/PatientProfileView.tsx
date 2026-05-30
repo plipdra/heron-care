@@ -87,10 +87,14 @@ function SectionCard({ title, children }: { title: string; children: ReactNode }
 // the right. Each section's "Edit" returns to the editor.
 export function PatientProfileView({ onEdit }: { onEdit: () => void }) {
   const { user, logout } = useAuth();
-  const { data, isPending, isError, error } = useMyPatientProfile();
+  const { data, isPending, isError, error, dataUpdatedAt } = useMyPatientProfile();
   const bookings = useMyBookings();
   const [summaryFor, setSummaryFor] = useState<PatientBooking | null>(null);
-  const pictureUrl = useAuthedImageUrl(data ? data.profilePictureUrl : null);
+  // Version-stamp so a changed/removed picture busts the private max-age cache
+  // instead of serving stale bytes; a removed picture 404s → initials.
+  const pictureUrl = useAuthedImageUrl(
+    data ? `${data.profilePictureUrl}?v=${dataUpdatedAt}` : null,
+  );
 
   if (isPending) {
     return (

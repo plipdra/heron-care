@@ -9,7 +9,19 @@ import type { PublicDoctor } from './api';
 // results so both surfaces render a doctor identically and link into the same
 // profile + booking flow. On /recommend a server-written `reason` is passed and
 // replaces the bio with a "Why this match" line; the list omits it and shows bio.
-export function DoctorCard({ doctor, reason }: { doctor: PublicDoctor; reason?: string }) {
+// `photoUrl` overrides the card's default public-avatar source. The own-profile
+// "Public preview" passes an already-authed object URL here, since the logged-in
+// doctor's profile carries the auth-gated picture route (which a plain <img>
+// can't load) rather than the public /api/doctors/{id}/picture route.
+export function DoctorCard({
+  doctor,
+  reason,
+  photoUrl,
+}: {
+  doctor: PublicDoctor;
+  reason?: string;
+  photoUrl?: string | null;
+}) {
   const hasExperience =
     doctor.yearsOfExperience !== null && doctor.yearsOfExperience !== undefined;
   return (
@@ -17,7 +29,11 @@ export function DoctorCard({ doctor, reason }: { doctor: PublicDoctor; reason?: 
       <Card className="h-full shadow-xs transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-ai-glow group-hover:shadow-sm">
         <CardContent className="flex h-full flex-col gap-3 p-5">
           <div className="flex items-center gap-3">
-            <Avatar name={doctor.name} photoUrl={doctor.profilePictureUrl} size={54} />
+            <Avatar
+              name={doctor.name}
+              photoUrl={photoUrl !== undefined ? photoUrl : doctor.profilePictureUrl}
+              size={54}
+            />
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-semibold leading-tight tracking-tight">{doctor.name}</h2>
               {doctor.specializationLabel && (

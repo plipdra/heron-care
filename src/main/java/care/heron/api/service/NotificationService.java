@@ -1,5 +1,6 @@
 package care.heron.api.service;
 
+import care.heron.api.document.Availability;
 import care.heron.api.document.Booking;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.Notification;
@@ -58,6 +59,7 @@ public class NotificationService {
     private final BookingRepository bookingRepository;
     private final PatientProfileRepository patientProfileRepository;
     private final DoctorProfileRepository doctorProfileRepository;
+    private final SlotService slotService;
     private final MongoTemplate mongoTemplate;
     private final Clock clock;
 
@@ -186,25 +188,34 @@ public class NotificationService {
         }
     }
 
-    // A doctor changed their availability — notify the patients with a future
-    // confirmed booking (deduped), scoped to this doctor's own bookings, naming
-    // the doctor. Blocking time never cancels a booking, so this is informational
-    // ("review your visit"), never a cancellation.
+    // A doctor changed their availability — notify only the patients whose own
+    // booked time no longer fits the NEW availability (its day/hours dropped it, or
+    // a new blocked range overlaps it). An edit that leaves a patient's slot intact
+    // is silent for them — they were not affected, so notifying would only confuse.
+    // The message names the doctor and rides the booking's startsAt, so the patient
+    // sees WHICH visit and WHY: their appointment may be affected by a schedule
+    // change. Blocking never auto-cancels, so this is a "please review", not a
+    // cancellation. Best-effort: never throws.
     public void notifyAvailabilityChanged(String doctorUserId) {
         try {
-            String doctorName = doctorProfileRepository.findByUserId(doctorUserId)
-                    .map(DoctorProfile::getName)
-                    .filter(n -> n != null && !n.isBlank())
-                    .orElse("Your doctor");
-            String message = doctorName + " updated their availability.";
+            DoctorProfile doctor = doctorProfileRepository.findByUserId(doctorUserId).orElse(null);
+            if (doctor == null) return;
+            String doctorName = doctor.getName() != null && !doctor.getName().isBlank()
+                    ? doctor.getName()
+                    : "Your doctor";
+            Availability availability = doctor.getAvailability();
             Instant now = clock.instant();
-            List<Booking> affected = bookingRepository.findByDoctorUserIdAndStatusAndStartsAtBetween(
+            List<Booking> upcoming = bookingRepository.findByDoctorUserIdAndStatusAndStartsAtBetween(
                     doctorUserId, BookingStatus.CONFIRMED, now, now.plus(FANOUT_HORIZON_DAYS, ChronoUnit.DAYS));
-            affected.stream()
-                    .map(Booking::getPatientUserId)
-                    .distinct()
-                    .forEach(patientUserId -> persistAndPush(
-                            patientUserId, NotificationType.AVAILABILITY_CHANGED, message, null));
+            String message = "Your visit with " + doctorName
+                    + " may be affected by a change to their schedule — please review, and reschedule if needed.";
+            for (Booking booking : upcoming) {
+                if (slotService.isWithinAvailability(availability, booking.getStartsAt(), booking.getEndsAt())) {
+                    continue; // still fits — this patient wasn't affected.
+                }
+                persistAndPush(booking.getPatientUserId(), NotificationType.AVAILABILITY_CHANGED,
+                        message, booking.getStartsAt());
+            }
         } catch (Exception e) {
             log.warn("availability_notification_failed doctor={}", doctorUserId, e);
         }

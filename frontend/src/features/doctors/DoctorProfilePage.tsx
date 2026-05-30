@@ -48,13 +48,16 @@ export function DoctorProfilePage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-start">
         <section className="rounded-lg border border-line bg-surface p-6 shadow-xs sm:p-8">
-          <header className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-            <Avatar name={data.name} photoUrl={data.profilePictureUrl} size={84} />
-            <div className="flex-1">
-              <h1 className="text-3xl font-semibold tracking-tight text-primary-800">
+          {/* Identity stacks top-to-bottom — the card sits in the narrower left
+              rail of the two-column layout, so a side-by-side avatar/name crowds
+              and wraps the name awkwardly. */}
+          <header className="flex flex-col items-center gap-4 text-center">
+            <Avatar name={data.name} photoUrl={data.profilePictureUrl} size={88} />
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-primary-800">
                 {data.name}
               </h1>
-              <div className="mt-2.5 flex flex-wrap items-center gap-3">
+              <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
                 {data.specializationLabel && (
                   <span className="inline-flex items-center rounded-full border border-primary-tint-md bg-primary-tint px-3 py-1 text-xs font-semibold text-primary">
                     {data.specializationLabel}
@@ -70,7 +73,7 @@ export function DoctorProfilePage() {
           </header>
 
           {data.bio && (
-            <p className="mt-6 leading-relaxed text-ink">{data.bio}</p>
+            <p className="mt-6 border-t border-line pt-6 leading-relaxed text-ink">{data.bio}</p>
           )}
 
           {/* At-a-glance facts — the consult model, honestly stated. Stacked, as
