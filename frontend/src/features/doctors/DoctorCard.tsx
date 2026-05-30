@@ -36,16 +36,24 @@ export function DoctorCard({ doctor, reason }: { doctor: PublicDoctor; reason?: 
               <p className="mt-1 text-sm leading-relaxed text-ink-muted">{reason}</p>
             </div>
           ) : (
-            doctor.bio && <p className="line-clamp-3 text-sm text-ink-muted">{doctor.bio}</p>
+            doctor.bio && <p className="line-clamp-2 text-sm text-ink-muted">{doctor.bio}</p>
           )}
+
+          {/* Non-clinical availability cue — the only place sage-green appears on the
+              card (green = open, never the warning-adjacent sand). Listed doctors are
+              published and bookable, so the cue is always truthful here. */}
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[rgba(123,155,126,0.35)] bg-[rgba(123,155,126,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#4F6B52]">
+            <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+            Accepting new patients
+          </span>
 
           <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-3">
             <span className="tabular text-sm font-medium text-ink">
-              {hasExperience ? `${doctor.yearsOfExperience} years experience` : ''}
+              {hasExperience ? `${doctor.yearsOfExperience} yrs experience` : 'Available now'}
             </span>
             <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
               See availability
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
           </div>
         </CardContent>
