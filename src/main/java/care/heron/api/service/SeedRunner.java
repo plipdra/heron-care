@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -369,6 +370,28 @@ public class SeedRunner implements CommandLineRunner {
             "jose.protacio@heron.care", "mark.villanueva@heron.care", "daniel.reyes@heron.care",
             "katrina.flores@heron.care", "gerald.aquino@heron.care", "benedict.cruz@heron.care");
 
+    // Demo doctors who run Saturday clinics (Mon-Sat hours) — the hero plus at
+    // least one per specialty, so a Saturday demo shows a populated dashboard and
+    // Saturday browsing/booking still returns results. The rest keep Mon-Fri, so
+    // "Off on Saturday" is also represented.
+    private static final Set<String> SATURDAY_DOCTORS = Set.of(
+            "dr.cruz@heron.care",      // hero (Internal Medicine)
+            "dr.reyes@heron.care",     // Cardiology
+            "dr.santos@heron.care",    // Dermatology
+            "dr.lim@heron.care",       // Pediatrics
+            "dr.garcia@heron.care",    // Psychiatry
+            "dr.flores@heron.care",    // General Practice
+            "dr.romero@heron.care",    // Neurology
+            "dr.ocampo@heron.care",    // OB-GYN
+            "dr.velasco@heron.care",   // Endocrinology
+            "dr.mendoza@heron.care",   // Orthopedics
+            "dr.bernardo@heron.care",  // Internal Medicine
+            "dr.domingo@heron.care",   // Psychiatry
+            "dr.aguilar@heron.care",   // General Practice
+            "dr.torres@heron.care",    // Endocrinology
+            "dr.dimaano@heron.care",   // Neurology
+            "dr.valdez@heron.care");   // Dermatology
+
     // SOAP note + prescription templates, rotated across the COMPLETED (and a few
     // draft) consults so visit summaries and the doctor's notes view show real
     // content. General-internal-medicine flavour; the demo doesn't pretend these
@@ -466,6 +489,7 @@ public class SeedRunner implements CommandLineRunner {
         ensureDoctors();
         backfillMeetingLinks();
         backfillLicenses();
+        ensureSaturdayHours();
         backfillPublishedFlag();
         ensurePatients();
         seedProfilePictures();
@@ -586,7 +610,9 @@ public class SeedRunner implements CommandLineRunner {
                     .defaultMeetingLink(DOCTOR_MEETING_LINKS.get(spec.email()))
                     .prcLicenseNo(generatedLicense(spec.email(), "prc"))
                     .ptrNo(generatedLicense(spec.email(), "ptr"))
-                    .availability(Availability.defaultBusinessHours())
+                    .availability(SATURDAY_DOCTORS.contains(spec.email())
+                            ? Availability.businessHoursMonToSat()
+                            : Availability.defaultBusinessHours())
                     .published(true) // seeded doctors are complete → publicly listed
                     .build());
             created++;
@@ -933,6 +959,46 @@ public class SeedRunner implements CommandLineRunner {
     private static String generatedLicense(String email, String kind) {
         int h = Math.abs((email + "-" + kind).hashCode());
         return String.format("%07d", h % 10_000_000);
+    }
+
+    // Adds a Saturday 9-5 entry to the SATURDAY_DOCTORS roster's weekly schedule
+    // if it's missing, so already-seeded doctors gain Saturday hours without a full
+    // reseed. Idempotent: skips a doctor who already lists Saturday, and only adds
+    // (never rewrites the rest of the week), so other edits survive.
+    private void ensureSaturdayHours() {
+        int updated = 0;
+        for (DoctorProfile profile : doctorProfileRepository.findAll()) {
+            String email = userRepository.findById(profile.getUserId())
+                    .map(User::getEmail).orElse(null);
+            if (email == null || !SATURDAY_DOCTORS.contains(email)) {
+                continue;
+            }
+            Availability av = profile.getAvailability();
+            if (av == null || av.getWeeklySchedule() == null) {
+                continue;
+            }
+            boolean hasSaturday = av.getWeeklySchedule().stream()
+                    .anyMatch(e -> e.getDayOfWeek() == DayOfWeek.SATURDAY);
+            if (hasSaturday) {
+                continue;
+            }
+            List<Availability.WeeklyScheduleEntry> schedule = new ArrayList<>(av.getWeeklySchedule());
+            schedule.add(Availability.WeeklyScheduleEntry.builder()
+                    .dayOfWeek(DayOfWeek.SATURDAY)
+                    .startTime(LocalTime.of(9, 0))
+                    .endTime(LocalTime.of(17, 0))
+                    .build());
+            profile.setAvailability(Availability.builder()
+                    .timeZone(av.getTimeZone())
+                    .weeklySchedule(schedule)
+                    .blockedRanges(av.getBlockedRanges() != null ? av.getBlockedRanges() : List.of())
+                    .build());
+            doctorProfileRepository.save(profile);
+            updated++;
+        }
+        if (updated > 0) {
+            log.info("[seed] added Saturday hours to {} doctor(s)", updated);
+        }
     }
 
     // Backfills meeting links onto doctors seeded before the links existed.

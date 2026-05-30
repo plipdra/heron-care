@@ -83,6 +83,23 @@ public class Availability {
                 .build();
     }
 
+    // Mon-Sat 09:00-17:00 — for demo doctors who hold Saturday clinics, so a
+    // demo recorded on a Saturday lands on a populated working day rather than
+    // an "Off" day. Same hours as the weekday default, plus Saturday.
+    public static Availability businessHoursMonToSat() {
+        return Availability.builder()
+                .timeZone("Asia/Manila")
+                .weeklySchedule(List.of(
+                        weekday(DayOfWeek.MONDAY),
+                        weekday(DayOfWeek.TUESDAY),
+                        weekday(DayOfWeek.WEDNESDAY),
+                        weekday(DayOfWeek.THURSDAY),
+                        weekday(DayOfWeek.FRIDAY),
+                        weekday(DayOfWeek.SATURDAY)))
+                .blockedRanges(List.of())
+                .build();
+    }
+
     private static WeeklyScheduleEntry weekday(DayOfWeek day) {
         return WeeklyScheduleEntry.builder()
                 .dayOfWeek(day)
