@@ -337,7 +337,7 @@ export function MyAppointmentsPage() {
       <h1 className="text-3xl font-semibold tracking-tight">Your appointments</h1>
       <p className="mt-2 text-ink-muted">Join your upcoming visits and review past care.</p>
       <p className="mt-1 text-xs text-ink-muted">
-        Times shown in your local time ({tzLabel}).
+        Times shown in {tzLabel}.
       </p>
     </header>
   );

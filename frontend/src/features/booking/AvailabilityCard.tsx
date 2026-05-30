@@ -72,7 +72,7 @@ export function AvailabilityCard({
       <CardContent className="p-6">
         <h2 className="text-lg font-semibold text-primary-800">Availability</h2>
         <p className="mt-1 text-xs text-ink-muted">
-          Times shown in your local time ({tzLabel}).
+          Times shown in {tzLabel}.
         </p>
 
         {isPending && (

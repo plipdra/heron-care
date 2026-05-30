@@ -169,7 +169,7 @@ export function BookingDialog({
                 {formatFullDateTime(targetSlot.startsAt)}
               </p>
               <p className="mt-0.5 text-xs text-ink-muted">
-                Times shown in your local time ({tzLabel}).
+                Times shown in {tzLabel}.
               </p>
             </div>
 

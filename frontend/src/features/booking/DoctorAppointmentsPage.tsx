@@ -115,7 +115,7 @@ function PatientContextDialog({
           </div>
           <DialogDescription>
             <span className="tabular text-ink">{formatFullDateTime(booking.startsAt)}</span>
-            {' · '}Times shown in your local time ({tzLabel}).
+            {' · '}Times shown in {tzLabel}.
           </DialogDescription>
         </DialogHeader>
 
@@ -332,7 +332,7 @@ export function DoctorAppointmentsPage() {
         The patients you’re seeing, and the visits you’ve completed.
       </p>
       <p className="mt-1 text-xs text-ink-muted">
-        Times shown in your local time ({tzLabel}).
+        Times shown in {tzLabel}.
       </p>
     </header>
   );

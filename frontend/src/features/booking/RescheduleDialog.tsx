@@ -112,7 +112,7 @@ export function RescheduleDialog({
               setAlternatives([]);
             }}
           />
-            <p className="text-xs text-ink-muted">Times shown in your local time ({tzLabel}).</p>
+            <p className="text-xs text-ink-muted">Times shown in {tzLabel}.</p>
           </>
         ) : (
           <p className="py-6 text-sm text-ink-muted">
