@@ -42,8 +42,8 @@ import java.util.Set;
 import java.util.UUID;
 
 // Seeds demo accounts and bookings so the deployed URL has rich, browseable data
-// immediately. Demo password is documented in the README; these accounts exist
-// for evaluator login, not production users.
+// immediately. Demo credentials are shared privately with the challenge
+// submission; these accounts exist for evaluator login, not production users.
 //
 // @Order(2) so this runs after DatabaseInitializer (@Order(1)) — the unique
 // indexes must exist before we insert.

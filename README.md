@@ -60,51 +60,89 @@ These three rules break every UI tie:
 
 ## API overview
 
-Endpoints documented at `/swagger-ui.html` when the backend is running. Detailed list lands by Day 4.
+Endpoints are documented at `/swagger-ui.html` (OpenAPI) when the backend is running.
 
 ## Demo accounts
 
-Seeded by the Mongo init scripts. Password for all: `Demo123!`.
+The seed creates demo patients and doctors across every specialty — for example
+`patient.demo@heron.care` (patient) and `dr.cruz@heron.care` (doctor, Internal
+Medicine). Login credentials for the live demo are shared privately with the
+challenge submission rather than committed here.
 
-| Role | Email |
-|---|---|
-| Patient | patient.demo@heron.care |
-| Doctor — Cardiology | dr.reyes@heron.care |
-| Doctor — Cardiology | dr.tan@heron.care |
-| Doctor — Dermatology | dr.santos@heron.care |
-| Doctor — Pediatrics | dr.lim@heron.care |
-| Doctor — Internal Medicine | dr.cruz@heron.care |
-| Doctor — Psychiatry | dr.garcia@heron.care |
+## Architecture
 
-## Architecture overview
-
-Layered Spring monolith:
+A layered Spring Boot monolith behind a single deployable artifact:
 
 ```
-HTTP → Controller (DTO) → Service (business logic) → Repository (MongoRepository)
+HTTP → Controller (DTO in/out) → Service (business rules) → Repository (Spring Data Mongo)
 ```
 
-**Mongo embed-vs-reference policy:** embed dependents with no independent lifecycle (prescription line items, contact sub-doc, medical-history sub-doc); reference entities with their own pages and lifecycles (Patient, Doctor, Appointment).
+The key decisions, and why:
 
-## Known limitations
+- **Document database (MongoDB).** The core domain is an aggregate, not a web of
+  joins: a booking *embeds* its consultation record (SOAP notes + prescription)
+  and its reschedule history, because a note has no life outside its consult. One
+  read returns the whole picture. The embed-vs-reference rule is consistent —
+  embed dependents with no independent lifecycle (prescription items, the contact
+  and medical-history sub-docs); reference entities with their own pages (Patient,
+  Doctor, Booking).
+- **Conflict safety at the database.** Double-booking is prevented by a unique
+  partial index on `(doctor, start time)` restricted to confirmed bookings —
+  correctness enforced by Mongo, not hopeful application code.
+- **Stateless JWT auth.** No server session store, so the API scales horizontally.
+  The real-time stream uses a separate short-lived token, so the long-lived
+  credential never rides in a URL.
+- **Server-Sent Events for real-time.** Notifications are one-way (server →
+  client), so SSE is the right-sized tool — plain HTTP with automatic reconnect,
+  no WebSocket machinery.
+- **AI as an enhancement, not a dependency.** The symptom router calls a model but
+  falls back to deterministic rules if it is unavailable, behind a safety
+  contract: it suggests a *type of doctor*, never a diagnosis, after a red-flag
+  pre-screen.
+- **Single-service deploy.** The built frontend is served by the backend as one
+  artifact on one origin — no CORS, one deploy — the simplest shape that is
+  correct for a focused MVP.
+- **Guest-first marketplace.** Patients browse, search, and get a recommendation
+  without an account; sign-in is asked only at the booking commitment, to lower
+  the barrier to value.
 
-- **Phone numbers are Philippine-only.** Contact numbers are validated against the PH numbering plan via libphonenumber — `+63 …`, `09…`, and PH landlines pass; well-formed foreign numbers (e.g. a `+1 …` US number) are rejected by design. Format validity is checked, not ownership (no number is dialled or verified).
-- **Best-effort emergency screening, not triage.** The AI recommendation runs a deterministic red-flag pre-screen, but it is not a clinical triage system and should not be relied on in an emergency.
+## Limitations & roadmap
 
-## Future work
+Heron is a focused MVP: it goes deep on the booking → consultation → records core
+and deliberately scopes out adjacent surface area. What's left out, and why:
 
-- **Refresh token revocation list** at full rotation cadence (Day 2 ships a basic revocation collection; full rotation is post-MVP).
-- **Per-appointment custom meeting links** (currently doctor-default only — single `defaultMeetingLink` on doctor profile).
-- **PRC license validation for doctor registration** (currently self-serve immediate per spec literal — production needs PRC verification before doctors go live).
-- **Configurable slot duration per doctor** (currently fixed 30 min).
-- **Cancellation cutoff + no-show fee policy** (currently free cancellation until appointment start).
-- **HttpOnly cookie token storage** (currently localStorage — XSS-readable).
-- **Column-level PII encryption** for clinical notes with envelope encryption.
-- **International phone numbers + SMS/OTP verification** (currently Philippine-only and format-validated, not ownership-verified).
-- **Rate limiting** per user, stricter on auth endpoints.
-- **Background reminder jobs** via Spring `@Scheduled` and later a queue.
-- **Append-only audit log** for clinical record access (compliance).
-- **Google Calendar API integration** for auto-generated Meet links.
+**Product / realism**
+
+- **No pricing or payments.** Pricing is a business-model decision, and a real
+  gateway is PCI scope and refund logic that shows plumbing over product sense —
+  and handling money in a prototype is a liability. Booking already models the
+  commitment, so payment slots cleanly into the confirm step later.
+- **No ratings or reviews.** Reviews need real volume to mean anything; seeded
+  stars would mislead in a clinical context. A post-consult rating tied to
+  completed visits is the honest version.
+- **No insurance / pharmacy / lab integrations.** Each is a partner integration,
+  not core to "can a doctor be booked, seen, and prescribe." The prescription is a
+  real document the patient can take anywhere.
+- **English only; in-app notifications only.** Localization and SMS/email delivery
+  are additive once the core is proven.
+
+**Technical / compliance**
+
+- **Video is an external meeting link.** A custom video stack isn't required for
+  the consult; the join link is gated to live, confirmed slots so a static room
+  never leaks.
+- **Completion is a clinical act, not a clock event.** No job auto-marks a visit
+  complete; "ended" is derived from time, and the doctor completes it by
+  finalizing notes.
+- **Credentials are format-checked, not verified.** PRC/PTR numbers and contact
+  numbers are validated for shape (libphonenumber for PH numbers), not ownership;
+  real verification is an admin workflow.
+- **Single shared database for the demo, localStorage tokens, no 2FA / audit
+  log.** Deliberate conveniences for a solo build; the production path is separate
+  environments, HttpOnly cookies, TOTP 2FA, and an append-only access log under
+  the Data Privacy Act.
+
+Each of these is a clean insertion point, not a rewrite.
 
 ## License
 
