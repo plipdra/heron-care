@@ -60,7 +60,13 @@ export function DoctorHome() {
       return t >= now && t <= now + 7 * 86_400_000;
     });
     const pending = bookings.filter((b) => displayStatus(b, now) === 'ended');
-    const live = today.find((b) => b.joinable) ?? null;
+    // "Live" = the slot actually spanning now (started, not yet ended) — not just
+    // any joinable upcoming consult. At most one, since slots never overlap.
+    const live =
+      today.find((b) => {
+        const s = new Date(b.startsAt).getTime();
+        return s <= now && new Date(b.endsAt).getTime() > now;
+      }) ?? null;
     // Mon-anchored week strip with per-day counts.
     const monday = new Date(now);
     monday.setHours(0, 0, 0, 0);
@@ -77,7 +83,9 @@ export function DoctorHome() {
         isToday: day.toDateString() === new Date(now).toDateString(),
       };
     });
-    return { upcoming, today, week, pending, nextUp: upcoming[0] ?? null, live, strip };
+    // Next up = the earliest consult that hasn't started yet (skips the live one).
+    const nextUp = upcoming.find((b) => new Date(b.startsAt).getTime() > now) ?? null;
+    return { upcoming, today, week, pending, nextUp, live, strip };
   }, [data, now]);
 
   // Working weekdays from the doctor's schedule — off-days show "Off" in the strip.
@@ -180,7 +188,7 @@ export function DoctorHome() {
                             {b.concernNote ?? 'No note added.'}
                           </p>
                         </div>
-                        {b.joinable ? (
+                        {stats.live?.id === b.id ? (
                           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-care-line bg-care-tint px-2.5 py-0.5 text-[11px] font-semibold text-care">
                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-care" />
                             In&nbsp;progress

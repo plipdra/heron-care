@@ -5,6 +5,7 @@ import care.heron.api.document.Booking;
 import care.heron.api.document.ConsultationRecord;
 import care.heron.api.document.DoctorProfile;
 import care.heron.api.document.PatientProfile;
+import care.heron.api.document.ProfilePicture;
 import care.heron.api.document.User;
 import care.heron.api.document.enums.BookingStatus;
 import care.heron.api.document.enums.Sex;
@@ -20,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -30,8 +33,11 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 // Seeds demo accounts and bookings so the deployed URL has rich, browseable data
@@ -238,62 +244,208 @@ public class SeedRunner implements CommandLineRunner {
                     List.of("Hypothyroidism"),
                     List.of(),
                     List.of("Levothyroxine"),
-                    "Family history of skin cancer."));
+                    "Family history of skin cancer."),
+            // -- Demo-day depth: a broader patient pool so bookings spread across
+            // many doctors realistically and the patient-context pane shows variety.
+            new PatientSpec("carlos.mendez@heron.care", "Carlos Mendez",
+                    LocalDate.of(1970, 5, 14), Sex.MALE, 88.0, 174.0, "+63 917 201 3040",
+                    List.of("Hypertension", "High cholesterol"), List.of(),
+                    List.of("Amlodipine 5 mg daily", "Atorvastatin 20 mg nightly"),
+                    "Desk job, minimal exercise. Wants to lower cardiovascular risk."),
+            new PatientSpec("noel.bautista@heron.care", "Noel Bautista",
+                    LocalDate.of(1988, 9, 3), Sex.MALE, 75.0, 171.0, "+63 918 332 1144",
+                    List.of(), List.of("Sulfa drugs (hives)"), List.of(), null),
+            new PatientSpec("rico.delacruz@heron.care", "Rico dela Cruz",
+                    LocalDate.of(1995, 12, 20), Sex.MALE, 70.0, 168.0, "+63 919 555 7788",
+                    List.of("Asthma"), List.of(), List.of("Salbutamol inhaler as needed"),
+                    "Triggered by dust and exercise."),
+            new PatientSpec("vincent.ong@heron.care", "Vincent Ong",
+                    LocalDate.of(1963, 2, 28), Sex.MALE, 92.0, 176.0, "+63 920 661 2233",
+                    List.of("Type 2 diabetes", "Gout"), List.of(),
+                    List.of("Metformin 1000 mg twice daily", "Allopurinol 300 mg daily"),
+                    "Retired. Watches diet loosely."),
+            new PatientSpec("daniel.reyes@heron.care", "Daniel Reyes",
+                    LocalDate.of(2001, 7, 7), Sex.MALE, null, null, null,
+                    null, null, null, null),
+            new PatientSpec("arturo.lim@heron.care", "Arturo Lim",
+                    LocalDate.of(1979, 11, 11), Sex.MALE, 80.0, 173.0, "+63 921 778 9900",
+                    List.of("Chronic lower back pain"), List.of(), List.of(),
+                    "Warehouse worker; pain worse after lifting."),
+            new PatientSpec("benedict.cruz@heron.care", "Benedict Cruz",
+                    LocalDate.of(1992, 4, 18), Sex.MALE, 68.0, 170.0, "+63 917 889 0011",
+                    List.of(), List.of(), List.of(), "Generally healthy. Annual check-up."),
+            new PatientSpec("oscar.tan@heron.care", "Oscar Tan",
+                    LocalDate.of(1958, 8, 25), Sex.MALE, 84.0, 169.0, "+63 918 990 1122",
+                    List.of("Coronary artery disease", "Hypertension"),
+                    List.of("Aspirin (GI upset)"),
+                    List.of("Clopidogrel", "Bisoprolol"), "Completed cardiac rehab last year."),
+            new PatientSpec("felix.santos@heron.care", "Felix Santos",
+                    LocalDate.of(1984, 3, 9), Sex.MALE, 77.0, 175.0, "+63 919 112 2334",
+                    List.of("Migraine"), List.of(), List.of("Sumatriptan as needed"),
+                    "Migraines roughly twice a month."),
+            new PatientSpec("gerald.aquino@heron.care", "Gerald Aquino",
+                    LocalDate.of(1997, 6, 30), Sex.MALE, 72.0, 178.0, "+63 920 223 4455",
+                    List.of(), List.of(), List.of(), null),
+            new PatientSpec("marlon.garcia@heron.care", "Marlon Garcia",
+                    LocalDate.of(1975, 10, 2), Sex.MALE, 95.0, 172.0, "+63 921 334 5566",
+                    List.of("Obesity", "Obstructive sleep apnea"), List.of(), List.of(),
+                    "Using CPAP nightly; wants a weight-management plan."),
+            new PatientSpec("enrique.flores@heron.care", "Enrique Flores",
+                    LocalDate.of(1968, 1, 19), Sex.MALE, 81.0, 171.0, "+63 917 445 6677",
+                    List.of("Hypothyroidism"), List.of(),
+                    List.of("Levothyroxine 75 mcg daily"), null),
+            new PatientSpec("carmela.reyes@heron.care", "Carmela Reyes",
+                    LocalDate.of(1990, 3, 22), Sex.FEMALE, 60.0, 162.0, "+63 918 556 7788",
+                    List.of("PCOS"), List.of(), List.of(), "Trying to conceive."),
+            new PatientSpec("jasmine.tan@heron.care", "Jasmine Tan",
+                    LocalDate.of(1986, 7, 14), Sex.FEMALE, 57.0, 160.0, "+63 919 667 8899",
+                    List.of("Hypothyroidism", "Iron-deficiency anemia"), List.of(),
+                    List.of("Levothyroxine 50 mcg", "Ferrous sulfate"), null),
+            new PatientSpec("isabel.cruz@heron.care", "Isabel Cruz",
+                    LocalDate.of(1999, 11, 5), Sex.FEMALE, 54.0, 158.0, "+63 920 778 9900",
+                    List.of("Anxiety"), List.of(), List.of(),
+                    "First time seeking mental-health support."),
+            new PatientSpec("patricia.lim@heron.care", "Patricia Lim",
+                    LocalDate.of(1973, 5, 29), Sex.FEMALE, 66.0, 165.0, "+63 921 889 0011",
+                    List.of("Type 2 diabetes", "Hypertension"), List.of("Penicillin"),
+                    List.of("Metformin", "Losartan"), "Strong family history of diabetes."),
+            new PatientSpec("bea.santos@heron.care", "Bea Santos",
+                    LocalDate.of(1994, 9, 17), Sex.FEMALE, 58.0, 161.0, "+63 917 990 1122",
+                    List.of("Eczema"), List.of("Nickel (contact dermatitis)"), List.of(), null),
+            new PatientSpec("denise.garcia@heron.care", "Denise Garcia",
+                    LocalDate.of(1982, 12, 8), Sex.FEMALE, 63.0, 164.0, "+63 918 101 2233",
+                    List.of("Migraine", "Depression"), List.of(),
+                    List.of("Fluoxetine 20 mg daily"), "On medication eight months, stable."),
+            new PatientSpec("rowena.aquino@heron.care", "Rowena Aquino",
+                    LocalDate.of(1965, 4, 26), Sex.FEMALE, 70.0, 159.0, "+63 919 212 3344",
+                    List.of("Osteoarthritis", "Hypertension"), List.of(),
+                    List.of("Amlodipine 5 mg"), "Knee pain worse in the mornings."),
+            new PatientSpec("katrina.flores@heron.care", "Katrina Flores",
+                    LocalDate.of(2002, 2, 13), Sex.FEMALE, null, null, null,
+                    null, null, null, null),
+            new PatientSpec("mariel.ocampo@heron.care", "Mariel Ocampo",
+                    LocalDate.of(1991, 8, 21), Sex.FEMALE, 59.0, 163.0, "+63 920 323 4455",
+                    List.of(), List.of(), List.of(),
+                    "28 weeks pregnant, first pregnancy. No complications so far."),
+            new PatientSpec("celine.torres@heron.care", "Celine Torres",
+                    LocalDate.of(1978, 6, 4), Sex.FEMALE, 68.0, 166.0, "+63 921 434 5566",
+                    List.of("Hypothyroidism"), List.of(),
+                    List.of("Levothyroxine 100 mcg"), null),
+            new PatientSpec("angelica.reyes@heron.care", "Angelica Reyes",
+                    LocalDate.of(1996, 10, 30), Sex.FEMALE, 56.0, 160.0, "+63 917 545 6677",
+                    List.of("Moderate acne"), List.of(), List.of(),
+                    "Tried over-the-counter treatments without success."),
+            new PatientSpec("vanessa.cruz@heron.care", "Vanessa Cruz",
+                    LocalDate.of(1969, 3, 15), Sex.FEMALE, 72.0, 167.0, "+63 918 656 7788",
+                    List.of("Breast cancer survivor (2019, in remission)"), List.of(),
+                    List.of("Tamoxifen"), "Regular surveillance follow-up."));
 
-    // A spread of bookings across doctors and patients. daysFromNow < 0 is a past
-    // (elapsed) consult, > 0 is upcoming. Times per doctor are distinct so the
-    // CONFIRMED-conflict unique index is never tripped.
-    private static final List<BookingSpec> BOOKINGS = List.of(
-            new BookingSpec("juan.cruz@heron.care", "dr.reyes@heron.care", 1, 9, 0,
-                    BookingStatus.CONFIRMED, "Chest tightness when I climb stairs, started about a week ago."),
-            new BookingSpec("patient.demo@heron.care", "dr.reyes@heron.care", 3, 10, 30,
-                    BookingStatus.CONFIRMED, "Follow-up on my blood pressure medication."),
-            new BookingSpec("maria.santos@heron.care", "dr.reyes@heron.care", -5, 14, 0,
-                    BookingStatus.CONFIRMED, "Heart palpitations in the evenings."),
-            new BookingSpec("ana.reyes@heron.care", "dr.tan@heron.care", 2, 11, 0,
-                    BookingStatus.CONFIRMED, "Shortness of breath after light activity."),
-            new BookingSpec("pedro.bautista@heron.care", "dr.tan@heron.care", -2, 15, 30,
-                    BookingStatus.CONFIRMED, "Post-stent follow-up and medication review."),
-            new BookingSpec("grace.tan@heron.care", "dr.tan@heron.care", 4, 9, 30,
-                    BookingStatus.CANCELLED, "Second opinion on my ECG results."),
-            new BookingSpec("liza.garcia@heron.care", "dr.santos@heron.care", 1, 13, 0,
-                    BookingStatus.CONFIRMED, "Itchy red rash on both forearms for two weeks."),
-            new BookingSpec("mark.villanueva@heron.care", "dr.santos@heron.care", -8, 10, 0,
-                    BookingStatus.CONFIRMED, "Persistent acne, would like to discuss treatment options."),
-            new BookingSpec("sofia.delosreyes@heron.care", "dr.santos@heron.care", 5, 16, 0,
-                    BookingStatus.CONFIRMED, "A mole on my back changed colour — would like it checked."),
-            new BookingSpec("ramon.aquino@heron.care", "dr.lim@heron.care", 2, 9, 0,
-                    BookingStatus.CONFIRMED, "My 5-year-old has had a fever for three days."),
-            new BookingSpec("grace.tan@heron.care", "dr.lim@heron.care", -3, 11, 30,
-                    BookingStatus.CONFIRMED, "Newborn weight and feeding check."),
-            new BookingSpec("jose.protacio@heron.care", "dr.cruz@heron.care", 1, 14, 30,
-                    BookingStatus.CONFIRMED, "Annual check-up and diabetes screening."),
-            new BookingSpec("patient.demo@heron.care", "dr.cruz@heron.care", -10, 9, 0,
-                    BookingStatus.CONFIRMED, "Persistent fatigue and occasional dizziness."),
-            new BookingSpec("juan.cruz@heron.care", "dr.cruz@heron.care", 6, 10, 0,
-                    BookingStatus.CONFIRMED, "Reviewing my recent blood test results."),
-            new BookingSpec("maria.santos@heron.care", "dr.garcia@heron.care", 2, 15, 0,
-                    BookingStatus.CONFIRMED, "Trouble sleeping and persistent anxiety."),
-            new BookingSpec("ana.reyes@heron.care", "dr.garcia@heron.care", -4, 16, 30,
-                    BookingStatus.CONFIRMED, "Medication review for depression."),
-            // Bookings on the newly deepened high-traffic doctors so their dashboards
-            // are alive, not empty, when the demo dataset is seeded fresh.
-            new BookingSpec("juan.cruz@heron.care", "dr.bernardo@heron.care", 2, 10, 0,
-                    BookingStatus.CONFIRMED, "Blood pressure has been creeping up; want to review my medication."),
-            new BookingSpec("patient.demo@heron.care", "dr.bernardo@heron.care", -6, 14, 0,
-                    BookingStatus.CONFIRMED, "Routine diabetes check and recent lab review."),
-            new BookingSpec("maria.santos@heron.care", "dr.domingo@heron.care", 3, 11, 0,
-                    BookingStatus.CONFIRMED, "Anxiety has been worse lately; would like to talk through options."),
-            new BookingSpec("ana.reyes@heron.care", "dr.domingo@heron.care", -4, 15, 30,
-                    BookingStatus.CONFIRMED, "Follow-up on mood and sleep."),
-            new BookingSpec("jose.protacio@heron.care", "dr.aguilar@heron.care", 1, 9, 30,
-                    BookingStatus.CONFIRMED, "General check-up — feeling run down for a couple of weeks."),
-            new BookingSpec("sofia.delosreyes@heron.care", "dr.torres@heron.care", 4, 13, 30,
-                    BookingStatus.CONFIRMED, "Thyroid medication review."),
-            new BookingSpec("grace.tan@heron.care", "dr.dimaano@heron.care", 2, 16, 0,
-                    BookingStatus.CONFIRMED, "Recurring migraines, want a management plan."),
-            new BookingSpec("liza.garcia@heron.care", "dr.valdez@heron.care", -3, 10, 30,
-                    BookingStatus.CONFIRMED, "Persistent acne flare, would like to review treatment."));
+    // ---- Demo-day enrichment: photos, consult notes, and reasons-for-visit ----
+
+    // Sex per doctor, used only to gender-match a seeded profile photo (the doctor
+    // profile carries no Sex field). 'f' = woman, 'm' = man.
+    private static final Map<String, Character> DOCTOR_SEX = Map.ofEntries(
+            Map.entry("dr.reyes@heron.care", 'f'), Map.entry("dr.tan@heron.care", 'm'),
+            Map.entry("dr.santos@heron.care", 'f'), Map.entry("dr.lim@heron.care", 'm'),
+            Map.entry("dr.cruz@heron.care", 'f'), Map.entry("dr.garcia@heron.care", 'm'),
+            Map.entry("dr.flores@heron.care", 'f'), Map.entry("dr.mendoza@heron.care", 'm'),
+            Map.entry("dr.romero@heron.care", 'f'), Map.entry("dr.ocampo@heron.care", 'f'),
+            Map.entry("dr.velasco@heron.care", 'm'), Map.entry("dr.domingo@heron.care", 'f'),
+            Map.entry("dr.navarro@heron.care", 'm'), Map.entry("dr.salazar@heron.care", 'f'),
+            Map.entry("dr.aguilar@heron.care", 'm'), Map.entry("dr.castillo@heron.care", 'f'),
+            Map.entry("dr.delrosario@heron.care", 'm'), Map.entry("dr.bernardo@heron.care", 'f'),
+            Map.entry("dr.pascual@heron.care", 'm'), Map.entry("dr.ramos@heron.care", 'f'),
+            Map.entry("dr.torres@heron.care", 'f'), Map.entry("dr.mercado@heron.care", 'm'),
+            Map.entry("dr.dimaano@heron.care", 'f'), Map.entry("dr.soriano@heron.care", 'm'),
+            Map.entry("dr.valdez@heron.care", 'f'), Map.entry("dr.manalo@heron.care", 'm'),
+            Map.entry("dr.carpio@heron.care", 'f'), Map.entry("dr.tolentino@heron.care", 'f'),
+            Map.entry("dr.padilla@heron.care", 'm'));
+
+    // A realistic minority of accounts keep initial-letter avatars (so the demo
+    // also shows the no-photo fallback). Everyone else gets a gender-matched photo.
+    private static final Set<String> NO_PHOTO = Set.of(
+            "dr.delrosario@heron.care", "dr.pascual@heron.care", "dr.carpio@heron.care",
+            "dr.padilla@heron.care",
+            "jose.protacio@heron.care", "mark.villanueva@heron.care", "daniel.reyes@heron.care",
+            "katrina.flores@heron.care", "gerald.aquino@heron.care", "benedict.cruz@heron.care");
+
+    // SOAP note + prescription templates, rotated across the COMPLETED (and a few
+    // draft) consults so visit summaries and the doctor's notes view show real
+    // content. General-internal-medicine flavour; the demo doesn't pretend these
+    // are specialty-perfect.
+    private static final List<Soap> SOAP_TEMPLATES = List.of(
+            new Soap(
+                    "Reports the blood pressure log shows readings around 145/92 over the past month; no chest pain or breathlessness.",
+                    "BP 148/94 today, heart rate 78 regular. Weight stable. Cardiovascular and respiratory exam unremarkable on video.",
+                    "Hypertension, not yet at target on current therapy. No end-organ red flags.",
+                    "Increase to the next dose step, continue home monitoring, reduce salt intake. Review in four weeks with a fresh BP log.",
+                    List.of(rx("Amlodipine", "10 mg once daily", "Take in the morning. Watch for ankle swelling."))),
+            new Soap(
+                    "Three months of poor sleep and afternoon fatigue; mood low but no thoughts of self-harm. Appetite normal.",
+                    "Alert, engaged. No acute distress. PHQ-style screen suggests mild-to-moderate low mood.",
+                    "Adjustment-related low mood with insomnia. No features needing urgent referral.",
+                    "Start sleep-hygiene plan and brief activity scheduling. Offered counselling referral. Review in three weeks.",
+                    List.of(rx("Melatonin", "3 mg at night", "Take 30 minutes before bed for two weeks, then reassess."))),
+            new Soap(
+                    "Recent labs reviewed together. HbA1c improved from 8.1 to 7.2 since the last visit. Tolerating metformin well.",
+                    "BMI 28. No new neuropathy symptoms. Feet examined by patient on camera — no lesions reported.",
+                    "Type 2 diabetes, improving control. On track with lifestyle changes.",
+                    "Continue current regimen. Repeat HbA1c in three months. Reinforce diet and walking plan.",
+                    List.of(rx("Metformin", "1000 mg twice daily", "Continue with meals. Report any persistent GI upset."))),
+            new Soap(
+                    "Thyroid medication review; feeling well, no palpitations or temperature intolerance. Energy back to normal.",
+                    "Calm, well. No tremor. Recent TSH within target range.",
+                    "Hypothyroidism, well controlled on current dose.",
+                    "No dose change. Repeat TSH in six months. Continue once-daily dosing on an empty stomach.",
+                    List.of(rx("Levothyroxine", "75 mcg once daily", "Take on an empty stomach, 30–60 minutes before breakfast."))),
+            new Soap(
+                    "Recurring headaches roughly twice a month, throbbing and one-sided, with light sensitivity. No weakness or visual loss.",
+                    "Neurological screen on video grossly normal. No red-flag features. Blood pressure normal.",
+                    "Episodic migraine without aura. No indicators for urgent imaging.",
+                    "Start a headache diary, identify triggers, and use an acute medication early in an attack. Review in six weeks.",
+                    List.of(rx("Sumatriptan", "50 mg as needed", "Take at the onset of a migraine; maximum two doses in 24 hours."))),
+            new Soap(
+                    "Persistent fatigue for several weeks with occasional light-headedness on standing; sleep poor.",
+                    "BP 118/76, heart rate 74 regular. No pallor; exam unremarkable on video.",
+                    "Fatigue likely multifactorial — poor sleep with possible iron deficiency. Light-headedness appears postural.",
+                    "Advised sleep hygiene and hydration. Requested CBC and ferritin. Review in two weeks with results.",
+                    List.of(rx("Ferrous sulfate", "325 mg once daily", "Take with food. Recheck iron levels in six weeks."))),
+            new Soap(
+                    "Itchy, scaly patches on the forearms for two weeks; worse after gardening. No fever or spreading redness.",
+                    "Two well-defined erythematous, mildly scaly plaques on the extensor forearms. No weeping or pustules on camera.",
+                    "Contact dermatitis, likely irritant. No signs of infection.",
+                    "Avoid the suspected trigger, use a barrier emollient, and a short course of topical steroid. Review if not settling in two weeks.",
+                    List.of(rx("Hydrocortisone 1% cream", "Apply twice daily", "Use on affected areas for up to seven days."))),
+            new Soap(
+                    "Post-cardiac-rehab review; walking 30 minutes daily without chest pain or breathlessness. Adhering to medication.",
+                    "Comfortable at rest. Heart rate 64 regular. Reports stable exercise tolerance.",
+                    "Stable coronary artery disease, well managed. No new symptoms.",
+                    "Continue current cardiac medications and exercise plan. Routine review in three months; seek care sooner for any chest pain.",
+                    List.of(rx("Atorvastatin", "40 mg once daily", "Take at night. Continue indefinitely unless advised otherwise."))));
+
+    // Reasons-for-visit, rotated across the spread bookings so each doctor's list
+    // reads naturally rather than repeating one line.
+    private static final List<String> CONCERNS = List.of(
+            "Persistent cough that won't clear after two weeks.",
+            "Follow-up on recent blood test results.",
+            "Feeling unusually tired for the past month.",
+            "Recurring headaches, would like a management plan.",
+            "Blood pressure has been creeping up at home.",
+            "Annual check-up and general screening.",
+            "Trouble sleeping and daytime fatigue.",
+            "Skin rash that keeps coming back.",
+            "Joint stiffness in the mornings.",
+            "Reviewing my current medications.",
+            "Stomach discomfort after meals.",
+            "Anxiety has been harder to manage lately.",
+            "Shortness of breath with light activity.",
+            "Dizziness when standing up quickly.",
+            "Thyroid medication review.",
+            "Diabetes check-in and lifestyle advice.",
+            "A mole I'd like checked.",
+            "Lingering fatigue after a recent illness.",
+            "Migraine prevention options.",
+            "General wellness consultation.");
 
     private final UserRepository userRepository;
     private final PatientProfileRepository patientProfileRepository;
@@ -316,6 +468,7 @@ public class SeedRunner implements CommandLineRunner {
         backfillLicenses();
         backfillPublishedFlag();
         ensurePatients();
+        seedProfilePictures();
         seedBookings(reset);
         ensureDemoConsultation();
     }
@@ -476,6 +629,49 @@ public class SeedRunner implements CommandLineRunner {
         }
     }
 
+    // Gender-matched profile photos for most accounts, bundled under
+    // resources/seed-photos. Re-seeded after a reset (the wipe drops the picture
+    // collection and recreated accounts get fresh ids). Idempotent — skips a user
+    // who already has a picture, so a normal restart doesn't re-write.
+    private void seedProfilePictures() {
+        int[] next = {0, 0}; // running index into [men, women] of the bundled set
+        int created = 0;
+        for (DoctorSpec d : DOCTORS) {
+            if (NO_PHOTO.contains(d.email())) continue;
+            if (assignPhoto(d.email(), DOCTOR_SEX.getOrDefault(d.email(), 'm'), next)) created++;
+        }
+        for (PatientSpec p : PATIENTS) {
+            if (NO_PHOTO.contains(p.email())) continue;
+            if (assignPhoto(p.email(), p.sex() == Sex.FEMALE ? 'f' : 'm', next)) created++;
+        }
+        if (created > 0) {
+            log.info("[seed] seeded {} profile photo(s)", created);
+        }
+    }
+
+    // Loads the next bundled photo of the given sex ('m'/'f') and stores it for the
+    // user. Returns false (and advances nothing) when the user is missing, already
+    // has a picture, or we run out of bundled faces.
+    private boolean assignPhoto(String email, char sex, int[] next) {
+        String userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
+        if (userId == null || profilePictureRepository.findByUserId(userId).isPresent()) {
+            return false;
+        }
+        int slot = sex == 'f' ? 1 : 0;
+        String file = String.format("%c%02d.jpg", sex, next[slot]);
+        byte[] bytes;
+        try {
+            bytes = new ClassPathResource("seed-photos/" + file).getInputStream().readAllBytes();
+        } catch (Exception e) {
+            log.warn("[seed] could not read photo resource {}", file);
+            return false;
+        }
+        next[slot]++;
+        profilePictureRepository.save(ProfilePicture.builder()
+                .userId(userId).data(bytes).contentType("image/jpeg").build());
+        return true;
+    }
+
     private void seedBookings(boolean reset) {
         if (reset && bookingRepository.count() > 0) {
             long removed = bookingRepository.count();
@@ -485,31 +681,220 @@ public class SeedRunner implements CommandLineRunner {
         if (bookingRepository.count() > 0) {
             return; // idempotent: never duplicate or clobber live bookings
         }
-        int created = 0;
-        for (BookingSpec spec : BOOKINGS) {
-            String patientUserId = userRepository.findByEmail(spec.patientEmail())
-                    .map(User::getId).orElse(null);
-            String doctorUserId = userRepository.findByEmail(spec.doctorEmail())
-                    .map(User::getId).orElse(null);
-            if (patientUserId == null || doctorUserId == null) {
-                continue;
+        Map<String, String> ids = new HashMap<>();
+        for (DoctorSpec d : DOCTORS) {
+            userRepository.findByEmail(d.email()).ifPresent(u -> ids.put(d.email(), u.getId()));
+        }
+        for (PatientSpec p : PATIENTS) {
+            userRepository.findByEmail(p.email()).ifPresent(u -> ids.put(p.email(), u.getId()));
+        }
+        int created = seedHeroDay(ids) + seedDemoPatientJourney(ids) + seedSpread(ids);
+        log.info("[seed] created {} demo booking(s)", created);
+    }
+
+    // The hero doctor (Patricia Cruz) — a full, realistic day plus history and
+    // future, so the dashboard shows everything at once: completed-earlier, a
+    // visit happening now, upcoming, ended-awaiting-notes, and a started draft.
+    // The two early consults are finalized; the rest of today stays CONFIRMED so
+    // they read as ended / now / upcoming purely by the clock at view time.
+    private int seedHeroDay(Map<String, String> ids) {
+        final String email = "dr.cruz@heron.care";
+        final String doc = ids.get(email);
+        if (doc == null) return 0;
+        int n = 0;
+        // --- Today ---
+        n += save(slot(ids.get("carlos.mendez@heron.care"), email, doc, 0, 9, 0, BookingStatus.COMPLETED,
+                "Blood pressure review and cholesterol follow-up.")
+                .consultationRecord(finalized(SOAP_TEMPLATES.get(0), 0, 9, 0)));
+        n += save(slot(ids.get("vincent.ong@heron.care"), email, doc, 0, 9, 30, BookingStatus.COMPLETED,
+                "Diabetes and gout check-in.")
+                .consultationRecord(finalized(SOAP_TEMPLATES.get(2), 0, 9, 30)));
+        n += save(slot(ids.get("patricia.lim@heron.care"), email, doc, 0, 10, 0, BookingStatus.CONFIRMED,
+                "Diabetes management and recent labs.")
+                .consultationRecord(draft(SOAP_TEMPLATES.get(2)))); // notes started, not finalized
+        n += save(slot(ids.get("enrique.flores@heron.care"), email, doc, 0, 10, 30, BookingStatus.CONFIRMED,
+                "Thyroid medication review."));
+        n += save(slot(ids.get("marlon.garcia@heron.care"), email, doc, 0, 11, 30, BookingStatus.CONFIRMED,
+                "Weight management and sleep-apnoea follow-up."));
+        n += save(slot(ids.get("jose.protacio@heron.care"), email, doc, 0, 13, 30, BookingStatus.CONFIRMED,
+                "Annual check-up and diabetes screening."));
+        n += save(slot(ids.get("oscar.tan@heron.care"), email, doc, 0, 14, 30, BookingStatus.CONFIRMED,
+                "Post-cardiac-rehab medication review."));
+        n += save(slot(ids.get("rowena.aquino@heron.care"), email, doc, 0, 15, 30, BookingStatus.CONFIRMED,
+                "Blood pressure and knee pain."));
+        n += save(slot(ids.get("arturo.lim@heron.care"), email, doc, 0, 16, 0, BookingStatus.CONFIRMED,
+                "Persistent fatigue work-up."));
+        // --- Recent past: ended, awaiting notes (one with a draft started) ---
+        n += save(slot(ids.get("felix.santos@heron.care"), email, doc, -1, 14, 0, BookingStatus.CONFIRMED,
+                "Recurring headaches, want to rule out causes."));
+        n += save(slot(ids.get("carmela.reyes@heron.care"), email, doc, -2, 10, 0, BookingStatus.CONFIRMED,
+                "Fatigue and irregular cycles.")
+                .consultationRecord(draft(SOAP_TEMPLATES.get(5))));
+        n += save(slot(ids.get("gerald.aquino@heron.care"), email, doc, -3, 15, 0, BookingStatus.CONFIRMED,
+                "Follow-up on recent blood work."));
+        // --- Completed history (medical records / view notes) ---
+        n += save(slot(ids.get("juan.cruz@heron.care"), email, doc, -7, 9, 30, BookingStatus.COMPLETED,
+                "Reviewing recent blood test results.")
+                .consultationRecord(finalized(SOAP_TEMPLATES.get(2), -7, 9, 30)));
+        n += save(slot(ids.get("maria.santos@heron.care"), email, doc, -12, 11, 0, BookingStatus.COMPLETED,
+                "Persistent fatigue and dizziness.")
+                .consultationRecord(finalized(SOAP_TEMPLATES.get(5), -12, 11, 0)));
+        n += save(slot(ids.get("vincent.ong@heron.care"), email, doc, -20, 14, 30, BookingStatus.COMPLETED,
+                "Routine diabetes review.")
+                .consultationRecord(finalized(SOAP_TEMPLATES.get(2), -20, 14, 30)));
+        n += save(slot(ids.get("carlos.mendez@heron.care"), email, doc, -30, 10, 30, BookingStatus.COMPLETED,
+                "Hypertension follow-up.")
+                .consultationRecord(finalized(SOAP_TEMPLATES.get(0), -30, 10, 30)));
+        // --- Upcoming this week and beyond ---
+        n += save(slot(ids.get("patricia.lim@heron.care"), email, doc, 1, 9, 0, BookingStatus.CONFIRMED,
+                "Three-month diabetes review."));
+        n += save(slot(ids.get("enrique.flores@heron.care"), email, doc, 2, 11, 0, BookingStatus.CONFIRMED,
+                "Thyroid labs follow-up."));
+        n += save(slot(ids.get("marlon.garcia@heron.care"), email, doc, 3, 14, 0, BookingStatus.CONFIRMED,
+                "Weight-management plan check-in."));
+        n += save(slot(ids.get("oscar.tan@heron.care"), email, doc, 5, 10, 0, BookingStatus.CONFIRMED,
+                "Cardiac medication review."));
+        // --- A cancelled and a rescheduled, for completeness ---
+        n += save(slot(ids.get("felix.santos@heron.care"), email, doc, 4, 13, 0, BookingStatus.CANCELLED,
+                "Migraine consult.").cancelledAt(clock.instant()));
+        Instant heroPrev = instantAt(2, 16, 0);
+        n += save(slot(ids.get("benedict.cruz@heron.care"), email, doc, 6, 11, 30, BookingStatus.CONFIRMED,
+                "General check-up.")
+                .rescheduledHistory(List.of(Booking.RescheduledFrom.builder()
+                        .previousStartsAt(heroPrev)
+                        .previousEndsAt(heroPrev.plus(SLOT_MINUTES, ChronoUnit.MINUTES))
+                        .rescheduledAt(clock.instant()).build())));
+        return n;
+    }
+
+    // The demo patient's own appointment list — one of each state so the patient
+    // surfaces (list / week / month / cancel / summary) all have something to show.
+    private int seedDemoPatientJourney(Map<String, String> ids) {
+        final String pat = ids.get("patient.demo@heron.care");
+        if (pat == null) return 0;
+        int n = 0;
+        n += save(slot(pat, "dr.reyes@heron.care", ids.get("dr.reyes@heron.care"), 0, 15, 0,
+                BookingStatus.CONFIRMED, "Follow-up on my blood pressure medication.")); // today / joinable
+        n += save(slot(pat, "dr.garcia@heron.care", ids.get("dr.garcia@heron.care"), 2, 10, 30,
+                BookingStatus.CONFIRMED, "Trouble sleeping and persistent anxiety.")); // upcoming
+        n += save(slot(pat, "dr.flores@heron.care", ids.get("dr.flores@heron.care"), -1, 11, 0,
+                BookingStatus.CONFIRMED, "General check-up, feeling run down.")); // ended, awaiting summary
+        n += save(slot(pat, "dr.reyes@heron.care", ids.get("dr.reyes@heron.care"), -25, 10, 0,
+                BookingStatus.COMPLETED, "Chest tightness on exertion.")
+                .consultationRecord(finalized(SOAP_TEMPLATES.get(7), -25, 10, 0))); // completed summary
+        n += save(slot(pat, "dr.tan@heron.care", ids.get("dr.tan@heron.care"), 5, 9, 30,
+                BookingStatus.CANCELLED, "Second opinion on my ECG.").cancelledAt(clock.instant())); // cancelled
+        Instant prev = instantAt(1, 9, 0);
+        n += save(slot(pat, "dr.santos@heron.care", ids.get("dr.santos@heron.care"), 4, 14, 0,
+                BookingStatus.CONFIRMED, "Skin rash review.")
+                .rescheduledHistory(List.of(Booking.RescheduledFrom.builder()
+                        .previousStartsAt(prev).previousEndsAt(prev.plus(SLOT_MINUTES, ChronoUnit.MINUTES))
+                        .rescheduledAt(clock.instant()).build()))); // rescheduled
+        return n;
+    }
+
+    // Every non-hero doctor gets a small, deterministic spread so no dashboard or
+    // calendar is empty and the marketplace feels alive: a completed consult with
+    // notes, a recently-ended one awaiting notes, an upcoming one, and — on a
+    // rotation — a cancellation, a started draft, and an extra upcoming. Patients
+    // rotate through the pool (excluding the demo patient, whose list stays curated).
+    private int seedSpread(Map<String, String> ids) {
+        List<String> pool = new ArrayList<>();
+        for (PatientSpec p : PATIENTS) {
+            if (p.email().equals("patient.demo@heron.care")) continue;
+            String id = ids.get(p.email());
+            if (id != null) pool.add(id);
+        }
+        if (pool.isEmpty()) return 0;
+        int n = 0, di = 0;
+        for (DoctorSpec d : DOCTORS) {
+            if (d.email().equals("dr.cruz@heron.care")) continue; // hero owns its own day
+            final String email = d.email();
+            final String doc = ids.get(email);
+            if (doc == null) continue;
+            String p1 = pool.get((di * 4) % pool.size());
+            String p2 = pool.get((di * 4 + 1) % pool.size());
+            String p3 = pool.get((di * 4 + 2) % pool.size());
+            String p4 = pool.get((di * 4 + 3) % pool.size());
+
+            int cd = -(8 + di % 15); // completed, with finalized notes
+            n += save(slot(p1, email, doc, cd, 10, 0, BookingStatus.COMPLETED,
+                    CONCERNS.get(di % CONCERNS.size()))
+                    .consultationRecord(finalized(SOAP_TEMPLATES.get(di % SOAP_TEMPLATES.size()), cd, 10, 0)));
+            int ed = -(1 + di % 3); // recently ended, awaiting notes
+            n += save(slot(p2, email, doc, ed, 14, 0, BookingStatus.CONFIRMED,
+                    CONCERNS.get((di + 5) % CONCERNS.size())));
+            int ud = 1 + di % 6; // upcoming this week
+            n += save(slot(p3, email, doc, ud, 11, 0, BookingStatus.CONFIRMED,
+                    CONCERNS.get((di + 10) % CONCERNS.size())));
+
+            if (di % 3 == 0) {
+                n += save(slot(p4, email, doc, 2 + di % 5, 15, 30, BookingStatus.CANCELLED,
+                        CONCERNS.get((di + 3) % CONCERNS.size())).cancelledAt(clock.instant()));
             }
-            Instant startsAt = instantAt(spec.daysFromNow(), spec.hour(), spec.minute());
-            bookingRepository.save(Booking.builder()
-                    .patientUserId(patientUserId)
-                    .doctorUserId(doctorUserId)
-                    .startsAt(startsAt)
-                    .endsAt(startsAt.plus(SLOT_MINUTES, ChronoUnit.MINUTES))
-                    .status(spec.status())
-                    .concernNote(spec.concernNote())
-                    .meetingLink(DOCTOR_MEETING_LINKS.get(spec.doctorEmail()))
-                    .idempotencyKey(UUID.randomUUID().toString())
-                    .build());
-            created++;
+            if (di % 4 == 0) {
+                int dd = -(1 + (di + 1) % 3);
+                n += save(slot(p4, email, doc, dd, 9, 30, BookingStatus.CONFIRMED,
+                        CONCERNS.get((di + 7) % CONCERNS.size()))
+                        .consultationRecord(draft(SOAP_TEMPLATES.get((di + 2) % SOAP_TEMPLATES.size()))));
+            }
+            if (di % 5 == 0) {
+                n += save(slot(p1, email, doc, 3 + di % 4, 16, 0, BookingStatus.CONFIRMED,
+                        CONCERNS.get((di + 12) % CONCERNS.size())));
+            }
+            di++;
         }
-        if (created > 0) {
-            log.info("[seed] created {} demo booking(s)", created);
+        return n;
+    }
+
+    // A booking builder for a 30-minute Manila-local slot, daysFromNow from today.
+    private Booking.BookingBuilder slot(String patientId, String doctorEmail, String doctorId,
+            int days, int hour, int minute, BookingStatus status, String concern) {
+        Instant s = instantAt(days, hour, minute);
+        return Booking.builder()
+                .patientUserId(patientId)
+                .doctorUserId(doctorId)
+                .startsAt(s)
+                .endsAt(s.plus(SLOT_MINUTES, ChronoUnit.MINUTES))
+                .status(status)
+                .concernNote(concern)
+                .meetingLink(DOCTOR_MEETING_LINKS.get(doctorEmail))
+                .idempotencyKey(UUID.randomUUID().toString());
+    }
+
+    // Saves the booking, skipping anything with a missing party or a slot that
+    // collides with the CONFIRMED-conflict unique index (so the spread can be
+    // generous without hand-proving every slot is free). Returns 1/0 for tallying.
+    private int save(Booking.BookingBuilder builder) {
+        Booking booking = builder.build();
+        if (booking.getPatientUserId() == null || booking.getDoctorUserId() == null) {
+            return 0;
         }
+        try {
+            bookingRepository.save(booking);
+            return 1;
+        } catch (DuplicateKeyException e) {
+            return 0;
+        }
+    }
+
+    // A finalized consult record from a template, stamped finalized at the slot's end.
+    private ConsultationRecord finalized(Soap t, int days, int hour, int minute) {
+        Instant end = instantAt(days, hour, minute).plus(SLOT_MINUTES, ChronoUnit.MINUTES);
+        return ConsultationRecord.builder()
+                .subjective(t.s()).objective(t.o()).assessment(t.a()).plan(t.p())
+                .prescription(t.rx()).finalizedAt(end).build();
+    }
+
+    // A started-but-unfinalized draft (subjective + objective only). The booking
+    // stays CONFIRMED, so it reads as "ended — continue notes" once its slot passes.
+    private ConsultationRecord draft(Soap t) {
+        return ConsultationRecord.builder().subjective(t.s()).objective(t.o()).build();
+    }
+
+    private static ConsultationRecord.PrescriptionItem rx(String med, String dose, String instructions) {
+        return ConsultationRecord.PrescriptionItem.builder()
+                .medication(med).dosage(dose).instructions(instructions).build();
     }
 
     // Backfills generated PRC/PTR license numbers onto doctors that pre-date the
@@ -592,7 +977,8 @@ public class SeedRunner implements CommandLineRunner {
             Double heightCm, String contactNumber, List<String> conditions,
             List<String> allergies, List<String> medications, String notesForDoctor) {}
 
-    private record BookingSpec(
-            String patientEmail, String doctorEmail, int daysFromNow, int hour,
-            int minute, BookingStatus status, String concernNote) {}
+    // A reusable SOAP note + prescription template (s/o/a/p + rx), rotated across
+    // the seeded completed and draft consults.
+    private record Soap(String s, String o, String a, String p,
+            List<ConsultationRecord.PrescriptionItem> rx) {}
 }
