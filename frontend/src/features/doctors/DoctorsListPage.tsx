@@ -1,6 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Search, Sparkles } from 'lucide-react';
+import {
+  Activity,
+  ArrowRight,
+  Baby,
+  Bone,
+  Brain,
+  Droplet,
+  Heart,
+  HeartPulse,
+  LayoutGrid,
+  Search,
+  Sparkles,
+  Smile,
+  Stethoscope,
+  type LucideIcon,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CrescentSpinner } from '@/components/shared/CrescentSpinner';
@@ -8,6 +23,52 @@ import { cn } from '@/lib/utils';
 import { SPECIALIZATIONS, type Specialization } from './specializations';
 import { DoctorCard } from './DoctorCard';
 import { useDoctors } from './api';
+
+// A calm, recognisable glyph per specialty — orientation, not decoration. Kept
+// inside the locked palette (the icon inherits the pill's text colour).
+const SPEC_ICON: Record<string, LucideIcon> = {
+  GENERAL_PRACTICE: Stethoscope,
+  INTERNAL_MEDICINE: Activity,
+  PEDIATRICS: Baby,
+  OB_GYN: HeartPulse,
+  CARDIOLOGY: Heart,
+  DERMATOLOGY: Sparkles,
+  PSYCHIATRY: Smile,
+  NEUROLOGY: Brain,
+  ORTHOPEDICS: Bone,
+  ENDOCRINOLOGY: Droplet,
+};
+
+function SpecPill({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        'flex min-h-[44px] w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-all duration-150',
+        active
+          ? 'border-primary bg-primary-tint font-semibold text-primary shadow-xs'
+          : 'border-line bg-surface text-ink shadow-xs hover:-translate-y-0.5 hover:border-ai-glow hover:shadow-sm',
+      )}
+    >
+      <Icon
+        className={cn('h-4 w-4 shrink-0', active ? 'text-primary' : 'text-ink-muted')}
+      />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
 
 function useDebounce<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
@@ -101,34 +162,20 @@ export function DoctorsListPage() {
           />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          <button
-            type="button"
-            aria-pressed={specialization === null}
+          <SpecPill
+            icon={LayoutGrid}
+            label="All specialties"
+            active={specialization === null}
             onClick={() => setSpecialization(null)}
-            className={cn(
-              'flex min-h-[40px] w-full items-center justify-center rounded-md border px-3 py-1.5 text-center text-sm transition-colors',
-              specialization === null
-                ? 'border-primary bg-primary-tint font-medium text-primary'
-                : 'border-line text-ink hover:border-primary',
-            )}
-          >
-            All specialties
-          </button>
+          />
           {SPECIALIZATIONS.map((s) => (
-            <button
+            <SpecPill
               key={s.value}
-              type="button"
-              aria-pressed={specialization === s.value}
+              icon={SPEC_ICON[s.value] ?? Stethoscope}
+              label={s.label}
+              active={specialization === s.value}
               onClick={() => setSpecialization(s.value)}
-              className={cn(
-                'flex min-h-[40px] w-full items-center justify-center rounded-md border px-3 py-1.5 text-center text-sm transition-colors',
-                specialization === s.value
-                  ? 'border-primary bg-primary-tint font-medium text-primary'
-                  : 'border-line text-ink hover:border-primary',
-              )}
-            >
-              {s.label}
-            </button>
+            />
           ))}
         </div>
       </section>
