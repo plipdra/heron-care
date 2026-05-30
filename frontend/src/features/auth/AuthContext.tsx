@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { tokenStore } from '@/lib/tokenStore';
 import {
   useLogin,
@@ -80,16 +81,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const [authModalIntent, setAuthModalIntent] = useState<AuthIntent | null>(null);
 
+  const queryClient = useQueryClient();
   const loginMutation = useLogin();
   const registerPatientMutation = useRegisterPatient();
   const registerDoctorMutation = useRegisterDoctor();
   const logoutMutation = useLogout();
 
-  const applyAuthResponse = useCallback((response: AuthResponse) => {
-    tokenStore.set(response.accessToken, response.refreshToken);
-    setUser(userFromToken(response.accessToken));
-    setAuthModalIntent(null);
-  }, []);
+  const applyAuthResponse = useCallback(
+    (response: AuthResponse) => {
+      // Drop the previous identity's cached data BEFORE the new user is set, so a
+      // re-login (or account switch) can never render a prior user's profile,
+      // bookings, or notifications while the fresh queries are still loading.
+      queryClient.clear();
+      tokenStore.set(response.accessToken, response.refreshToken);
+      setUser(userFromToken(response.accessToken));
+      setAuthModalIntent(null);
+    },
+    [queryClient],
+  );
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -141,7 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     tokenStore.clear();
     setUser(null);
-  }, [logoutMutation]);
+    // Purge every cached query so the next account never sees this one's data.
+    queryClient.clear();
+  }, [logoutMutation, queryClient]);
 
   const openAuthModal = useCallback((intent: AuthIntent = 'general') => {
     setAuthModalIntent(intent);
