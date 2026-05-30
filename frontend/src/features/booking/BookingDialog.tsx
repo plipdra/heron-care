@@ -66,7 +66,7 @@ function downloadIcs(startsAt: string, endsAt: string, doctorName: string) {
 // the doctor profile and card.
 function SpecBadge({ label }: { label: string }) {
   return (
-    <span className="mt-1.5 inline-flex items-center rounded-full border border-accent/40 bg-accent-tint px-2.5 py-0.5 text-xs font-semibold text-accent-deep">
+    <span className="mt-1.5 inline-flex items-center rounded-full border border-primary-tint-md bg-primary-tint px-2.5 py-0.5 text-xs font-semibold text-primary">
       {label}
     </span>
   );

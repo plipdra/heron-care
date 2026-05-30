@@ -55,7 +55,7 @@ export function DoctorProfilePage() {
               </h1>
               <div className="mt-2.5 flex flex-wrap items-center gap-3">
                 {data.specializationLabel && (
-                  <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent-tint px-3 py-1 text-xs font-semibold text-accent-deep">
+                  <span className="inline-flex items-center rounded-full border border-primary-tint-md bg-primary-tint px-3 py-1 text-xs font-semibold text-primary">
                     {data.specializationLabel}
                   </span>
                 )}
