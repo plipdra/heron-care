@@ -76,6 +76,29 @@
   }
 }
 
+/* On large / high-resolution displays the px-based UI renders physically small,
+   leaving the site feeling shrunken with wide empty margins. Scale the whole
+   document up in steps so a 1440p or ultra-wide screen reads at a comfortable
+   size — close to how it looks on a 1080p display at 100%. `zoom` (now supported
+   across all modern browsers) scales type, spacing, and the design's arbitrary
+   px values alike, which a root font-size bump can't reach. Media queries
+   evaluate against the unzoomed viewport, so these thresholds don't feed back. */
+@media (min-width: 1800px) {
+  :root {
+    zoom: 1.15;
+  }
+}
+@media (min-width: 2200px) {
+  :root {
+    zoom: 1.3;
+  }
+}
+@media (min-width: 3000px) {
+  :root {
+    zoom: 1.5;
+  }
+}
+
 @layer utilities {
   /* Horizontal scroll without the chunky native scrollbar — a clipped edge
      chip already signals there's more to scroll. Calm over utilitarian. */

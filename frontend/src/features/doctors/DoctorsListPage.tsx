@@ -230,8 +230,18 @@ export function DoctorsListPage() {
               {search ? ` matching “${search}”` : ''} · sorted by name
             </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {data.content.map((doctor) => (
-                <DoctorCard key={doctor.id} doctor={doctor} />
+              {data.content.map((doctor, i) => (
+                // Soft cascade as the page settles — a short per-card delay reads
+                // as a row-by-row wash. Re-mounts (so re-animates) on page change
+                // because the keys are the new page's doctor ids. motion-safe so
+                // a reduce-motion preference shows them instantly.
+                <div
+                  key={doctor.id}
+                  className="motion-safe:animate-stagger-in"
+                  style={{ animationDelay: `${Math.min(i * 45, 360)}ms` }}
+                >
+                  <DoctorCard doctor={doctor} />
+                </div>
               ))}
             </div>
           </>

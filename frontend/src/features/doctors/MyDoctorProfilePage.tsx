@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -21,7 +21,7 @@ import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
 import { useAuth } from '@/features/auth/AuthContext';
 import { MyPatientProfilePage } from '@/features/patient/MyPatientProfilePage';
 import { SPECIALIZATIONS } from './specializations';
-import { AvailabilityEditor } from './AvailabilityEditor';
+import { AvailabilityEditor, type AvailabilityEditorHandle } from './AvailabilityEditor';
 import { DoctorProfileView } from './DoctorProfileView';
 import {
   useDeleteMyDoctorPicture,
@@ -72,6 +72,8 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
   const [defaultMeetingLink, setDefaultMeetingLink] = useState('');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [pictureAction, setPictureAction] = useState<PictureAction>({ kind: 'unchanged' });
+  const [savingAll, setSavingAll] = useState(false);
+  const availRef = useRef<AvailabilityEditorHandle>(null);
   const [feedback, setFeedback] = useState<
     { kind: 'success' | 'error'; message: string } | null
   >(null);
@@ -129,8 +131,12 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
     );
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  // One save for the whole page: validate + persist the public details, then ask
+  // the schedule editor (via its ref) to validate + save itself. The read-only
+  // view only reappears when BOTH succeed; a schedule problem shows inline by its
+  // cards while the saved profile stays put.
+  async function handleSaveAll(e?: FormEvent) {
+    e?.preventDefault();
     setFeedback(null);
 
     // Mirror the backend rules PER FIELD so an invalid value is flagged on its
@@ -146,6 +152,7 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
       setFeedback({ kind: 'error', message: 'Please fix the highlighted fields.' });
       return;
     }
+    setSavingAll(true);
     try {
       if (pictureAction.kind === 'upload') {
         await uploadPicture.mutateAsync(pictureAction.dataUrl);
@@ -162,7 +169,10 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
         yearsOfExperience: yearsOfExperience ? Number(yearsOfExperience) : null,
       });
       setFieldErrors({});
-      onDone(); // back to the read-only view, which shows the saved data
+      const scheduleOk = await availRef.current?.save();
+      if (scheduleOk !== false) {
+        onDone(); // back to the read-only view, which shows the saved data
+      }
     } catch (err) {
       // Land the backend's per-field errors on the fields themselves.
       const backend = err instanceof ApiError ? err.problem?.errors : undefined;
@@ -184,6 +194,8 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
               : 'Could not save changes.',
         });
       }
+    } finally {
+      setSavingAll(false);
     }
   }
 
@@ -192,7 +204,10 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
   }
 
   const saving =
-    updateMutation.isPending || uploadPicture.isPending || deletePicture.isPending;
+    savingAll ||
+    updateMutation.isPending ||
+    uploadPicture.isPending ||
+    deletePicture.isPending;
 
   return (
     <main className="container mx-auto max-w-2xl px-4 py-10">
@@ -209,7 +224,7 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
           <CardDescription>Visible to anyone browsing doctors.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSaveAll} className="flex flex-col gap-5">
             <ImageUploadField
               label="Profile photo"
               description="JPEG or PNG, up to 1MB. We resize to a 400px square. Patients see this on your card."
@@ -334,29 +349,33 @@ function DoctorProfileEditor({ onDone }: { onDone: () => void }) {
               </p>
             </div>
 
-            {feedback && (
-              <p
-                className={`text-sm ${
-                  feedback.kind === 'success' ? 'text-success' : 'text-danger'
-                }`}
-              >
-                {feedback.message}
-              </p>
-            )}
-
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={onDone} disabled={saving}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save changes'}
-              </Button>
-            </div>
+            {/* Submit-on-Enter only — the page's one Save button lives at the very
+                bottom, after the schedule, and drives both this form and it. */}
+            <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
           </form>
         </CardContent>
       </Card>
 
-      <AvailabilityEditor availability={data.availability} />
+      <AvailabilityEditor ref={availRef} availability={data.availability} />
+
+      {feedback && (
+        <p
+          className={`mt-6 text-sm ${
+            feedback.kind === 'success' ? 'text-success' : 'text-danger'
+          }`}
+        >
+          {feedback.message}
+        </p>
+      )}
+
+      <div className="mt-6 flex gap-2">
+        <Button type="button" variant="secondary" onClick={onDone} disabled={saving}>
+          Cancel
+        </Button>
+        <Button type="button" onClick={() => handleSaveAll()} disabled={saving}>
+          {saving ? 'Saving…' : 'Save changes'}
+        </Button>
+      </div>
     </main>
   );
 }

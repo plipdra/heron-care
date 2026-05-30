@@ -37,7 +37,7 @@ export function DoctorProfilePage() {
 
   return (
     <main className="min-h-full bg-[linear-gradient(180deg,#F0F4FA_0%,#F7F9FC_30%,#FFFFFF_100%)]">
-      <div className="container mx-auto max-w-5xl px-4 py-10">
+      <div className="container mx-auto max-w-6xl px-4 py-10">
         <Link
           to="/doctors"
           className="inline-flex items-center gap-1 text-sm text-ink-muted transition-colors hover:text-primary"
@@ -46,7 +46,11 @@ export function DoctorProfilePage() {
           Browse doctors
         </Link>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_1fr] lg:items-start">
+        {/* minmax(0,…) on the right column stops the availability card's wide
+            content (day strip + slot grid) from overflowing its track and
+            collapsing the profile card — which was squeezing the name onto two
+            lines. The left card keeps a comfortable floor. */}
+        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(340px,1fr)_minmax(0,1.35fr)] lg:items-start">
         <section className="rounded-lg border border-line bg-surface p-6 shadow-xs sm:p-8">
           {/* Identity stacks top-to-bottom — the card sits in the narrower left
               rail of the two-column layout, so a side-by-side avatar/name crowds

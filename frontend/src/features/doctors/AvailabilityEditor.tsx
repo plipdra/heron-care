@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -96,11 +96,22 @@ function TimeSelect({
   );
 }
 
-// The doctor's schedule + time-off authoring surface. Whole-replace: one Save
-// sends the complete week and time-off list. Blocking time only stops NEW slots
-// being offered — it never cancels a booking that already sits in the range, so
-// we surface (not prevent) any confirmed booking a new block would overlap.
-export function AvailabilityEditor({ availability }: { availability: Availability | null }) {
+// Imperative handle so the parent editor can drive the schedule save from its
+// single page-level "Save changes" button — there's no save button in here.
+export type AvailabilityEditorHandle = {
+  // Validates and saves the schedule. Resolves true on success (or nothing to
+  // change), false on a validation/API error (shown inline near the cards).
+  save: () => Promise<boolean>;
+};
+
+// The doctor's schedule + time-off authoring surface. Whole-replace: the page's
+// one Save sends the complete week and time-off list. Blocking time only stops
+// NEW slots being offered — it never cancels a booking that already sits in the
+// range, so we surface (not prevent) any confirmed booking a new block overlaps.
+export const AvailabilityEditor = forwardRef<
+  AvailabilityEditorHandle,
+  { availability: Availability | null }
+>(function AvailabilityEditor({ availability }, ref) {
   const update = useUpdateMyAvailability();
   const { data: bookingsPage } = useDoctorBookings();
   // Hours belong to the doctor's practice zone, not the browser's — labelling
@@ -164,7 +175,7 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
     });
   }, [blocks, bookings]);
 
-  async function save() {
+  async function save(): Promise<boolean> {
     setFeedback(null);
 
     const weeklySchedule = WEEKDAYS.filter((d) => days[d.value].enabled).map((d) => ({
@@ -179,18 +190,18 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
         kind: 'error',
         message: 'Each day’s end time must be later than its start time.',
       });
-      return;
+      return false;
     }
 
     const incomplete = blocks.find((b) => (b.start && !b.end) || (!b.start && b.end));
     if (incomplete) {
       setFeedback({ kind: 'error', message: 'Each time-off range needs both a start and an end date.' });
-      return;
+      return false;
     }
     const inverted = blocks.find((b) => b.start && b.end && b.end < b.start);
     if (inverted) {
       setFeedback({ kind: 'error', message: 'A time-off end date can’t be before its start date.' });
-      return;
+      return false;
     }
     const blockedRanges = blocks
       .filter((b) => b.start && b.end)
@@ -202,15 +213,18 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
 
     try {
       await update.mutateAsync({ weeklySchedule, blockedRanges });
-      setFeedback({ kind: 'success', message: 'Your schedule is up to date.' });
+      return true;
     } catch (err) {
       setFeedback({
         kind: 'error',
         message:
           err instanceof ApiError ? err.problem?.detail ?? err.message : 'Could not save your schedule.',
       });
+      return false;
     }
   }
+
+  useImperativeHandle(ref, () => ({ save }));
 
   return (
     <>
@@ -353,10 +367,6 @@ export function AvailabilityEditor({ availability }: { availability: Availabilit
           {feedback.message}
         </p>
       )}
-
-      <Button className="mt-4" disabled={update.isPending} onClick={save}>
-        {update.isPending ? 'Saving…' : 'Save schedule'}
-      </Button>
     </>
   );
-}
+});

@@ -44,7 +44,7 @@ public class DoctorController {
     public PageResponse<PublicDoctorResponse> list(
             @RequestParam(required = false) Specialization specialization,
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+            @PageableDefault(size = 20, sort = "name") Pageable pageable) {
         Page<DoctorProfile> page = doctorService.listPublic(specialization, search, pageable);
         return PageResponse.from(page.map(PublicDoctorResponse::from));
     }
