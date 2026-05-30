@@ -24,6 +24,21 @@ function sameLocalDay(iso: string, now: number): boolean {
   return new Date(iso).toDateString() === new Date(now).toDateString();
 }
 
+// "Today" / "Yesterday" / "Tomorrow" / weekday / date — so a bare time is never
+// ambiguous about which day it falls on.
+function relativeDay(iso: string, now: number): string {
+  const d = new Date(iso);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - today.getTime()) / 86_400_000);
+  if (diff === 0) return 'Today';
+  if (diff === -1) return 'Yesterday';
+  if (diff === 1) return 'Tomorrow';
+  if (Math.abs(diff) < 7) return new Date(iso).toLocaleDateString(undefined, { weekday: 'short' });
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 // The doctor's home: a calm dashboard over their consults. Counts and the
@@ -131,7 +146,7 @@ export function DoctorHome() {
                   <ul className="mt-4 divide-y divide-line">
                     {stats.today.map((b) => (
                       <li key={b.id} className="flex items-center gap-3 py-3">
-                        <span className="tabular w-16 shrink-0 text-sm font-medium text-ink-muted">
+                        <span className="tabular w-16 shrink-0 text-sm font-bold text-primary-800">
                           {formatTime(b.startsAt)}
                         </span>
                         <Avatar name={b.patientName ?? 'Patient'} size={36} />
@@ -143,11 +158,16 @@ export function DoctorHome() {
                             {b.concernNote ?? 'No note added.'}
                           </p>
                         </div>
-                        {b.joinable && (
-                          <span className="shrink-0 rounded-full border border-[rgba(123,155,126,0.35)] bg-[rgba(123,155,126,0.14)] px-2 py-0.5 text-[11px] font-semibold text-[#4F6B52]">
-                            Live
+                        {b.joinable ? (
+                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-care-line bg-care-tint px-2.5 py-0.5 text-[11px] font-semibold text-care">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-care" />
+                            In&nbsp;progress
                           </span>
-                        )}
+                        ) : stats.nextUp?.id === b.id ? (
+                          <span className="shrink-0 rounded-full border border-line bg-surface-raised px-2.5 py-0.5 text-[11px] font-semibold text-ink-muted">
+                            Next up
+                          </span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -171,7 +191,7 @@ export function DoctorHome() {
                               {b.patientName ?? 'Patient'}
                             </p>
                             <p className="tabular truncate text-xs text-ink-muted">
-                              {formatTime(b.startsAt)}
+                              {relativeDay(b.startsAt, now)} · {formatTime(b.startsAt)}
                             </p>
                           </div>
                           <Button asChild size="sm" variant="secondary" className="shrink-0">
@@ -186,7 +206,7 @@ export function DoctorHome() {
                 </section>
 
                 {profile?.defaultMeetingLink && (
-                  <section className="relative overflow-hidden rounded-lg border border-line bg-primary-tint-sm p-6 shadow-xs">
+                  <section className="relative overflow-hidden rounded-lg border border-line bg-[#F0F4FA] p-6 shadow-xs">
                     <div
                       aria-hidden="true"
                       className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 opacity-[0.07]"
