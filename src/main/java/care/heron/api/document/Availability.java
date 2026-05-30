@@ -100,11 +100,36 @@ public class Availability {
                 .build();
     }
 
+    // Mon-Sat 14:00-22:00 — an evening/night-shift demo doctor, so the schedule
+    // surface shows a non-9-to-5 clinic. Stays within the day (the model can't
+    // cross midnight) but overlaps a normal recording time.
+    public static Availability nightShiftMonToSat() {
+        return Availability.builder()
+                .timeZone("Asia/Manila")
+                .weeklySchedule(List.of(
+                        nightShift(DayOfWeek.MONDAY),
+                        nightShift(DayOfWeek.TUESDAY),
+                        nightShift(DayOfWeek.WEDNESDAY),
+                        nightShift(DayOfWeek.THURSDAY),
+                        nightShift(DayOfWeek.FRIDAY),
+                        nightShift(DayOfWeek.SATURDAY)))
+                .blockedRanges(List.of())
+                .build();
+    }
+
     private static WeeklyScheduleEntry weekday(DayOfWeek day) {
         return WeeklyScheduleEntry.builder()
                 .dayOfWeek(day)
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(17, 0))
+                .build();
+    }
+
+    private static WeeklyScheduleEntry nightShift(DayOfWeek day) {
+        return WeeklyScheduleEntry.builder()
+                .dayOfWeek(day)
+                .startTime(LocalTime.of(14, 0))
+                .endTime(LocalTime.of(22, 0))
                 .build();
     }
 }

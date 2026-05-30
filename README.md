@@ -94,6 +94,31 @@ The seed creates demo patients and doctors across every specialty — for exampl
 Medicine). Login credentials for the live demo are shared privately with the
 challenge submission rather than committed here.
 
+### Evaluation panel logins
+
+Personal accounts are pre-seeded for the Whitecloak panel, each with **both** a
+patient and a doctor login so you can explore either side. The password for all of
+them is `Demo123!`.
+
+| Panelist | Patient login | Doctor login |
+| --- | --- | --- |
+| Anne Liangco | `anne.liangco@whitecloak.com` | `dr.liangco@whitecloak.com` |
+| Donn Gamboa | `donn.gamboa@whitecloak.com` | `dr.gamboa@whitecloak.com` |
+| Miguel Fermin | `miguel.fermin@whitecloak.com` | `dr.fermin@whitecloak.com` |
+| Thea Juego | `thea.juego@whitecloak.com` | `dr.juego@whitecloak.com` |
+| Cherubim Citco | `cherubim.citco@whitecloak.com` | `dr.citco@whitecloak.com` |
+
+These are intentionally **barebones** (name and role only) so you start from a
+blank slate. To see the app with rich, populated data, use the curated demo
+accounts above (`patient.demo@heron.care`, `dr.cruz@heron.care`).
+
+> **Note:** the panel doctor accounts are deliberately left incomplete (no bio,
+> availability, or meeting link). Incomplete doctor profiles are **not shown to
+> patients** in discovery or AI recommendations — a profile is publicly listed only
+> once it is complete. So a panel doctor login works and reaches its own dashboard,
+> but that doctor will not appear when browsing as a patient until the profile is
+> filled in.
+
 ## Architecture
 
 A layered Spring Boot monolith behind a single deployable artifact:

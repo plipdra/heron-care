@@ -392,6 +392,11 @@ public class SeedRunner implements CommandLineRunner {
             "dr.dimaano@heron.care",   // Neurology
             "dr.valdez@heron.care");   // Dermatology
 
+    // Demo doctors on an evening/night shift (Mon-Sat 2 PM-10 PM) instead of the
+    // 9-to-5 default — so the schedule surface shows a non-standard clinic. Takes
+    // precedence over the Saturday-day-clinic set above.
+    private static final Set<String> NIGHT_DOCTORS = Set.of("dr.cruz@heron.care");
+
     // SOAP note + prescription templates, rotated across the COMPLETED (and a few
     // draft) consults so visit summaries and the doctor's notes view show real
     // content. General-internal-medicine flavour; the demo doesn't pretend these
@@ -470,6 +475,27 @@ public class SeedRunner implements CommandLineRunner {
             "Migraine prevention options.",
             "General wellness consultation.");
 
+    // Whitecloak evaluation-panel logins — one patient and one doctor account per
+    // panelist, so graders can sign in and see both sides of the app. Deliberately
+    // barebones (name + role only, no profile detail). The doctor accounts are left
+    // intentionally incomplete — no bio, availability, or meeting link — so they
+    // stay unpublished and demonstrate the "incomplete doctor profiles are hidden
+    // from patients" rule, while still giving the panelist a working doctor
+    // dashboard. Seeded (not ad-hoc), so they survive a SEED_RESET refresh.
+    private static final List<PanelAccount> PANEL_PATIENTS = List.of(
+            new PanelAccount("anne.liangco@whitecloak.com", "Anne Liangco"),
+            new PanelAccount("donn.gamboa@whitecloak.com", "Donn Gamboa"),
+            new PanelAccount("miguel.fermin@whitecloak.com", "Miguel Fermin"),
+            new PanelAccount("thea.juego@whitecloak.com", "Thea Juego"),
+            new PanelAccount("cherubim.citco@whitecloak.com", "Cherubim Citco"));
+
+    private static final List<PanelAccount> PANEL_DOCTORS = List.of(
+            new PanelAccount("dr.liangco@whitecloak.com", "Anne Liangco, MD"),
+            new PanelAccount("dr.gamboa@whitecloak.com", "Donn Gamboa, MD"),
+            new PanelAccount("dr.fermin@whitecloak.com", "Miguel Fermin, MD"),
+            new PanelAccount("dr.juego@whitecloak.com", "Thea Juego, MD"),
+            new PanelAccount("dr.citco@whitecloak.com", "Cherubim Citco, MD"));
+
     private final UserRepository userRepository;
     private final PatientProfileRepository patientProfileRepository;
     private final DoctorProfileRepository doctorProfileRepository;
@@ -490,8 +516,10 @@ public class SeedRunner implements CommandLineRunner {
         backfillMeetingLinks();
         backfillLicenses();
         ensureSaturdayHours();
+        ensureNightHours();
         backfillPublishedFlag();
         ensurePatients();
+        ensurePanelAccounts();
         seedProfilePictures();
         seedBookings(reset);
         ensureDemoConsultation();
@@ -610,9 +638,11 @@ public class SeedRunner implements CommandLineRunner {
                     .defaultMeetingLink(DOCTOR_MEETING_LINKS.get(spec.email()))
                     .prcLicenseNo(generatedLicense(spec.email(), "prc"))
                     .ptrNo(generatedLicense(spec.email(), "ptr"))
-                    .availability(SATURDAY_DOCTORS.contains(spec.email())
-                            ? Availability.businessHoursMonToSat()
-                            : Availability.defaultBusinessHours())
+                    .availability(NIGHT_DOCTORS.contains(spec.email())
+                            ? Availability.nightShiftMonToSat()
+                            : SATURDAY_DOCTORS.contains(spec.email())
+                                    ? Availability.businessHoursMonToSat()
+                                    : Availability.defaultBusinessHours())
                     .published(true) // seeded doctors are complete → publicly listed
                     .build());
             created++;
@@ -652,6 +682,51 @@ public class SeedRunner implements CommandLineRunner {
         }
         if (created > 0) {
             log.info("[seed] created {} patient(s)", created);
+        }
+    }
+
+    // Creates the Whitecloak panel logins — barebones (name + role only).
+    // Idempotent: skips any that already exist. Patient accounts get a name-only
+    // profile; doctor accounts get a name and General Practice but no bio,
+    // availability, or meeting link, so they fail the publishability gate and stay
+    // hidden from patient discovery (the panelist can still log into the doctor
+    // dashboard for their own account).
+    private void ensurePanelAccounts() {
+        int created = 0;
+        for (PanelAccount p : PANEL_PATIENTS) {
+            if (userRepository.findByEmail(p.email()).isPresent()) {
+                continue;
+            }
+            User user = userRepository.save(User.builder()
+                    .email(p.email())
+                    .passwordHash(passwordEncoder.encode(DEMO_PASSWORD))
+                    .role(UserRole.PATIENT)
+                    .build());
+            patientProfileRepository.save(PatientProfile.builder()
+                    .userId(user.getId())
+                    .name(p.name())
+                    .build());
+            created++;
+        }
+        for (PanelAccount d : PANEL_DOCTORS) {
+            if (userRepository.findByEmail(d.email()).isPresent()) {
+                continue;
+            }
+            User user = userRepository.save(User.builder()
+                    .email(d.email())
+                    .passwordHash(passwordEncoder.encode(DEMO_PASSWORD))
+                    .role(UserRole.DOCTOR)
+                    .build());
+            doctorProfileRepository.save(DoctorProfile.builder()
+                    .userId(user.getId())
+                    .name(d.name())
+                    .specialization(Specialization.GENERAL_PRACTICE)
+                    .published(false) // barebones → incomplete → hidden from patients
+                    .build());
+            created++;
+        }
+        if (created > 0) {
+            log.info("[seed] created {} panel account(s)", created);
         }
     }
 
@@ -750,6 +825,24 @@ public class SeedRunner implements CommandLineRunner {
                 "Blood pressure and knee pain."));
         n += save(slot(ids.get("arturo.lim@heron.care"), email, doc, 0, 16, 0, BookingStatus.CONFIRMED,
                 "Persistent fatigue work-up."));
+        // --- Evening half of her night shift (2 PM–10 PM): fills the rest of today
+        //     so the dashboard reads as a populated night-shift day. ---
+        n += save(slot(ids.get("benedict.cruz@heron.care"), email, doc, 0, 16, 30, BookingStatus.CONFIRMED,
+                "Evening check-in on blood pressure."));
+        n += save(slot(ids.get("noel.bautista@heron.care"), email, doc, 0, 17, 0, BookingStatus.CONFIRMED,
+                "Persistent cough — booked after work."));
+        n += save(slot(ids.get("rico.delacruz@heron.care"), email, doc, 0, 17, 30, BookingStatus.CONFIRMED,
+                "Asthma review.").consultationRecord(draft(SOAP_TEMPLATES.get(5))));
+        n += save(slot(ids.get("daniel.reyes@heron.care"), email, doc, 0, 18, 0, BookingStatus.CONFIRMED,
+                "General check-up after work."));
+        n += save(slot(ids.get("gerald.aquino@heron.care"), email, doc, 0, 18, 30, BookingStatus.CONFIRMED,
+                "Follow-up on recent blood work."));
+        n += save(slot(ids.get("felix.santos@heron.care"), email, doc, 0, 19, 30, BookingStatus.CONFIRMED,
+                "Recurring headaches, evening consult."));
+        n += save(slot(ids.get("juan.cruz@heron.care"), email, doc, 0, 20, 30, BookingStatus.CONFIRMED,
+                "Reviewing recent blood test results."));
+        n += save(slot(ids.get("maria.santos@heron.care"), email, doc, 0, 21, 0, BookingStatus.CONFIRMED,
+                "Trouble sleeping — late consult."));
         // --- Recent past: ended, awaiting notes (one with a draft started) ---
         n += save(slot(ids.get("felix.santos@heron.care"), email, doc, -1, 14, 0, BookingStatus.CONFIRMED,
                 "Recurring headaches, want to rule out causes."));
@@ -970,8 +1063,9 @@ public class SeedRunner implements CommandLineRunner {
         for (DoctorProfile profile : doctorProfileRepository.findAll()) {
             String email = userRepository.findById(profile.getUserId())
                     .map(User::getEmail).orElse(null);
-            if (email == null || !SATURDAY_DOCTORS.contains(email)) {
-                continue;
+            if (email == null || !SATURDAY_DOCTORS.contains(email)
+                    || NIGHT_DOCTORS.contains(email)) {
+                continue; // night-shift doctors get their schedule from ensureNightHours
             }
             Availability av = profile.getAvailability();
             if (av == null || av.getWeeklySchedule() == null) {
@@ -998,6 +1092,40 @@ public class SeedRunner implements CommandLineRunner {
         }
         if (updated > 0) {
             log.info("[seed] added Saturday hours to {} doctor(s)", updated);
+        }
+    }
+
+    // Sets the night-shift schedule (Mon-Sat 2 PM-10 PM) on the NIGHT_DOCTORS
+    // roster, so an already-seeded doctor switches to night hours without a full
+    // reseed. Idempotent: skips a doctor whose week already starts at 14:00.
+    private void ensureNightHours() {
+        int updated = 0;
+        for (DoctorProfile profile : doctorProfileRepository.findAll()) {
+            String email = userRepository.findById(profile.getUserId())
+                    .map(User::getEmail).orElse(null);
+            if (email == null || !NIGHT_DOCTORS.contains(email)) {
+                continue;
+            }
+            Availability av = profile.getAvailability();
+            boolean alreadyNight = av != null && av.getWeeklySchedule() != null
+                    && av.getWeeklySchedule().stream()
+                            .anyMatch(e -> LocalTime.of(14, 0).equals(e.getStartTime()));
+            if (alreadyNight) {
+                continue;
+            }
+            Availability night = Availability.nightShiftMonToSat();
+            // Preserve any existing time-off the doctor has set.
+            profile.setAvailability(Availability.builder()
+                    .timeZone(night.getTimeZone())
+                    .weeklySchedule(night.getWeeklySchedule())
+                    .blockedRanges(av != null && av.getBlockedRanges() != null
+                            ? av.getBlockedRanges() : List.of())
+                    .build());
+            doctorProfileRepository.save(profile);
+            updated++;
+        }
+        if (updated > 0) {
+            log.info("[seed] set night-shift hours on {} doctor(s)", updated);
         }
     }
 
@@ -1037,6 +1165,9 @@ public class SeedRunner implements CommandLineRunner {
 
     private record DoctorSpec(
             String email, String name, Specialization specialization, String bio, int years) {}
+
+    // A Whitecloak panel login: just an email and a display name (barebones).
+    private record PanelAccount(String email, String name) {}
 
     private record PatientSpec(
             String email, String name, LocalDate birthday, Sex sex, Double weightKg,
