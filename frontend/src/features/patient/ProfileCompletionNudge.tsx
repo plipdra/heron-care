@@ -36,26 +36,47 @@ export function ProfileCompletionNudge() {
     setDismissed(true);
   }
 
+  const pct = Math.round((filled / fields.length) * 100);
+
   return (
-    <div className="mt-6 flex items-start justify-between gap-3 rounded-md border border-primary/20 bg-primary-tint px-4 py-3">
-      <div className="text-sm text-ink">
-        <p className="font-medium">Complete your profile</p>
-        <p className="mt-0.5 text-ink-muted">
-          You've filled {filled} of {fields.length} details. Adding the rest helps your
-          doctor know who they're seeing before your visit.
-        </p>
-        <Button asChild variant="secondary" size="sm" className="mt-2">
-          <Link to="/profile">Complete profile</Link>
-        </Button>
+    <div className="relative mt-6 overflow-hidden rounded-lg border border-ai-glow bg-[linear-gradient(180deg,#EEF3FB_0%,#F4F7FB_60%,#FFFFFF_100%)] px-5 py-4 shadow-sm animate-banner-in">
+      {/* Crescent corner accent — the banner's quiet brand mark. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-6 -top-8 h-32 w-32 opacity-[0.08]"
+        style={{
+          backgroundImage: 'url(/brand/crescent-blue.svg)',
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="text-sm">
+          <p className="font-semibold text-primary-800">Complete your profile</p>
+          <p className="mt-0.5 text-ink-muted">
+            You've filled {filled} of {fields.length} details. Adding the rest helps your
+            doctor know who they're seeing before your visit.
+          </p>
+          {/* Progress — calm, primary fill, never an alarm. */}
+          <div className="mt-3 flex max-w-xs items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-primary-tint-md">
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+            </div>
+            <span className="tabular text-xs font-medium text-ink-muted">{pct}%</span>
+          </div>
+          <Button asChild size="sm" className="mt-3 shadow-xs">
+            <Link to="/profile">Complete profile</Link>
+          </Button>
+        </div>
+        <button
+          type="button"
+          aria-label="Dismiss"
+          onClick={dismiss}
+          className="relative shrink-0 rounded p-1 text-ink-muted transition-colors hover:bg-primary/10 hover:text-ink"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
-      <button
-        type="button"
-        aria-label="Dismiss"
-        onClick={dismiss}
-        className="shrink-0 rounded p-1 text-ink-muted transition-colors hover:bg-primary/10 hover:text-ink"
-      >
-        <X className="h-4 w-4" />
-      </button>
     </div>
   );
 }
