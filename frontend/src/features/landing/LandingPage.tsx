@@ -1,7 +1,14 @@
+import { Clock, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { DoctorHome } from './DoctorHome';
 import { HomeSymptomSearch } from './HomeSymptomSearch';
 import { HomeTrustBand } from './HomeTrustBand';
+
+const HERO_TRUST = [
+  { icon: ShieldCheck, h: 'Board-certified doctors', p: 'Every specialist is verified and licensed.' },
+  { icon: Clock, h: 'Real-time availability', p: 'You see live open times before you commit.' },
+  { icon: Lock, h: 'Private by design', p: 'Your description is only used to match you.' },
+];
 
 // Homepage: the AI symptom-router is the hero (left-aligned, with the crescent
 // motif drifting top-right), and a trust band sits below — answering an anxious
@@ -28,20 +35,33 @@ export function LandingPage() {
         <div className="max-w-2xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-ai-glow bg-ai-surface px-3 py-1 text-xs font-semibold tracking-wide text-primary-800">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
-            AI symptom router
+            Care, watched closely
           </span>
           <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-primary-800 md:text-5xl">
-            Describe what's going on.
+            Tell us what's wrong.
             <br />
-            We'll find the right doctor.
+            We'll find the <span className="text-accent-deep">right doctor</span>.
           </h1>
-          <p className="mt-4 text-lg text-ink-muted">
-            Tell us your symptoms — we suggest the right kind of specialist and the
-            doctors who fit. <span className="text-ink">Care, watched closely.</span>
+          <p className="mt-4 max-w-xl text-lg text-ink-muted">
+            Describe your symptoms in a sentence. Heron points you to the specialist
+            most likely to help — then shows who's available.
           </p>
           <div className="mt-8">
             <HomeSymptomSearch align="left" />
           </div>
+
+          {/* Inline trust band — why an anxious first-timer can rely on this. */}
+          <dl className="mt-10 grid max-w-xl gap-x-6 gap-y-5 sm:grid-cols-3">
+            {HERO_TRUST.map((t) => (
+              <div key={t.h} className="flex flex-col gap-1.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-tint text-primary">
+                  <t.icon className="h-4 w-4" />
+                </span>
+                <dt className="text-sm font-semibold text-ink">{t.h}</dt>
+                <dd className="text-xs leading-relaxed text-ink-muted">{t.p}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
