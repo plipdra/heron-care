@@ -80,13 +80,21 @@ export function RescheduleDialog({
     <Dialog open onOpenChange={(open) => !open && !submitting && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Reschedule your appointment</DialogTitle>
+          <DialogTitle className="text-primary-800">Reschedule your appointment</DialogTitle>
           <DialogDescription>
-            Currently{' '}
-            <span className="tabular text-ink">{formatFullDateTime(booking.startsAt)}</span>
-            {booking.doctorName ? ` with ${booking.doctorName}` : ''}. Pick a new time below.
+            Pick a new time below — your current appointment stays put until you confirm.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-md border border-ai-glow bg-ai-surface px-4 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+            Current time
+          </p>
+          <p className="tabular mt-0.5 text-sm font-medium text-primary-800">
+            {formatFullDateTime(booking.startsAt)}
+            {booking.doctorName ? ` · ${booking.doctorName}` : ''}
+          </p>
+        </div>
 
         {slotsPending ? (
           <div className="flex justify-center py-10">

@@ -150,7 +150,9 @@ export function NotificationBell() {
                       n.read ? '' : 'bg-primary-tint/40'
                     }`}
                   >
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary">
+                      <Icon className="h-4 w-4" />
+                    </span>
                     <span className="flex flex-col items-start gap-0.5">
                       <span className="text-sm text-ink">{n.message}</span>
                       {n.startsAt && (
