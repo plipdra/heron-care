@@ -21,7 +21,8 @@ import { useNow } from '@/lib/useNow';
 import { ProfileCompletionNudge } from '@/features/patient/ProfileCompletionNudge';
 import { useCancelBooking, useMyBookings, type PatientBooking } from './api';
 import { BookingsCalendar, type CalendarEvent } from './BookingsCalendar';
-import { CalendarDays, LayoutList } from 'lucide-react';
+import { BookingsWeek } from './BookingsWeek';
+import { AppointmentViewToggle, type ApptView } from './AppointmentViewToggle';
 
 const TONE_FOR: Record<string, CalendarEvent['tone']> = {
   upcoming: 'confirmed',
@@ -30,35 +31,6 @@ const TONE_FOR: Record<string, CalendarEvent['tone']> = {
   cancelled: 'cancelled',
 };
 
-// List ↔ Calendar segmented control. The list is the default (it carries the
-// actions); the calendar is a read-only month orientation.
-function ViewToggle({
-  view,
-  onChange,
-}: {
-  view: 'list' | 'calendar';
-  onChange: (v: 'list' | 'calendar') => void;
-}) {
-  const opt = (v: 'list' | 'calendar', label: string, icon: React.ReactNode) => (
-    <button
-      type="button"
-      aria-pressed={view === v}
-      onClick={() => onChange(v)}
-      className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-        view === v ? 'bg-surface text-ink shadow-xs' : 'text-ink-muted hover:text-ink'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-  return (
-    <div className="inline-flex gap-1 rounded-lg border border-line bg-surface-raised p-1">
-      {opt('list', 'List', <LayoutList className="h-4 w-4" />)}
-      {opt('calendar', 'Calendar', <CalendarDays className="h-4 w-4" />)}
-    </div>
-  );
-}
 import { StatusPill, displayStatus } from './status';
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
 import { RescheduleDialog } from './RescheduleDialog';
@@ -232,7 +204,7 @@ export function MyAppointmentsPage() {
   const [viewingSummary, setViewingSummary] = useState<PatientBooking | null>(null);
   const [rescheduling, setRescheduling] = useState<PatientBooking | null>(null);
   const [cancelling, setCancelling] = useState<PatientBooking | null>(null);
-  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [view, setView] = useState<ApptView>('list');
   // Explicit confirmation after a cancel/reschedule. The mutation closes its
   // dialog and the list re-renders, but a cancelled card slips into Past out of
   // view, so a silent close reads as "did it work?" — this banner answers that.
@@ -333,12 +305,16 @@ export function MyAppointmentsPage() {
       )}
 
       <div className="mt-8 flex justify-end">
-        <ViewToggle view={view} onChange={setView} />
+        <AppointmentViewToggle view={view} onChange={setView} />
       </div>
 
-      {view === 'calendar' ? (
+      {view === 'month' ? (
         <div className="mt-4">
           <BookingsCalendar events={events} />
+        </div>
+      ) : view === 'week' ? (
+        <div className="mt-4">
+          <BookingsWeek events={events} />
         </div>
       ) : (
         <>

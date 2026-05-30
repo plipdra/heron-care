@@ -20,6 +20,16 @@ import {
 import { useNow } from '@/lib/useNow';
 import { useAuthedImageUrl } from '@/lib/useAuthedImageUrl';
 import { StatusPill, displayStatus } from './status';
+import { BookingsCalendar, type CalendarEvent } from './BookingsCalendar';
+import { BookingsWeek } from './BookingsWeek';
+import { AppointmentViewToggle, type ApptView } from './AppointmentViewToggle';
+
+const TONE_FOR: Record<string, CalendarEvent['tone']> = {
+  upcoming: 'confirmed',
+  completed: 'completed',
+  ended: 'ended',
+  cancelled: 'cancelled',
+};
 import { ConsultationSummaryDialog } from './ConsultationSummaryDialog';
 import { WriteConsultationNotesDialog } from './WriteConsultationNotesDialog';
 import { useDoctorBookings, usePatientContext, type DoctorBooking } from './api';
@@ -298,6 +308,7 @@ export function DoctorAppointmentsPage() {
   const [selected, setSelected] = useState<DoctorBooking | null>(null);
   const [writingNotes, setWritingNotes] = useState<DoctorBooking | null>(null);
   const [viewingNotes, setViewingNotes] = useState<DoctorBooking | null>(null);
+  const [view, setView] = useState<ApptView>('list');
 
   const header = (
     <header>
@@ -358,11 +369,42 @@ export function DoctorAppointmentsPage() {
   const past = items.filter((b) => displayStatus(b, now) !== 'upcoming');
   const truncated = data.totalElements > items.length;
 
+  // Calendar events: clicking opens the right surface for the consult's state.
+  const events: CalendarEvent[] = items.map((b) => {
+    const s = displayStatus(b, now);
+    return {
+      id: b.id,
+      startsAt: b.startsAt,
+      title: b.patientName ?? 'Patient',
+      tone: TONE_FOR[s],
+      onClick:
+        s === 'completed'
+          ? () => setViewingNotes(b)
+          : s === 'ended'
+            ? () => setWritingNotes(b)
+            : () => setSelected(b),
+    };
+  });
+
   return (
     <main className="container mx-auto max-w-3xl px-4 py-10">
       {header}
 
-      <section className="mt-10">
+      <div className="mt-8 flex justify-end">
+        <AppointmentViewToggle view={view} onChange={setView} />
+      </div>
+
+      {view === 'month' ? (
+        <div className="mt-4">
+          <BookingsCalendar events={events} />
+        </div>
+      ) : view === 'week' ? (
+        <div className="mt-4">
+          <BookingsWeek events={events} />
+        </div>
+      ) : (
+        <>
+      <section className="mt-6">
         <h2 className="text-lg font-semibold">Upcoming</h2>
         {upcoming.length > 0 ? (
           <div className="mt-4 flex flex-col gap-4">
@@ -408,6 +450,8 @@ export function DoctorAppointmentsPage() {
           </p>
         )}
       </section>
+        </>
+      )}
 
       {selected && (
         <PatientContextDialog booking={selected} onClose={() => setSelected(null)} />
