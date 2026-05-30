@@ -19,20 +19,6 @@ const CONCERN_CHIPS = [
   'Stomach issues',
 ];
 
-// "AI symptom router" eyebrow. Light variant sits on the blue header bar.
-function Kicker({ light = false }: { light?: boolean }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-2 text-xs font-semibold tracking-wide ${
-        light ? 'text-white/85' : 'text-primary-600'
-      }`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${light ? 'bg-white' : 'bg-primary'}`} />
-      AI symptom router
-    </span>
-  );
-}
-
 // Honesty chip — reinforced even inside the bold header (light variant).
 function NotADiagnosisChip({ light = false }: { light?: boolean }) {
   if (light) {
@@ -150,7 +136,6 @@ export function RecommendPage() {
               />
               <div className="relative flex flex-col gap-5">
                 <div className="flex flex-col gap-3">
-                  <Kicker />
                   <label htmlFor="concern" className="text-sm font-semibold text-ink">
                     What's going on?
                   </label>
@@ -230,7 +215,6 @@ export function RecommendPage() {
               <div className="animate-veil-fade pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#2E6AB6_0%,#1E5398_100%)]" />
               <HeaderWatermark />
               <div className="relative flex flex-col gap-3">
-                <Kicker light />
                 <div className="flex items-center gap-3.5">
                   <CrescentSpinner size={40} variant="white" pulse />
                   <ThinkingStatus />
@@ -282,7 +266,6 @@ export function RecommendPage() {
                 <div className="relative overflow-hidden bg-[linear-gradient(180deg,var(--primary)_0%,var(--primary-hover)_100%)] px-8 py-7">
                   <HeaderWatermark />
                   <div className="relative flex max-w-[80%] flex-col gap-2.5">
-                    <Kicker light />
                     <h1 className="text-3xl font-bold leading-tight tracking-tight text-white">
                       {result.suggestedSpecializationLabel
                         ? `We suggest ${result.suggestedSpecializationLabel}.`

@@ -31,9 +31,12 @@ export function LandingPage() {
         }}
       />
       <section className="container relative mx-auto flex flex-col items-center px-4 py-20 text-center md:py-24">
-        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] font-semibold tracking-[0.04em] text-primary-600 shadow-xs">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+        {/* Brand line as an understated editorial kicker — wide-tracked small caps
+            flanked by fading hairlines, not a bordered pill. */}
+        <span className="flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.22em] text-primary-600">
+          <span className="h-px w-8 bg-gradient-to-r from-transparent to-primary/35" />
           Care, watched closely
+          <span className="h-px w-8 bg-gradient-to-l from-transparent to-primary/35" />
         </span>
         <h1 className="mt-6 max-w-[16ch] text-balance text-4xl font-bold leading-[1.05] tracking-tight text-ink md:text-[52px]">
           Tell us what's wrong. We'll find the{' '}
